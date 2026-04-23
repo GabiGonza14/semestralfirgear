@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+:root {
+  font-family: "Rajdhani", "Segoe UI", Tahoma, sans-serif;
+  color: #111827;
+  background: #ffffff;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+#root {
+  min-height: 100vh;
+}

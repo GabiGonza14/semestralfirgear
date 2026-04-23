@@ -1,0 +1,315 @@
+# FITGEAR Backend - Block A
+
+Base backend for FITGEAR using Bun + MongoDB.
+
+Block B implemented:
+
+- Full CRUD for Categories and Products
+- Request validation with Zod
+- Consistent error handling with status codes
+- Optional product filter/search/sort in list endpoint
+
+Block C implemented:
+
+- Real Users endpoints
+- Clerk sync endpoint (`/api/users/sync-clerk`)
+- Backend role assignment (`ADMIN` / `CUSTOMER`)
+
+Block D implemented:
+
+- Real Orders and OrderItems creation flow
+- Total and subtotal calculation from real product prices
+- Optional transactional write with fallback for standalone MongoDB
+
+## Requirements
+
+- Bun >= 1.2
+- MongoDB running locally or remotely
+
+## Environment variables
+
+Create a `.env` file from `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Variables:
+
+- `PORT`: API port
+- `MONGODB_URI`: MongoDB connection string
+- `FRONTEND_URL`: frontend base URL for Stripe success/cancel redirects
+- `STRIPE_SECRET_KEY`: Stripe secret API key
+- `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret
+
+## Install dependencies
+
+```bash
+bun install
+```
+
+## Run backend
+
+Development (watch mode):
+
+```bash
+bun run dev
+```
+
+Start:
+
+```bash
+bun run start
+```
+
+## API base routes
+
+- `GET /api/health`
+- `GET /api/categories`
+- `GET /api/categories/:id`
+- `POST /api/categories`
+- `PUT /api/categories/:id`
+- `DELETE /api/categories/:id`
+- `GET /api/products`
+- `GET /api/products/:id`
+- `POST /api/products`
+- `PUT /api/products/:id`
+- `DELETE /api/products/:id`
+- `GET /api/users`
+- `GET /api/users/:id`
+- `GET /api/users/email/:email`
+- `POST /api/users/sync-clerk`
+- `GET /api/orders`
+- `GET /api/orders/:id`
+- `POST /api/orders`
+- `GET /api/orders/user/:userId`
+- `POST /api/payments/create-checkout-session`
+- `POST /api/payments/webhook`
+
+## Status codes used
+
+- `200 OK`
+- `201 Created`
+- `400 Bad Request`
+- `404 Not Found`
+- `409 Conflict`
+- `500 Internal Server Error`
+
+## Quick checks
+
+Health check:
+
+```bash
+curl http://localhost:4000/api/health
+```
+
+Expected response:
+
+```json
+{ "status": "OK" }
+```
+
+## CRUD examples
+
+Create category:
+
+```bash
+curl -X POST http://localhost:4000/api/categories \
+	-H "Content-Type: application/json" \
+	-d '{
+		"name": "Bandas",
+		"description": "Bandas de resistencia para entrenamiento"
+	}'
+```
+
+Update category:
+
+```bash
+curl -X PUT http://localhost:4000/api/categories/<categoryId> \
+	-H "Content-Type: application/json" \
+	-d '{
+		"description": "Bandas de resistencia premium"
+	}'
+```
+
+Create product:
+
+```bash
+curl -X POST http://localhost:4000/api/products \
+	-H "Content-Type: application/json" \
+	-d '{
+		"name": "Banda Pro XL",
+		"description": "Banda de alta resistencia",
+		"price": 49.9,
+		"stock": 30,
+		"imageUrl": "https://example.com/banda-pro-xl.jpg",
+		"categoryId": "<categoryId>",
+		"isActive": true
+	}'
+```
+
+Update product:
+
+```bash
+curl -X PUT http://localhost:4000/api/products/<productId> \
+	-H "Content-Type: application/json" \
+	-d '{
+		"price": 59.9,
+		"stock": 25
+	}'
+```
+
+List products with optional query params:
+
+```bash
+curl "http://localhost:4000/api/products?categoryId=<categoryId>&search=banda&sortBy=price&sortOrder=asc"
+```
+
+## Validation rules
+
+Category:
+
+- `name`: required, non-empty string
+- `description`: optional string
+
+Product:
+
+- `name`: required, non-empty string
+- `description`: required, non-empty string
+- `price`: required number > 0
+- `stock`: required number >= 0
+- `imageUrl`: required, non-empty string
+- `categoryId`: required valid Mongo ObjectId and must exist
+- `isActive`: optional boolean, defaults to `true`
+
+User sync-clerk:
+
+- `clerkUserId`: required, non-empty string
+- `fullName`: required, non-empty string
+- `email`: required valid email
+- role rule: `admin@fitgear.com` -> `ADMIN`; any other email -> `CUSTOMER`
+
+Order creation:
+
+- `userId`: required valid Mongo ObjectId
+- `items`: required non-empty array
+- `items[].productId`: required valid Mongo ObjectId
+- `items[].quantity`: required integer > 0
+
+## Users API examples
+
+Sync Clerk user (customer):
+
+```bash
+curl -X POST http://localhost:4000/api/users/sync-clerk \
+	-H "Content-Type: application/json" \
+	-d '{
+		"clerkUserId": "user_123456",
+		"fullName": "Gabriel Gonzalez",
+		"email": "gabriel@example.com"
+	}'
+```
+
+Sync Clerk user (admin):
+
+```bash
+curl -X POST http://localhost:4000/api/users/sync-clerk \
+	-H "Content-Type: application/json" \
+	-d '{
+		"clerkUserId": "user_admin_1",
+		"fullName": "Admin Fitgear",
+		"email": "admin@fitgear.com"
+	}'
+```
+
+Get users list:
+
+```bash
+curl http://localhost:4000/api/users
+```
+
+Get user by id:
+
+```bash
+curl http://localhost:4000/api/users/<userId>
+```
+
+Get user by email:
+
+```bash
+curl http://localhost:4000/api/users/email/gabriel%40example.com
+```
+
+## Orders API examples
+
+Create order:
+
+```bash
+curl -X POST http://localhost:4000/api/orders \
+	-H "Content-Type: application/json" \
+	-d '{
+		"userId": "<userId>",
+		"items": [
+			{
+				"productId": "<productId1>",
+				"quantity": 2
+			},
+			{
+				"productId": "<productId2>",
+				"quantity": 1
+			}
+		]
+	}'
+```
+
+Get all orders:
+
+```bash
+curl http://localhost:4000/api/orders
+```
+
+Get order by id:
+
+```bash
+curl http://localhost:4000/api/orders/<orderId>
+```
+
+Get orders by user:
+
+```bash
+curl http://localhost:4000/api/orders/user/<userId>
+```
+
+## Payments (Stripe) examples
+
+Create checkout session from an existing order:
+
+```bash
+curl -X POST http://localhost:4000/api/payments/create-checkout-session \
+	-H "Content-Type: application/json" \
+	-d '{
+		"orderId": "<orderId>"
+	}'
+```
+
+Expected response:
+
+```json
+{
+	"sessionId": "cs_test_...",
+	"url": "https://checkout.stripe.com/c/pay/cs_test_..."
+}
+```
+
+Local webhook forwarding with Stripe CLI:
+
+```bash
+stripe listen --forward-to http://localhost:4000/api/payments/webhook
+```
+
+This command prints the webhook secret you must place in `STRIPE_WEBHOOK_SECRET`.
+
+MongoDB connection check:
+
+- Server log should print: `MongoDB connected`
+- If it fails, server prints `MongoDB connection error` and exits.
