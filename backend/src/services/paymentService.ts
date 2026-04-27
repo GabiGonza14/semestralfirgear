@@ -5,7 +5,6 @@ import { getStripeClient } from '../config/stripe'
 import { OrderItemModel } from '../models/OrderItem'
 import { OrderModel } from '../models/Order'
 import { ProductModel } from '../models/Product'
-import { StripeWebhookEventModel } from '../models/StripeWebhookEvent'
 import { HttpError } from '../utils/httpError'
 
 interface CheckoutSessionResult {
@@ -214,7 +213,7 @@ export async function confirmCheckoutPayment(orderId: string, sessionId?: string
   return { status: 'PAID' as const }
 }
 
-export async function constructWebhookEvent(payload: Buffer, signature: string | undefined) {
+export function constructWebhookEvent(payload: Buffer, signature: string | undefined) {
   if (!signature) {
     throw new HttpError(400, 'Missing Stripe signature header')
   }
@@ -226,187 +225,38 @@ export async function constructWebhookEvent(payload: Buffer, signature: string |
   const stripe = getStripeClient()
 
   try {
-    return await stripe.webhooks.constructEventAsync(payload, signature, env.stripeWebhookSecret)
-  } catch (error) {
-    console.error('Stripe webhook signature verification failed:', error)
+    return stripe.webhooks.constructEvent(payload, signature, env.stripeWebhookSecret)
+  } catch {
     throw new HttpError(400, 'Invalid Stripe signature')
   }
 }
 
 export async function handleStripeEvent(event: Stripe.Event) {
-  const extracted = extractStripeEventData(event)
-
-  const upserted = await StripeWebhookEventModel.findOneAndUpdate(
-    { eventId: event.id },
-    {
-      $setOnInsert: {
-        eventId: event.id,
-        eventType: event.type,
-        apiVersion: event.api_version ?? undefined,
-        stripeCreatedAt: new Date(event.created * 1000),
-        livemode: event.livemode,
-        processingState: 'received',
-      },
-      $set: {
-        payload: event,
-        data: extracted,
-        lastReceivedAt: new Date(),
-      },
-      $inc: {
-        deliveryCount: 1,
-      },
-    },
-    {
-      upsert: true,
-      returnDocument: 'after',
-    },
-  )
-
-  if (upserted.processingState === 'processed') {
-    console.info(`[StripeWebhook] duplicate ignored eventId=${event.id} type=${event.type}`)
+  if (event.type !== 'checkout.session.completed') {
     return
   }
 
-  const locked = await StripeWebhookEventModel.findOneAndUpdate(
-    {
-      eventId: event.id,
-      processingState: { $in: ['received', 'failed'] },
-    },
-    {
-      $set: {
-        processingState: 'processing',
-        processingStartedAt: new Date(),
-        errorMessage: undefined,
-      },
-    },
-    { returnDocument: 'after' },
-  )
+  const session = event.data.object as Stripe.Checkout.Session
+  const orderId = session.metadata?.orderId ?? session.client_reference_id
 
-  if (!locked) {
-    console.info(`[StripeWebhook] processing already in progress eventId=${event.id} type=${event.type}`)
+  if (!orderId) {
     return
   }
-
-  console.info(`[StripeWebhook] processing eventId=${event.id} type=${event.type}`)
 
   try {
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session
-        const orderId = session.metadata?.orderId ?? session.client_reference_id
-
-        if (!orderId) {
-          console.warn(`[StripeWebhook] checkout.session.completed without orderId eventId=${event.id}`)
-          break
-        }
-
-        await markOrderAsPaidAndDeductStock(
-          orderId,
-          session.id,
-          typeof session.payment_intent === 'string'
-            ? session.payment_intent
-            : (session.payment_intent?.id ?? undefined),
-        )
-
-        console.info(
-          `[StripeWebhook] checkout.session.completed processed eventId=${event.id} orderId=${orderId} amount=${session.amount_total ?? 0} ${session.currency ?? ''}`,
-        )
-        break
-      }
-
-      case 'payment_intent.succeeded': {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent
-        console.info(
-          `[StripeWebhook] payment_intent.succeeded eventId=${event.id} paymentIntentId=${paymentIntent.id} amount=${paymentIntent.amount_received} ${paymentIntent.currency}`,
-        )
-        break
-      }
-
-      case 'payment_intent.payment_failed': {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent
-        const reason = paymentIntent.last_payment_error?.message ?? 'unknown'
-        console.warn(
-          `[StripeWebhook] payment_intent.payment_failed eventId=${event.id} paymentIntentId=${paymentIntent.id} reason=${reason}`,
-        )
-        break
-      }
-
-      default:
-        console.info(`[StripeWebhook] event ignored type=${event.type} eventId=${event.id}`)
-        break
-    }
-
-    await StripeWebhookEventModel.findOneAndUpdate(
-      { eventId: event.id },
-      {
-        $set: {
-          processingState: 'processed',
-          processedAt: new Date(),
-        },
-      },
+    await markOrderAsPaidAndDeductStock(
+      orderId,
+      session.id,
+      typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : (session.payment_intent?.id ?? undefined),
     )
   } catch (error) {
-    await StripeWebhookEventModel.findOneAndUpdate(
-      { eventId: event.id },
-      {
-        $set: {
-          processingState: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unknown webhook processing error',
-        },
-      },
-    )
-
     if (error instanceof HttpError && error.statusCode === 403) {
-      console.warn(`[StripeWebhook] ignored forbidden eventId=${event.id} type=${event.type}`)
       return
     }
 
     throw error
-  }
-}
-
-function extractStripeEventData(event: Stripe.Event) {
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session
-    const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id
-    const paymentIntentId =
-      typeof session.payment_intent === 'string'
-        ? session.payment_intent
-        : session.payment_intent?.id
-
-    return {
-      orderId: session.metadata?.orderId ?? session.client_reference_id ?? undefined,
-      customerId,
-      customerEmail: session.customer_details?.email ?? session.customer_email ?? undefined,
-      amountTotal: session.amount_total ?? undefined,
-      currency: session.currency ?? undefined,
-      sessionId: session.id,
-      paymentIntentId,
-      paymentStatus: session.payment_status ?? undefined,
-      rawObjectType: session.object,
-    }
-  }
-
-  if (event.type === 'payment_intent.succeeded' || event.type === 'payment_intent.payment_failed') {
-    const paymentIntent = event.data.object as Stripe.PaymentIntent
-    const customerId = typeof paymentIntent.customer === 'string' ? paymentIntent.customer : paymentIntent.customer?.id
-
-    return {
-      customerId,
-      customerEmail: paymentIntent.receipt_email ?? undefined,
-      amountTotal: paymentIntent.amount_received || paymentIntent.amount,
-      currency: paymentIntent.currency,
-      paymentIntentId: paymentIntent.id,
-      paymentStatus: paymentIntent.status,
-      rawObjectType: paymentIntent.object,
-    }
-  }
-
-  return {
-    rawObjectType:
-      typeof event.data.object === 'object' && event.data.object !== null && 'object' in event.data.object
-        ? String((event.data.object as { object?: unknown }).object ?? '')
-        : undefined,
   }
 }
 
