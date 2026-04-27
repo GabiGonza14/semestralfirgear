@@ -7,6 +7,7 @@ import { SectionTitle } from '../components/SectionTitle'
 import { useCart } from '../context/CartContext'
 import type { Product } from '../types'
 import { formatCurrency } from '../utils/format'
+import { Button, getButtonClassName } from '../components/ui/Button'
 
 export function ProductDetailPage() {
   const { id } = useParams()
@@ -74,7 +75,7 @@ export function ProductDetailPage() {
     return (
       <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
         <h2 className="text-2xl font-bold text-gray-900">{error ?? 'Producto no encontrado'}</h2>
-        <Link to="/shop" className="mt-4 inline-flex text-red-500 hover:text-red-600">
+        <Link to="/shop" className={`${getButtonClassName({ variant: 'secondary' })} mt-4`}>
           Volver al catalogo
         </Link>
       </div>
@@ -92,19 +93,16 @@ export function ProductDetailPage() {
           />
         </div>
         <div className="space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-lime-700">
             {product.category}
           </p>
           <h1 className="text-4xl font-black text-gray-900">{product.name}</h1>
           <p className="text-gray-700">{product.description}</p>
           <p className="text-3xl font-bold text-gray-900">{formatCurrency(product.price)}</p>
           <p className="text-sm text-gray-600">Stock disponible: {product.stock} unidades</p>
-          <button
-            onClick={() => addItem(product)}
-            className="rounded-full bg-red-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-red-600"
-          >
+          <Button onClick={() => addItem(product)}>
             Agregar al carrito
-          </button>
+          </Button>
         </div>
       </section>
 

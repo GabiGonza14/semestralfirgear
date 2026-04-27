@@ -1,54 +1,26 @@
-import { useEffect, useState } from 'react'
-import { getMyOrders } from '../api/fitgearApi'
 import { OrderCard } from '../components/orders/OrderCard'
 import { SectionTitle } from '../components/SectionTitle'
 import { useAuth } from '../context/AuthContext'
-import type { BackendOrder } from '../types'
+import { useMyOrdersQuery } from '../hooks/useOrdersQueries'
 
 export function OrdersPage() {
   const { backendUser, isLoaded, syncError } = useAuth()
-  const [orders, setOrders] = useState<BackendOrder[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const ordersQuery = useMyOrdersQuery(backendUser?.id ?? null, isLoaded)
 
-  useEffect(() => {
-    if (!isLoaded) {
-      return
-    }
+  const loading = isLoaded ? ordersQuery.isLoading : true
 
-    if (!backendUser?.id) {
-      setLoading(false)
-      setError(syncError ?? 'No se pudo identificar el usuario para consultar ordenes.')
-      return
-    }
+  const error =
+    !isLoaded
+      ? null
+      : !backendUser?.id
+        ? syncError ?? 'No se pudo identificar el usuario para consultar ordenes.'
+        : ordersQuery.error instanceof Error
+          ? ordersQuery.error.message
+          : ordersQuery.error
+            ? 'No se pudieron cargar tus ordenes.'
+            : null
 
-    let active = true
-    setLoading(true)
-    setError(null)
-
-    void getMyOrders(backendUser.id)
-      .then((result) => {
-        if (!active) {
-          return
-        }
-        setOrders(result)
-      })
-      .catch((apiError: unknown) => {
-        if (!active) {
-          return
-        }
-        setError(apiError instanceof Error ? apiError.message : 'No se pudieron cargar tus ordenes.')
-      })
-      .finally(() => {
-        if (active) {
-          setLoading(false)
-        }
-      })
-
-    return () => {
-      active = false
-    }
-  }, [backendUser?.id, isLoaded, syncError])
+  const orders = ordersQuery.data ?? []
 
   return (
     <section className="space-y-6">

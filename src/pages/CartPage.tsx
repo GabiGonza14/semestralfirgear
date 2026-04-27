@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { createCheckoutSession, createOrder } from '../api/fitgearApi'
 import { CartItem } from '../components/CartItem'
+import { OrderSummary } from '../components/cart/OrderSummary'
 import { SectionTitle } from '../components/SectionTitle'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
-import { formatCurrency } from '../utils/format'
+import { queryKeys } from '../lib/queryKeys'
 
 export function CartPage() {
   const {
@@ -19,7 +22,7 @@ export function CartPage() {
     removeItem,
   } = useCart()
   const { backendUser } = useAuth()
-  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const queryClient = useQueryClient()
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null)
 
@@ -38,125 +41,110 @@ export function CartPage() {
   const canReusePendingOrder =
     pendingOrderId !== null && pendingFingerprint === cartFingerprint
 
+  const checkoutMutation = useMutation({
+    mutationFn: async () => {
+      if (!backendUser) {
+        throw new Error('Debes iniciar sesion para crear una orden.')
+      }
+
+      const activeOrderId = canReusePendingOrder
+        ? pendingOrderId
+        : (
+            await createOrder({
+              userId: backendUser.id,
+              items: items.map((item) => ({
+                productId: item.product.id,
+                quantity: item.quantity,
+              })),
+            })
+          ).id
+
+      if (!canReusePendingOrder) {
+        setPendingOrderId(activeOrderId)
+        setPendingFingerprint(cartFingerprint)
+      }
+
+      return createCheckoutSession({ orderId: activeOrderId })
+    },
+    onMutate: () => {
+      setCheckoutError(null)
+    },
+    onSuccess: async (session) => {
+      if (backendUser?.id) {
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.orders.byUser(backendUser.id),
+        })
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.cart.all,
+      })
+
+      window.location.assign(session.url)
+    },
+    onError: (error: unknown) => {
+      setCheckoutError(error instanceof Error ? error.message : 'No se pudo crear la orden.')
+    },
+  })
+
   if (!items.length) {
     return (
-      <section className="rounded-3xl border border-white/10 bg-slate-900/70 p-10 text-center">
-        <h1 className="text-3xl font-bold text-white">Tu carrito está vacío</h1>
-        <p className="mt-3 text-slate-300">Explora accesorios y arma tu kit de entrenamiento ideal.</p>
+      <motion.section
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: 'easeOut' }}
+        className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-[0_12px_30px_-24px_rgba(15,23,42,0.5)]"
+      >
+        <h1 className="text-3xl font-bold text-slate-900">Tu carrito está vacío</h1>
+        <p className="mt-3 text-slate-600">Explora accesorios y arma tu kit de entrenamiento ideal.</p>
         <Link
           to="/shop"
-          className="mt-6 inline-flex rounded-full bg-lime-400 px-6 py-3 text-sm font-semibold text-slate-950"
+          className="mt-6 inline-flex rounded-full bg-lime-400 px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-lime-300"
         >
           Ir al Shop
         </Link>
-      </section>
+      </motion.section>
     )
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: 'easeOut' }}
+      className="grid gap-8 lg:grid-cols-[1fr_360px]"
+    >
       <section className="space-y-4">
         <SectionTitle
           eyebrow="Carrito"
           title="Tu compra"
           description="Ajusta cantidades y revisa el resumen antes de crear la orden real."
         />
-        {items.map((item) => (
-          <CartItem
-            key={item.product.id}
-            product={item.product}
-            quantity={item.quantity}
-            onIncrease={() => increase(item.product.id)}
-            onDecrease={() => decrease(item.product.id)}
-            onRemove={() => removeItem(item.product.id)}
-          />
-        ))}
+        <AnimatePresence mode="popLayout">
+          {items.map((item) => (
+            <CartItem
+              key={item.product.id}
+              product={item.product}
+              quantity={item.quantity}
+              onIncrease={() => increase(item.product.id)}
+              onDecrease={() => decrease(item.product.id)}
+              onRemove={() => removeItem(item.product.id)}
+            />
+          ))}
+        </AnimatePresence>
       </section>
 
-      <aside className="h-fit rounded-2xl border border-white/10 bg-slate-900/70 p-5">
-        <h2 className="text-xl font-semibold text-white">Resumen</h2>
-        <div className="mt-4 space-y-2 text-sm text-slate-300">
-          <p className="flex justify-between">
-            <span>Items</span>
-            <span>{lineCount}</span>
-          </p>
-          <p className="flex justify-between">
-            <span>Subtotal</span>
-            <span>{formatCurrency(subtotal)}</span>
-          </p>
-          <p className="flex justify-between">
-            <span>Impuesto (7%)</span>
-            <span>{formatCurrency(taxAmount)}</span>
-          </p>
-          <p className="flex justify-between">
-            <span>Envío</span>
-            <span>{shippingAmount > 0 ? formatCurrency(shippingAmount) : 'Gratis'}</span>
-          </p>
-          <p className="flex justify-between border-t border-white/10 pt-2 text-base font-semibold text-white">
-            <span>Total</span>
-            <span>{formatCurrency(total)}</span>
-          </p>
-        </div>
-
-        <button
-          disabled={checkoutLoading}
-          onClick={() => {
-            if (!backendUser) {
-              setCheckoutError('Debes iniciar sesion para crear una orden.')
-              return
-            }
-
-            setCheckoutLoading(true)
-            setCheckoutError(null)
-
-            let activeOrderId = canReusePendingOrder ? pendingOrderId : null
-
-            const getOrderPromise = activeOrderId
-              ? Promise.resolve(activeOrderId)
-              : createOrder({
-                  userId: backendUser.id,
-                  items: items.map((item) => ({
-                    productId: item.product.id,
-                    quantity: item.quantity,
-                  })),
-                }).then((order) => {
-                  setPendingOrderId(order.id)
-                  setPendingFingerprint(cartFingerprint)
-                  return order.id
-                })
-
-            void getOrderPromise
-              .then((orderId) => {
-                activeOrderId = orderId
-                return createCheckoutSession({ orderId })
-              })
-              .then((session) => {
-                window.location.assign(session.url)
-              })
-              .catch((error: unknown) => {
-                setCheckoutError(error instanceof Error ? error.message : 'No se pudo crear la orden.')
-              })
-              .finally(() => {
-                setCheckoutLoading(false)
-              })
-          }}
-          className="mt-5 w-full rounded-full bg-lime-400 px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-lime-300"
-        >
-          {checkoutLoading
-            ? 'Redirigiendo a Stripe...'
-            : canReusePendingOrder
-              ? 'Reintentar pago'
-              : 'Pagar con tarjeta'}
-        </button>
-
-        {checkoutError ? (
-          <p className="mt-3 text-sm text-rose-200">{checkoutError}</p>
-        ) : null}
-
-        <p className="mt-3 text-xs text-slate-400">
-          Se crea una orden en estado PENDING y luego se abre Stripe Checkout para completar el pago.
-        </p>
-      </aside>
-    </div>
+      <OrderSummary
+        lineCount={lineCount}
+        subtotal={subtotal}
+        taxAmount={taxAmount}
+        shippingAmount={shippingAmount}
+        total={total}
+        checkoutPending={checkoutMutation.isPending}
+        canReusePendingOrder={canReusePendingOrder}
+        checkoutError={checkoutError}
+        onCheckout={() => checkoutMutation.mutate()}
+      />
+    </motion.div>
   )
 }

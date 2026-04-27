@@ -35,6 +35,7 @@ export function ShopPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [useFallbackCatalog, setUseFallbackCatalog] = useState(false)
+  const [catalogNotice, setCatalogNotice] = useState<string | null>(null)
 
   const activeCategories = useFallbackCatalog ? fallbackCategories : categories
 
@@ -61,11 +62,13 @@ export function ShopPage() {
         if (result.length === 0) {
           setUseFallbackCatalog(true)
           setCategories(fallbackCategories)
+          setCatalogNotice('Mostrando catalogo local de respaldo.')
           setLoading(false)
           return
         }
 
         setCategories(result.map((category) => ({ value: category._id, label: category.name })))
+        setCatalogNotice(null)
         setLoading(false)
       })
       .catch((apiError: unknown) => {
@@ -96,19 +99,14 @@ export function ShopPage() {
       (category) => normalizeText(category.label) === normalizeText(selectedCategory),
     )
 
-    return found?.value ?? (useFallbackCatalog ? 'all' : null)
-  }, [activeCategories, selectedCategory, useFallbackCatalog])
+    // Unknown/legacy category values from URL should not hide the full catalog.
+    return found?.value ?? 'all'
+  }, [activeCategories, selectedCategory])
 
   useEffect(() => {
     let active = true
 
     if (useFallbackCatalog) {
-      return () => {
-        active = false
-      }
-    }
-
-    if (resolvedCategory === null) {
       return () => {
         active = false
       }
@@ -137,15 +135,9 @@ export function ShopPage() {
           return
         }
 
-        if (result.length === 0) {
-          setUseFallbackCatalog(true)
-          setProducts([])
-          setError(null)
-          return
-        }
-
         setProducts(result)
         setError(null)
+        setCatalogNotice(null)
       })
       .catch((apiError: unknown) => {
         if (!active) {
@@ -153,12 +145,12 @@ export function ShopPage() {
         }
         if (apiError instanceof ApiError) {
           setUseFallbackCatalog(true)
-          setProducts([])
-          setError(apiError.message)
+          setError(null)
+          setCatalogNotice('Conexion temporalmente inestable. Mostrando catalogo local.')
         } else {
           setUseFallbackCatalog(true)
-          setProducts([])
-          setError('No se pudieron cargar productos.')
+          setError(null)
+          setCatalogNotice('Conexion temporalmente inestable. Mostrando catalogo local.')
         }
       })
       .finally(() => {
@@ -215,7 +207,7 @@ export function ShopPage() {
         </CTAButton>
       </div>
 
-      <div className="grid gap-4 rounded-3xl border border-gray-200 bg-white p-4 shadow-sm shadow-black/5">
+      <div className="grid gap-4 rounded-3xl border border-gray-200 bg-white p-5 shadow-[0_16px_36px_-28px_rgba(15,23,42,0.35)]">
         <SearchBar value={query} onChange={setQuery} />
 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -229,7 +221,7 @@ export function ShopPage() {
             onChange={(event) =>
               setSortBy(event.target.value as 'featured' | 'priceAsc' | 'priceDesc')
             }
-            className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 shadow-sm outline-none focus:border-red-500"
+            className="rounded-full border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm outline-none transition focus:border-lime-500 focus:ring-4 focus:ring-lime-100"
           >
             <option value="featured">Destacados</option>
             <option value="priceAsc">Precio: menor a mayor</option>
@@ -238,6 +230,12 @@ export function ShopPage() {
         </div>
       </div>
 
+      {catalogNotice ? (
+        <div className="rounded-2xl border border-lime-200 bg-lime-50 px-4 py-3 text-sm text-lime-800 shadow-[0_10px_24px_-18px_rgba(88,214,79,0.5)]">
+          {catalogNotice}
+        </div>
+      ) : null}
+
       {loading ? (
         <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-700 shadow-sm">
           Cargando catalogo...
@@ -245,7 +243,7 @@ export function ShopPage() {
       ) : null}
 
       {error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
           {error}
         </div>
       ) : null}

@@ -1,6 +1,16 @@
 @import "tailwindcss";
 
 :root {
+  --fitgear-green-50: #f3fff2;
+  --fitgear-green-100: #dcffd8;
+  --fitgear-green-300: #95f08e;
+  --fitgear-green-500: #59d64f;
+  --fitgear-green-700: #248b22;
+  --fitgear-gray-100: #f3f4f6;
+  --fitgear-gray-200: #e5e7eb;
+  --fitgear-gray-500: #6b7280;
+  --fitgear-gray-900: #111827;
+
   font-family: "Rajdhani", "Segoe UI", Tahoma, sans-serif;
   color: #111827;
   background: #ffffff;
@@ -16,7 +26,9 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: #ffffff;
+  background:
+    radial-gradient(circle at 10% 0%, var(--fitgear-green-50), transparent 45%),
+    linear-gradient(180deg, #ffffff 0%, #fbfbfb 100%);
 }
 
 #root {

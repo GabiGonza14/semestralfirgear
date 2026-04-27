@@ -1,5 +1,7 @@
+import { motion } from 'framer-motion'
 import type { Product } from '../types'
 import { formatCurrency } from '../utils/format'
+import { Button } from './ui/Button'
 
 interface CartItemProps {
   product: Product
@@ -10,28 +12,46 @@ interface CartItemProps {
 }
 
 export function CartItem({ product, quantity, onIncrease, onDecrease, onRemove }: CartItemProps) {
+  const subtotal = quantity * product.price
+
   return (
-    <article className="grid gap-4 rounded-2xl border border-white/10 bg-slate-900/70 p-4 sm:grid-cols-[92px_1fr_auto] sm:items-center">
-      <img src={product.image} alt={product.name} className="h-24 w-24 rounded-xl object-cover" />
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.24, ease: 'easeOut' }}
+      className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-[0_12px_28px_-22px_rgba(15,23,42,0.45)] sm:grid-cols-[108px_1fr_auto] sm:items-center"
+    >
+      <img src={product.image} alt={product.name} className="h-24 w-24 rounded-2xl border border-slate-200 object-cover sm:h-28 sm:w-28" />
 
       <div>
-        <h3 className="text-lg font-semibold text-slate-100">{product.name}</h3>
-        <p className="text-sm text-slate-400">{product.category}</p>
-        <p className="mt-1 text-sm text-slate-300">{formatCurrency(product.price)} c/u</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-lime-700">{product.category}</p>
+        <h3 className="mt-1 text-lg font-semibold text-slate-900">{product.name}</h3>
+        <p className="mt-2 text-sm text-slate-600">{formatCurrency(product.price)} c/u</p>
+        <p className="mt-1 text-sm font-semibold text-slate-900">Subtotal: {formatCurrency(subtotal)}</p>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button onClick={onDecrease} className="h-8 w-8 rounded-full border border-white/20 text-slate-200">
+      <div className="flex items-center gap-2 sm:justify-end">
+        <button
+          onClick={onDecrease}
+          aria-label="Reducir cantidad"
+          className="h-9 w-9 rounded-full border border-slate-300 text-slate-700 transition hover:border-lime-400 hover:text-lime-700"
+        >
           -
         </button>
-        <span className="w-6 text-center text-slate-100">{quantity}</span>
-        <button onClick={onIncrease} className="h-8 w-8 rounded-full border border-white/20 text-slate-200">
+        <span className="w-8 text-center text-base font-semibold text-slate-900">{quantity}</span>
+        <button
+          onClick={onIncrease}
+          aria-label="Aumentar cantidad"
+          className="h-9 w-9 rounded-full border border-slate-300 text-slate-700 transition hover:border-lime-400 hover:text-lime-700"
+        >
           +
         </button>
-        <button onClick={onRemove} className="ml-2 text-sm text-rose-300 hover:text-rose-200">
+        <Button onClick={onRemove} variant="secondary" className="ml-2 px-4 py-2 text-xs">
           Eliminar
-        </button>
+        </Button>
       </div>
-    </article>
+    </motion.article>
   )
 }

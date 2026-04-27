@@ -12,7 +12,7 @@ export function SiteLayout() {
     <div className="min-h-screen bg-white text-gray-900">
       <Navbar />
       {showHomeCategoryNav ? <HomeCategoryNav /> : null}
-      <main className="mx-auto w-full max-w-[95%] px-2 py-8 sm:px-3 lg:px-3">
+      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         <Outlet />
       </main>
       <Footer />

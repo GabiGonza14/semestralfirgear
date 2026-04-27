@@ -240,6 +240,11 @@ export async function getMyOrders(userId: string) {
   return orders.map(mapOrder)
 }
 
+export async function getOrderById(orderId: string) {
+  const order = await apiRequest<MongoOrder>(`/orders/${orderId}`, { method: 'GET' })
+  return mapOrder(order)
+}
+
 export async function createOrder(payload: {
   userId: string
   items: Array<{ productId: string; quantity: number }>

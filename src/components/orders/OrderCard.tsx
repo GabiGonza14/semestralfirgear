@@ -9,18 +9,18 @@ interface OrderCardProps {
 
 function statusStyles(status: BackendOrder['status']) {
   if (status === 'PAID') {
-    return 'bg-green-100 text-green-700'
+    return 'bg-lime-100 text-lime-700'
   }
 
   if (status === 'PENDING') {
-    return 'bg-yellow-100 text-yellow-700'
+    return 'bg-amber-100 text-amber-700'
   }
 
   if (status === 'CANCELLED') {
-    return 'bg-red-100 text-red-700'
+    return 'bg-slate-100 text-slate-600'
   }
 
-  return 'bg-blue-100 text-blue-700'
+  return 'bg-slate-100 text-slate-700'
 }
 
 function formatDate(value: string) {
@@ -40,7 +40,7 @@ export function OrderCard({ order }: OrderCardProps) {
   )
 
   return (
-    <article className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Orden</p>
