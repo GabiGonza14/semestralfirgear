@@ -228,6 +228,6 @@ bun src/server.ts
 
 - Publicar el backend en un entorno estable de desarrollo o staging.
 - Agregar tests automatizados para catalogo, carrito y checkout.
-- Reducir el tamano del bundle principal mediante code splitting.
+- Reducir el tamaño del bundle principal mediante code splitting.
 - Documentar el despliegue en produccion.
 - Añadir un seed controlado para entornos limpios de desarrollo.

@@ -9,7 +9,7 @@ export const products: Product[] = [
     price: 29.99,
     stock: 34,
     image:
-      'https://images.unsplash.com/photo-1596357395217-80de13130e92?auto=format&fit=crop&w=900&q=80',
+      '/uploads/products/kit-de-mancuernas-para-pesas-20-kg-1776876019385.webp',
     description:
       'Set de 5 niveles de resistencia para entrenamiento funcional en casa o gimnasio.',
     isActive: true,
@@ -23,7 +23,7 @@ export const products: Product[] = [
     price: 89.5,
     stock: 12,
     image:
-      'https://images.unsplash.com/photo-1581009137042-c552e485697a?auto=format&fit=crop&w=900&q=80',
+      '/uploads/products/kit-de-mancuernas-de-musculacion-de-10-kg-1776876263786.webp',
     description:
       'Peso ajustable para sesiones de fuerza progresiva con agarre antideslizante.',
     isActive: true,
@@ -37,9 +37,9 @@ export const products: Product[] = [
     price: 24.75,
     stock: 56,
     image:
-      'https://images.unsplash.com/photo-1517344884509-a0c97ec11bcc?auto=format&fit=crop&w=900&q=80',
+      '/uploads/products/mancuerna-1777335111876.png',
     description:
-      'Guantes transpirables con soporte de muneca para levantamiento y cross training.',
+      'Guantes transpirables con soporte de muñeca para levantamiento y cross training.',
     isActive: true,
     featured: true,
   },
@@ -51,9 +51,9 @@ export const products: Product[] = [
     price: 18.99,
     stock: 88,
     image:
-      'https://images.unsplash.com/photo-1595231776515-ddffb1f4eb73?auto=format&fit=crop&w=900&q=80',
+      '/uploads/products/masajeador-manual-roll-on-1776877368773.webp',
     description:
-      'Botella termica para mantener hidratacion fria por hasta 12 horas.',
+      'Botella térmica para mantener hidratación fría por hasta 12 horas.',
     isActive: true,
   },
   {
@@ -64,7 +64,7 @@ export const products: Product[] = [
     price: 39.0,
     stock: 27,
     image:
-      'https://images.unsplash.com/photo-1571019613576-2b22c76fd955?auto=format&fit=crop&w=900&q=80',
+      '/uploads/products/rodillo-de-masaje-liso-1776877329260.webp',
     description:
       'Colchoneta de alta densidad para yoga, movilidad y entrenamiento de piso.',
     isActive: true,
@@ -77,9 +77,9 @@ export const products: Product[] = [
     price: 19.99,
     stock: 63,
     image:
-      'https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=900&q=80',
+      '/uploads/products/cuerda-para-saltar-de-cross-training-de-velocidad-negra-speed-rope-1776876773477.webp',
     description:
-      'Cuerda liviana para cardio de alto rendimiento con ajuste rapido de largo.',
+      'Cuerda liviana para cardio de alto rendimiento con ajuste rápido de largo.',
     isActive: true,
   },
 ]

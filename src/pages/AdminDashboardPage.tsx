@@ -74,12 +74,26 @@ export function AdminDashboardPage() {
 
   if (!isAdmin) {
     return (
-      <section className="rounded-2xl border border-amber-300/30 bg-amber-400/10 p-8 text-center">
-        <h1 className="text-2xl font-bold text-amber-100">Acceso solo para admin</h1>
-        <p className="mt-2 text-amber-50/90">Inicia sesion como admin para configurar el sistema.</p>
-        <Link to="/login" className="mt-5 inline-flex text-amber-200 underline">
-          Ir a login
-        </Link>
+      <section className="space-y-6">
+        <SectionTitle
+          eyebrow="Acceso Restringido"
+          title="Área exclusiva para administradores"
+          description="Este panel solo está disponible para usuarios con permisos de administración."
+        />
+        <div className="rounded-3xl border-2 border-amber-400/40 bg-gradient-to-br from-amber-400/10 to-orange-400/5 p-8 sm:p-12">
+          <div className="flex flex-col items-center text-center">
+            <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-400/20">
+              <svg className="h-8 w-8 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4v2m0 0v2m0-12V7m0 4V5m0 4v2" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-amber-100">Acceso denegado</h2>
+            <p className="mt-3 text-amber-50/80">Necesitas iniciar sesión como administrador para acceder a este panel.</p>
+            <Link to="/login" className="mt-6 inline-flex rounded-full bg-amber-400/90 px-6 py-2.5 font-semibold text-slate-900 transition hover:bg-amber-300">
+              Ir a inicio de sesión
+            </Link>
+          </div>
+        </div>
       </section>
     )
   }
@@ -90,20 +104,20 @@ export function AdminDashboardPage() {
 
       <div className="space-y-6">
         <SectionTitle
-          eyebrow="Admin Dashboard"
-          title="Control total de FITGEAR"
-          description="Panel para administrar catalogo, ordenes, usuarios y configuraciones del e-commerce."
+          eyebrow="Panel de Control"
+          title="Administración de FITGEAR"
+          description="Gestiona catálogo, órdenes, usuarios y operaciones del e-commerce en tiempo real."
         />
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <SummaryCard label="Productos" value={`${products.length}`} trend="+3 este mes" />
-          <SummaryCard label="Ordenes" value={`${orders.length}`} trend="Operacion activa" />
-          <SummaryCard label="Usuarios" value={`${users.length}`} trend="Crecimiento sostenido" />
-          <SummaryCard label="Ventas" value={formatCurrency(totalRevenue)} trend="Data backend" />
+          <SummaryCard label="Productos" value={`${products.length}`} trend="En el catálogo" />
+          <SummaryCard label="Órdenes" value={`${orders.length}`} trend="En procesamiento" />
+          <SummaryCard label="Usuarios" value={`${users.length}`} trend="Registrados" />
+          <SummaryCard label="Ingresos" value={formatCurrency(totalRevenue)} trend="Total de ventas" />
         </div>
 
         {loading ? (
-          <p className="text-sm text-slate-300">Cargando datos del dashboard...</p>
+          <p className="text-sm text-slate-300">Cargando panel de administración...</p>
         ) : null}
 
         {error ? (
@@ -116,7 +130,7 @@ export function AdminDashboardPage() {
 
         {(section === 'overview' || section === 'orders') && (
           <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-            <h3 className="mb-4 text-lg font-semibold text-white">Ordenes</h3>
+            <h3 className="mb-4 text-lg font-semibold text-white">Órdenes recientes</h3>
             <div className="overflow-x-auto">
               <table className="w-full min-w-140 text-left text-sm text-slate-300">
                 <thead className="text-slate-400">
@@ -144,7 +158,7 @@ export function AdminDashboardPage() {
 
         {(section === 'overview' || section === 'users') && (
           <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-            <h3 className="mb-4 text-lg font-semibold text-white">Usuarios</h3>
+            <h3 className="mb-4 text-lg font-semibold text-white">Usuarios registrados</h3>
             <div className="overflow-x-auto">
               <table className="w-full min-w-140 text-left text-sm text-slate-300">
                 <thead className="text-slate-400">

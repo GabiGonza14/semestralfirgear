@@ -91,7 +91,7 @@ export function ProductFormModal({
     }
 
     if (selected.size > maxImageSize) {
-      setError('La imagen supera el tamano maximo permitido de 5MB.')
+      setError('La imagen supera el tamaño máximo permitido de 5MB.')
       event.target.value = ''
       return
     }
