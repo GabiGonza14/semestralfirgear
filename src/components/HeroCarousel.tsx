@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import gsap from 'gsap'
-import { useGSAP } from '@gsap/react'
-
-gsap.registerPlugin(useGSAP)
+import { gsap, useGSAP, prefersReducedMotion } from '../lib/gsap'
 
 const AUTOPLAY_MS = 6000
 
@@ -96,26 +93,21 @@ export function HeroCarousel() {
   /* GSAP: re-animates text content on every slide change */
   useGSAP(
     () => {
-      const tl = gsap.timeline()
-      tl.from('.hero-tag', {
-        y: 24,
-        opacity: 0,
-        duration: 0.45,
-        ease: 'power3.out',
-      })
-      tl.from(
-        '.hero-title',
-        { y: 52, opacity: 0, duration: 0.7, ease: 'power3.out' },
-        '-=0.25',
-      )
+      // Motion is an enhancement: skip it entirely when reduced motion is on so
+      // the slide text simply stays at its natural, visible state.
+      if (prefersReducedMotion()) return
+
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
+      tl.from('.hero-tag', { y: 24, autoAlpha: 0, duration: 0.45 })
+      tl.from('.hero-title', { y: 52, autoAlpha: 0, duration: 0.7 }, '-=0.25')
       tl.from(
         '.hero-sub',
-        { y: 20, opacity: 0, duration: 0.45, ease: 'power2.out' },
+        { y: 20, autoAlpha: 0, duration: 0.45, ease: 'power2.out' },
         '-=0.4',
       )
       tl.from(
         '.hero-cta > *',
-        { y: 16, opacity: 0, duration: 0.35, stagger: 0.1, ease: 'power2.out' },
+        { y: 16, autoAlpha: 0, duration: 0.35, stagger: 0.1, ease: 'power2.out' },
         '-=0.3',
       )
     },

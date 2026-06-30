@@ -96,7 +96,7 @@ export function OrderSummary({
         ) : null}
       </AnimatePresence>
 
-      <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-slate-500">
+      <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-slate-400">
         <svg className="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
         </svg>

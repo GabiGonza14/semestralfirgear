@@ -233,7 +233,7 @@ export function ProductFormModal({
                   onChange={handleImageChange}
                   className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-slate-300 outline-none file:mr-3 file:rounded-full file:border-0 file:bg-lime-400 file:px-4 file:py-2 file:text-sm file:font-bold file:text-slate-900 hover:file:bg-lime-300"
                 />
-                <p className="text-xs text-slate-500">JPG, PNG, WEBP o GIF. Maximo 5MB.</p>
+                <p className="text-xs text-slate-400">JPG, PNG, WEBP o GIF. Maximo 5MB.</p>
               </label>
 
               {form.imagePreview ? (

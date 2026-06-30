@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import gsap from 'gsap'
-import { useGSAP } from '@gsap/react'
+import { gsap, useGSAP, prefersReducedMotion } from '../lib/gsap'
 import { ApiError } from '../api/apiClient'
 import { getCategories, getProducts } from '../api/fitgearApi'
 import { CategoryFilter } from '../components/CategoryFilter'
@@ -10,8 +9,6 @@ import { SearchBar } from '../components/SearchBar'
 import { categories as fallbackCategoryNames } from '../data/categories'
 import { products as fallbackProducts } from '../data/products'
 import type { Product } from '../types'
-
-gsap.registerPlugin(useGSAP)
 
 const fallbackCategories = fallbackCategoryNames.map((category) => ({
   value: category,
@@ -221,6 +218,7 @@ export function ShopPage() {
   // Plain `from` with no ScrollTrigger always settles to the visible state.
   useGSAP(
     () => {
+      if (prefersReducedMotion()) return
       if (!gridRef.current) return
       const cards = gridRef.current.children
       if (cards.length === 0) return
