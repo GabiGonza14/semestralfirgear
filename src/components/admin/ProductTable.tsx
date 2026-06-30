@@ -16,7 +16,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
 
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-white/[0.06] text-left text-sm">
-          <thead className="bg-white/[0.02] text-xs uppercase tracking-[0.16em] text-slate-500">
+          <thead className="bg-white/[0.02] text-xs uppercase tracking-[0.16em] text-slate-400">
             <tr>
               <th className="px-5 py-3 font-semibold">Imagen</th>
               <th className="px-5 py-3 font-semibold">Nombre</th>
@@ -91,7 +91,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
+                <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
                   No hay productos para mostrar con estos filtros.
                 </td>
               </tr>

@@ -18,7 +18,7 @@ export function OrderItemRow({ item }: OrderItemRowProps) {
 
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-white">{item.productName}</p>
-        <p className="truncate font-mono text-xs text-slate-500">ID: {item.productId}</p>
+        <p className="truncate font-mono text-xs text-slate-400">ID: {item.productId}</p>
       </div>
 
       <p className="text-xs text-slate-400 sm:text-sm">Cant: {item.quantity}</p>

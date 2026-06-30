@@ -26,7 +26,7 @@ export const clerkDarkAppearance: ClerkAppearance = {
       'border border-white/10 bg-white/[0.03] !text-slate-200 hover:bg-white/[0.06]',
     socialButtonsBlockButtonText: '!text-slate-200 font-medium',
     dividerLine: 'bg-white/10',
-    dividerText: 'text-slate-500',
+    dividerText: 'text-slate-400',
     formFieldLabel: 'text-slate-300',
     formButtonPrimary:
       'bg-lime-400 text-slate-900 hover:bg-lime-300 normal-case font-bold',

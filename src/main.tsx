@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { ClerkProvider } from '@clerk/clerk-react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
+import './lib/gsap'
 import App from './App.tsx'
 import { queryClient } from './lib/queryClient'
 

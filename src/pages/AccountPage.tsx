@@ -23,7 +23,7 @@ export function AccountPage() {
             <h3 className="text-sm font-semibold uppercase tracking-wide text-lime-400">
               Informacion de tu cuenta
             </h3>
-            <p className="mt-3 text-xs text-slate-500">
+            <p className="mt-3 text-xs text-slate-400">
               Todos tus datos están seguros y encriptados. Usa los campos abajo para actualizar tu información personal.
             </p>
           </div>
@@ -78,7 +78,8 @@ export function AccountPage() {
           ¿Necesitas ayuda?
         </h3>
         <div className="grid gap-4 sm:grid-cols-2">
-          <a href="#" className="group flex items-start gap-3 rounded-2xl border border-white/5 bg-white/5 p-4 transition hover:border-lime-400/30 hover:bg-lime-400/10">
+          {/* TODO: enlazar a la ruta/recurso real de soporte cuando exista. */}
+          <button type="button" className="group flex w-full items-start gap-3 rounded-2xl border border-white/5 bg-white/5 p-4 text-left transition hover:border-lime-400/30 hover:bg-lime-400/10">
             <div className="mt-1 flex-shrink-0 text-lime-500">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5-4a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -88,8 +89,9 @@ export function AccountPage() {
               <p className="font-medium text-slate-100 group-hover:text-lime-400">Centro de soporte</p>
               <p className="text-xs text-slate-400">Consulta preguntas frecuentes y documentación</p>
             </div>
-          </a>
-          <a href="#" className="group flex items-start gap-3 rounded-2xl border border-white/5 bg-white/5 p-4 transition hover:border-lime-400/30 hover:bg-lime-400/10">
+          </button>
+          {/* TODO: enlazar a la ruta/recurso real de soporte cuando exista. */}
+          <button type="button" className="group flex w-full items-start gap-3 rounded-2xl border border-white/5 bg-white/5 p-4 text-left transition hover:border-lime-400/30 hover:bg-lime-400/10">
             <div className="mt-1 flex-shrink-0 text-lime-500">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -99,7 +101,7 @@ export function AccountPage() {
               <p className="font-medium text-slate-100 group-hover:text-lime-400">Contactar soporte</p>
               <p className="text-xs text-slate-400">Escribe a nuestro equipo de atención</p>
             </div>
-          </a>
+          </button>
         </div>
       </div>
     </section>

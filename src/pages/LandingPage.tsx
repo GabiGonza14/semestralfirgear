@@ -1,7 +1,12 @@
 import { useRef, type ReactElement } from 'react'
 import { Link } from 'react-router-dom'
 import { CategoryCards } from '../components/CategoryCards'
-import { HeroCarousel } from '../components/HeroCarousel'
+import { FeaturedProducts } from '../components/FeaturedProducts'
+import { Hero } from '../components/Hero'
+import { Marquee } from '../components/Marquee'
+import { ProgramCards } from '../components/ProgramCards'
+import { SectionDecor } from '../components/SectionDecor'
+import { WhyFitgear } from '../components/WhyFitgear'
 import { useReveal } from '../hooks/useReveal'
 
 interface TrustItem {
@@ -52,44 +57,14 @@ const trustItems: TrustItem[] = [
   },
 ]
 
-const features = [
-  {
-    title: 'Calidad premium',
-    body: 'Cada producto pasa por un control de calidad estricto para garantizar durabilidad y rendimiento.',
-    icon: (
-      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M12 3l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9 6.8 19l1-5.8L3.6 9.1l5.8-.8z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    title: 'Seleccion curada',
-    body: 'Solo los mejores accesorios fitness, seleccionados por expertos en entrenamiento.',
-    icon: (
-      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    title: 'Experiencia fluida',
-    body: 'Desde la busqueda hasta el checkout, cada paso esta disenado para ser simple y rapido.',
-    icon: (
-      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M13 2L4.5 13H11l-1 9 8.5-11H12z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-]
-
 export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null)
   useReveal(rootRef)
 
   return (
     <div ref={rootRef} className="bg-slate-950">
-      {/* Hero — full bleed */}
-      <HeroCarousel />
+      {/* Hero — full bleed editorial */}
+      <Hero />
 
       {/* Trust strip */}
       <div className="border-y border-white/[0.06] bg-slate-900/40">
@@ -107,40 +82,40 @@ export function LandingPage() {
         </div>
       </div>
 
-      {/* Categories */}
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-        <CategoryCards />
-      </div>
-
-      {/* Features */}
-      <div className="border-t border-white/[0.06] bg-gradient-to-b from-slate-900/50 to-slate-950">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-          <p data-reveal className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">
-            Por que FITGEAR
-          </p>
-          <h2 data-reveal className="mt-3 max-w-2xl text-3xl font-bold tracking-tight text-white md:text-4xl">
-            Equipate con lo mejor
-          </h2>
-          <div className="mt-12 grid gap-5 sm:grid-cols-3">
-            {features.map((feat) => (
-              <div
-                key={feat.title}
-                data-reveal
-                className="rounded-3xl border border-white/[0.07] bg-white/[0.03] p-7 transition duration-300 hover:border-lime-400/25 hover:bg-white/[0.05]"
-              >
-                <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-lime-400/15 text-lime-400">
-                  {feat.icon}
-                </div>
-                <h3 className="text-lg font-bold tracking-tight text-white">{feat.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">{feat.body}</p>
-              </div>
-            ))}
-          </div>
+      {/* Programs — train by goal */}
+      <section className="relative overflow-hidden">
+        <SectionDecor pattern="dots" glowA="bg-lime-400/12" glowB="bg-violet-500/12" watermark="Goals" />
+        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+          <ProgramCards />
         </div>
-      </div>
+      </section>
+
+      {/* Dynamic marquee divider */}
+      <Marquee />
+
+      {/* Categories */}
+      <section className="relative overflow-hidden border-t border-white/[0.06] bg-gradient-to-b from-slate-900/40 to-slate-950">
+        <SectionDecor pattern="grid" glowA="bg-cyan-500/12" glowB="bg-lime-400/12" watermark="Shop" />
+        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+          <CategoryCards />
+        </div>
+      </section>
+
+      {/* Featured products with category tabs */}
+      <section className="relative overflow-hidden">
+        <SectionDecor pattern="dots" glowA="bg-amber-400/12" glowB="bg-lime-400/12" watermark="Gear" />
+        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+          <FeaturedProducts />
+        </div>
+      </section>
+
+      {/* Why FITGEAR — full-bleed editorial */}
+      <WhyFitgear />
 
       {/* CTA banner */}
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+      <section className="relative overflow-hidden">
+        <SectionDecor pattern="grid" glowA="bg-violet-500/10" glowB="bg-cyan-500/10" />
+        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <div
           data-reveal
           className="relative overflow-hidden rounded-[2rem] border border-lime-400/20 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 px-6 py-14 text-center sm:px-12"
@@ -182,6 +157,7 @@ export function LandingPage() {
           </div>
         </div>
       </div>
+      </section>
     </div>
   )
 }

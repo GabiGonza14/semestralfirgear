@@ -70,7 +70,7 @@ export function CartItem({ product, quantity, onIncrease, onDecrease, onRemove }
         <button
           type="button"
           onClick={onRemove}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-rose-400"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 transition hover:text-rose-400"
         >
           <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-9 0 1 13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1l1-13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
