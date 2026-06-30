@@ -107,3 +107,72 @@ h1 {
   background: var(--fg-accent);
   color: #0f172a;
 }
+
+/* ---------------------------------------------------------------------------
+   Dynamic background motion — drifting glows + marquee.
+   All continuous motion is disabled under prefers-reduced-motion.
+--------------------------------------------------------------------------- */
+@keyframes fg-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes fg-drift {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(46px, -34px) scale(1.18);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes fg-drift-slow {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-54px, 32px) scale(1.12);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes fg-hue {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.fg-marquee-track {
+  animation: fg-marquee 30s linear infinite;
+}
+.fg-drift {
+  animation: fg-drift 16s ease-in-out infinite;
+}
+.fg-drift-slow {
+  animation: fg-drift-slow 22s ease-in-out infinite;
+}
+.fg-hue {
+  animation: fg-hue 9s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fg-marquee-track,
+  .fg-drift,
+  .fg-drift-slow,
+  .fg-hue {
+    animation: none;
+  }
+}

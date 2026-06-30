@@ -67,13 +67,13 @@ export function CategoryCards() {
               <img
                 src={category.image}
                 alt={category.name}
-                className="h-full w-full object-cover opacity-55 transition duration-700 group-hover:scale-105 group-hover:opacity-70"
+                className="h-full w-full object-cover opacity-80 transition duration-700 group-hover:scale-105 group-hover:opacity-100"
                 loading="lazy"
               />
             </div>
 
-            {/* Readability gradient — text stays legible on any image */}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+            {/* Bottom-weighted gradient: text stays legible, image stays vivid */}
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
 
             {/* Lime underline grows on hover */}
             <div className="absolute bottom-0 left-0 right-0 h-1 origin-left scale-x-0 bg-lime-400 transition-transform duration-300 ease-out group-hover:scale-x-100" />
