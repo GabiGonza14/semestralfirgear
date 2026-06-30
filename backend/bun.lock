@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "backend",
@@ -22,6 +23,9 @@
         "typescript": "^5",
       },
     },
+  },
+  "overrides": {
+    "bson": "7.2.0",
   },
   "packages": {
     "@mongodb-js/saslprep": ["@mongodb-js/saslprep@1.4.8", "", { "dependencies": { "sparse-bitfield": "^3.0.3" } }, "sha512-kpjr2jy2w71w0oqAMI8oibBmiF9lXxWkEQs5gMkW4hVE48bsqINGLxnCSYW62ck/NHXJQpQEfA9WlJ1sY0eqBg=="],

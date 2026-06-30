@@ -2,10 +2,10 @@ FROM oven/bun:1-alpine
 
 WORKDIR /app
 
-# Copiar package.json y package-lock (si existe)
-COPY package.json package-lock.json* ./
+# Copiar package.json y bun.lock para aprovechar la cache de capas
+COPY package.json bun.lock ./
 
-# Instalar dependencias
+# Instalar dependencias usando el lockfile (evita resolver versiones nuevas/incompatibles)
 RUN bun install --frozen-lockfile
 
 # Copiar el código fuente
