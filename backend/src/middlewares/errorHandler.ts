@@ -1,61 +1,50 @@
-import type { NextFunction, Request, Response } from 'express'
-import multer from 'multer'
+import type { Context } from 'hono'
 import { Error as MongooseError } from 'mongoose'
 import { ZodError } from 'zod'
+import type { AppEnv } from '../app'
 import { HttpError } from '../utils/httpError'
 
-export function errorHandler(
-  error: Error,
-  _req: Request,
-  res: Response,
-  _next: NextFunction,
-) {
+export function buildErrorResponse(error: Error, c: Context<AppEnv>) {
   if (error instanceof HttpError) {
-    return res.status(error.statusCode).json({
-      message: error.message,
-      ...(error.errors ? { errors: error.errors } : {}),
-    })
+    return c.json(
+      { message: error.message, ...(error.errors ? { errors: error.errors } : {}) },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    error.statusCode as any,
+    )
   }
 
   if (error instanceof ZodError) {
-    return res.status(400).json({
-      message: 'Validation failed',
-      errors: error.issues.map((issue) => ({
-        path: issue.path.join('.'),
-        message: issue.message,
-      })),
-    })
+    return c.json(
+      {
+        message: 'Validation failed',
+        errors: error.issues.map((issue) => ({
+          path: issue.path.join('.'),
+          message: issue.message,
+        })),
+      },
+      400,
+    )
   }
 
   if (error instanceof MongooseError.CastError) {
-    return res.status(400).json({
-      message: 'Validation failed',
-      errors: [{ path: error.path, message: 'Invalid id format' }],
-    })
-  }
-
-  if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({
-        message: 'La imagen supera el tamaño máximo permitido de 5MB.',
-      })
-    }
-
-    return res.status(400).json({
-      message: 'Error al procesar la imagen.',
-    })
+    return c.json(
+      {
+        message: 'Validation failed',
+        errors: [{ path: error.path, message: 'Invalid id format' }],
+      },
+      400,
+    )
   }
 
   if ('code' in error && (error as { code?: number }).code === 11000) {
-    return res.status(409).json({
-      message: 'Resource conflict',
-    })
+    return c.json({ message: 'Resource conflict' }, 409)
   }
 
-  const statusCode = res.statusCode >= 400 ? res.statusCode : 500
-
-  res.status(statusCode).json({
-    message: error.message,
-    ...(process.env.NODE_ENV === 'production' ? {} : { stack: error.stack }),
-  })
+  return c.json(
+    {
+      message: error.message,
+      ...(process.env.NODE_ENV === 'production' ? {} : { stack: error.stack }),
+    },
+    500,
+  )
 }

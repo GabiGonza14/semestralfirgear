@@ -1,18 +1,17 @@
-import { Router } from 'express'
+import { Hono } from 'hono'
+import type { AppEnv } from '../app'
 import { categoryRouter } from './categoryRoutes'
-import { productRouter } from './productRoutes'
-import { userRouter } from './userRoutes'
 import { orderRouter } from './orderRoutes'
 import { paymentRouter } from './paymentRoutes'
+import { productRouter } from './productRoutes'
+import { userRouter } from './userRoutes'
 
-export const apiRouter = Router()
+export const apiRouter = new Hono<AppEnv>()
 
-apiRouter.get('/health', (_req, res) => {
-  res.json({ status: 'OK' })
-})
+apiRouter.get('/health', (c) => c.json({ status: 'OK' }))
 
-apiRouter.use('/categories', categoryRouter)
-apiRouter.use('/products', productRouter)
-apiRouter.use('/users', userRouter)
-apiRouter.use('/orders', orderRouter)
-apiRouter.use('/payments', paymentRouter)
+apiRouter.route('/categories', categoryRouter)
+apiRouter.route('/products', productRouter)
+apiRouter.route('/users', userRouter)
+apiRouter.route('/orders', orderRouter)
+apiRouter.route('/payments', paymentRouter)

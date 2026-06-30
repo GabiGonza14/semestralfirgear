@@ -1,4 +1,5 @@
-import { Router } from 'express'
+import { Hono } from 'hono'
+import type { AppEnv } from '../app'
 import {
   confirmCheckoutPaymentController,
   createCheckoutSessionController,
@@ -9,7 +10,7 @@ import {
   createCheckoutSessionSchema,
 } from '../validations/paymentValidation'
 
-export const paymentRouter = Router()
+export const paymentRouter = new Hono<AppEnv>()
 
 paymentRouter.post(
   '/create-checkout-session',

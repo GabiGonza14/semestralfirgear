@@ -1,5 +1,5 @@
-import type { Request, Response } from 'express'
-import { asyncHandler } from '../utils/asyncHandler'
+import type { Context } from 'hono'
+import type { AppEnv } from '../app'
 import {
   createProduct,
   deleteProduct,
@@ -9,31 +9,31 @@ import {
   updateProduct,
 } from '../services/productService'
 
-export const getProducts = asyncHandler(async (req: Request, res: Response) => {
-  const query = (res.locals.validatedQuery ?? req.query) as ProductQuery
+export const getProducts = async (c: Context<AppEnv>) => {
+  const query = (c.get('validatedQuery') ?? c.req.query()) as ProductQuery
   const products = await listProducts(query)
-  res.status(200).json(products)
-})
+  return c.json(products, 200)
+}
 
-export const getProduct = asyncHandler(async (req: Request, res: Response) => {
-  const id = (res.locals.validatedParams as { id: string }).id
+export const getProduct = async (c: Context<AppEnv>) => {
+  const { id } = c.get('validatedParams') as { id: string }
   const product = await getProductById(id)
-  res.status(200).json(product)
-})
+  return c.json(product, 200)
+}
 
-export const createProductController = asyncHandler(async (req: Request, res: Response) => {
-  const product = await createProduct(res.locals.validatedBody)
-  res.status(201).json(product)
-})
+export const createProductController = async (c: Context<AppEnv>) => {
+  const product = await createProduct(c.get('validatedBody'))
+  return c.json(product, 201)
+}
 
-export const updateProductController = asyncHandler(async (req: Request, res: Response) => {
-  const id = (res.locals.validatedParams as { id: string }).id
-  const product = await updateProduct(id, res.locals.validatedBody)
-  res.status(200).json(product)
-})
+export const updateProductController = async (c: Context<AppEnv>) => {
+  const { id } = c.get('validatedParams') as { id: string }
+  const product = await updateProduct(id, c.get('validatedBody'))
+  return c.json(product, 200)
+}
 
-export const deleteProductController = asyncHandler(async (req: Request, res: Response) => {
-  const id = (res.locals.validatedParams as { id: string }).id
+export const deleteProductController = async (c: Context<AppEnv>) => {
+  const { id } = c.get('validatedParams') as { id: string }
   await deleteProduct(id)
-  res.status(200).json({ message: 'Product deleted successfully' })
-})
+  return c.json({ message: 'Product deleted successfully' }, 200)
+}

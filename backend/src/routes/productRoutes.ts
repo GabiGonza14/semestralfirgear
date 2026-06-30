@@ -1,40 +1,36 @@
-import { Router } from 'express'
+import { Hono } from 'hono'
+import type { AppEnv } from '../app'
 import {
-	createProductController,
-	deleteProductController,
-	getProduct,
-	getProducts,
-	updateProductController,
+  createProductController,
+  deleteProductController,
+  getProduct,
+  getProducts,
+  updateProductController,
 } from '../controllers/productController'
-import {
-	attachUploadedProductImagePath,
-	uploadSingleProductImage,
-} from '../middlewares/uploadProductImage'
+import { uploadSingleProductImage } from '../middlewares/uploadProductImage'
 import { validateBody, validateParams, validateQuery } from '../middlewares/validate'
 import { idParamSchema } from '../validations/commonValidation'
 import {
-	createProductSchema,
-	productQuerySchema,
-	updateProductSchema,
+  createProductSchema,
+  productQuerySchema,
+  updateProductSchema,
 } from '../validations/productValidation'
 
-export const productRouter = Router()
+export const productRouter = new Hono<AppEnv>()
 
 productRouter.get('/', validateQuery(productQuerySchema), getProducts)
 productRouter.get('/:id', validateParams(idParamSchema), getProduct)
 productRouter.post(
-	'/',
-	uploadSingleProductImage,
-	attachUploadedProductImagePath,
-	validateBody(createProductSchema),
-	createProductController,
+  '/',
+  uploadSingleProductImage,
+  validateBody(createProductSchema),
+  createProductController,
 )
 productRouter.put(
-	'/:id',
-	validateParams(idParamSchema),
-	uploadSingleProductImage,
-	attachUploadedProductImagePath,
-	validateBody(updateProductSchema),
-	updateProductController,
+  '/:id',
+  validateParams(idParamSchema),
+  uploadSingleProductImage,
+  validateBody(updateProductSchema),
+  updateProductController,
 )
 productRouter.delete('/:id', validateParams(idParamSchema), deleteProductController)

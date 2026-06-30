@@ -1,35 +1,29 @@
-import type { Request, Response } from 'express'
-import { asyncHandler } from '../utils/asyncHandler'
-import {
-  createOrder,
-  getOrderById,
-  listOrders,
-  listOrdersByUserId,
-} from '../services/orderService'
+import type { Context } from 'hono'
+import type { AppEnv } from '../app'
+import { createOrder, getOrderById, listOrders, listOrdersByUserId } from '../services/orderService'
 
-export const getOrders = asyncHandler(async (_req: Request, res: Response) => {
+export const getOrders = async (c: Context<AppEnv>) => {
   const orders = await listOrders()
-  res.status(200).json(orders)
-})
+  return c.json(orders, 200)
+}
 
-export const getOrder = asyncHandler(async (_req: Request, res: Response) => {
-  const { id } = res.locals.validatedParams as { id: string }
+export const getOrder = async (c: Context<AppEnv>) => {
+  const { id } = c.get('validatedParams') as { id: string }
   const order = await getOrderById(id)
-  res.status(200).json(order)
-})
+  return c.json(order, 200)
+}
 
-export const getOrdersByUser = asyncHandler(async (_req: Request, res: Response) => {
-  const { userId } = res.locals.validatedParams as { userId: string }
+export const getOrdersByUser = async (c: Context<AppEnv>) => {
+  const { userId } = c.get('validatedParams') as { userId: string }
   const orders = await listOrdersByUserId(userId)
-  res.status(200).json(orders)
-})
+  return c.json(orders, 200)
+}
 
-export const createOrderController = asyncHandler(async (_req: Request, res: Response) => {
-  const payload = res.locals.validatedBody as {
+export const createOrderController = async (c: Context<AppEnv>) => {
+  const payload = c.get('validatedBody') as {
     userId: string
     items: Array<{ productId: string; quantity: number }>
   }
-
   const order = await createOrder(payload)
-  res.status(201).json(order)
-})
+  return c.json(order, 201)
+}

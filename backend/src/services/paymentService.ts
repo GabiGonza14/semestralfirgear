@@ -19,6 +19,7 @@ interface PopulatedProductRef {
 
 interface PopulatedOrderUserRef {
   email?: string
+  role?: string
 }
 
 interface GroupedOrderItem {
@@ -126,6 +127,7 @@ export async function createCheckoutSession(orderId: string): Promise<CheckoutSe
         unit_amount: toStripeUnitAmount(taxAmount),
         product_data: {
           name: `Impuesto (${Math.round(TAX_RATE * 100)}%)`,
+          images: undefined,
         },
       },
     })
@@ -139,6 +141,7 @@ export async function createCheckoutSession(orderId: string): Promise<CheckoutSe
         unit_amount: toStripeUnitAmount(shippingAmount),
         product_data: {
           name: 'Envío',
+          images: undefined,
         },
       },
     })

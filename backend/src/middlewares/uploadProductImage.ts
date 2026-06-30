@@ -1,5 +1,6 @@
-import multer from 'multer'
-import type { NextFunction, Request, Response } from 'express'
+import type { Context, Next } from 'hono'
+import path from 'node:path'
+import type { AppEnv } from '../app'
 import { HttpError } from '../utils/httpError'
 import { buildProductImageFilename } from '../utils/productImageFilename'
 import { productUploadsPath } from '../utils/uploadPaths'
@@ -12,37 +13,44 @@ const allowedMimeTypes = new Set([
   'image/gif',
 ])
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, callback) => {
-    callback(null, productUploadsPath)
-  },
-  filename: (req, file, callback) => {
-    const productName = typeof req.body?.name === 'string' ? req.body.name : 'producto-fitgear'
-    callback(null, buildProductImageFilename(productName, file.originalname))
-  },
-})
+const MAX_FILE_SIZE = 5 * 1024 * 1024
 
-const productImageUpload = multer({
-  storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024,
-  },
-  fileFilter: (_req, file, callback) => {
-    if (!allowedMimeTypes.has(file.mimetype)) {
-      callback(new HttpError(400, 'Solo se permiten imagenes JPG, PNG, WEBP o GIF.'))
-      return
-    }
+export async function uploadSingleProductImage(c: Context<AppEnv>, next: Next) {
+  const contentType = c.req.header('content-type') ?? ''
 
-    callback(null, true)
-  },
-})
-
-export const uploadSingleProductImage = productImageUpload.single('image')
-
-export function attachUploadedProductImagePath(req: Request, _res: Response, next: NextFunction) {
-  if (req.file) {
-    req.body.imageUrl = `/uploads/products/${req.file.filename}`
+  if (!contentType.includes('multipart/form-data')) {
+    await next()
+    return
   }
 
-  next()
+  const formData = await c.req.formData()
+
+  const body: Record<string, unknown> = {}
+  for (const [key, value] of formData.entries()) {
+    if (typeof value === 'string') {
+      body[key] = value
+    }
+  }
+
+  const file = formData.get('image')
+
+  if (file instanceof File) {
+    if (!allowedMimeTypes.has(file.type)) {
+      throw new HttpError(400, 'Solo se permiten imagenes JPG, PNG, WEBP o GIF.')
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      throw new HttpError(400, 'La imagen supera el tamaño máximo permitido de 5MB.')
+    }
+
+    const productName = typeof body['name'] === 'string' ? body['name'] : 'producto-fitgear'
+    const filename = buildProductImageFilename(productName, file.name)
+    const filePath = path.join(productUploadsPath, filename)
+
+    await Bun.write(filePath, file)
+    body['imageUrl'] = `/uploads/products/${filename}`
+  }
+
+  c.set('pendingBody', body)
+  await next()
 }

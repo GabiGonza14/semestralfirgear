@@ -1,5 +1,5 @@
-import type { Request, Response } from 'express'
-import { asyncHandler } from '../utils/asyncHandler'
+import type { Context } from 'hono'
+import type { AppEnv } from '../app'
 import {
   createCategory,
   deleteCategory,
@@ -8,30 +8,30 @@ import {
   updateCategory,
 } from '../services/categoryService'
 
-export const getCategories = asyncHandler(async (_req: Request, res: Response) => {
+export const getCategories = async (c: Context<AppEnv>) => {
   const categories = await listCategories()
-  res.status(200).json(categories)
-})
+  return c.json(categories, 200)
+}
 
-export const getCategory = asyncHandler(async (req: Request, res: Response) => {
-  const id = (res.locals.validatedParams as { id: string }).id
+export const getCategory = async (c: Context<AppEnv>) => {
+  const { id } = c.get('validatedParams') as { id: string }
   const category = await getCategoryById(id)
-  res.status(200).json(category)
-})
+  return c.json(category, 200)
+}
 
-export const createCategoryController = asyncHandler(async (req: Request, res: Response) => {
-  const category = await createCategory(res.locals.validatedBody)
-  res.status(201).json(category)
-})
+export const createCategoryController = async (c: Context<AppEnv>) => {
+  const category = await createCategory(c.get('validatedBody'))
+  return c.json(category, 201)
+}
 
-export const updateCategoryController = asyncHandler(async (req: Request, res: Response) => {
-  const id = (res.locals.validatedParams as { id: string }).id
-  const category = await updateCategory(id, res.locals.validatedBody)
-  res.status(200).json(category)
-})
+export const updateCategoryController = async (c: Context<AppEnv>) => {
+  const { id } = c.get('validatedParams') as { id: string }
+  const category = await updateCategory(id, c.get('validatedBody'))
+  return c.json(category, 200)
+}
 
-export const deleteCategoryController = asyncHandler(async (req: Request, res: Response) => {
-  const id = (res.locals.validatedParams as { id: string }).id
+export const deleteCategoryController = async (c: Context<AppEnv>) => {
+  const { id } = c.get('validatedParams') as { id: string }
   await deleteCategory(id)
-  res.status(200).json({ message: 'Category deleted successfully' })
-})
+  return c.json({ message: 'Category deleted successfully' }, 200)
+}

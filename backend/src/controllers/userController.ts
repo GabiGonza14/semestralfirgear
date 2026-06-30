@@ -1,35 +1,30 @@
-import type { Request, Response } from 'express'
-import { asyncHandler } from '../utils/asyncHandler'
-import {
-  getUserByEmail,
-  getUserById,
-  listUsers,
-  syncClerkUser,
-} from '../services/userService'
+import type { Context } from 'hono'
+import type { AppEnv } from '../app'
+import { getUserByEmail, getUserById, listUsers, syncClerkUser } from '../services/userService'
 
-export const getUsers = asyncHandler(async (_req: Request, res: Response) => {
+export const getUsers = async (c: Context<AppEnv>) => {
   const users = await listUsers()
-  res.status(200).json(users)
-})
+  return c.json(users, 200)
+}
 
-export const getUser = asyncHandler(async (_req: Request, res: Response) => {
-  const { id } = res.locals.validatedParams as { id: string }
+export const getUser = async (c: Context<AppEnv>) => {
+  const { id } = c.get('validatedParams') as { id: string }
   const user = await getUserById(id)
-  res.status(200).json(user)
-})
+  return c.json(user, 200)
+}
 
-export const getUserByEmailController = asyncHandler(async (_req: Request, res: Response) => {
-  const { email } = res.locals.validatedParams as { email: string }
+export const getUserByEmailController = async (c: Context<AppEnv>) => {
+  const { email } = c.get('validatedParams') as { email: string }
   const user = await getUserByEmail(email)
-  res.status(200).json(user)
-})
+  return c.json(user, 200)
+}
 
-export const syncClerkUserController = asyncHandler(async (_req: Request, res: Response) => {
-  const payload = res.locals.validatedBody as {
+export const syncClerkUserController = async (c: Context<AppEnv>) => {
+  const payload = c.get('validatedBody') as {
     clerkUserId: string
     fullName: string
     email: string
   }
   const result = await syncClerkUser(payload)
-  res.status(result.created ? 201 : 200).json(result.user)
-})
+  return c.json(result.user, result.created ? 201 : 200)
+}

@@ -2,15 +2,16 @@ import { connectDatabase } from './config/db'
 import { env } from './config/env'
 import { app } from './app'
 
-async function bootstrap() {
+try {
   await connectDatabase()
-
-  app.listen(env.port, () => {
-    console.info(`FITGEAR API running on http://localhost:${env.port}`)
-  })
-}
-
-bootstrap().catch((error) => {
+} catch (error) {
   console.error('Failed to start server', error)
   process.exit(1)
+}
+
+Bun.serve({
+  port: env.port,
+  fetch: app.fetch,
 })
+
+console.info(`FITGEAR API running on http://localhost:${env.port}`)

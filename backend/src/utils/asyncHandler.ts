@@ -1,13 +1,2 @@
-import type { NextFunction, Request, Response } from 'express'
-
-export type AsyncRequestHandler = (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<unknown>
-
-export function asyncHandler(handler: AsyncRequestHandler) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    Promise.resolve(handler(req, res, next)).catch(next)
-  }
-}
+// Removed — Hono handles async route handlers and error propagation natively.
+// This file is kept as a placeholder to avoid broken imports during transition.
