@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import path from 'node:path'
 import { stripeWebhookController } from './controllers/paymentController'
+import { env } from './config/env'
 import { buildErrorResponse } from './middlewares/errorHandler'
 import { apiRouter } from './routes'
 import { ensureUploadDirectories, uploadsRootPath } from './utils/uploadPaths'
@@ -20,10 +21,14 @@ export type AppEnv = { Variables: AppVariables }
 
 export const app = new Hono<AppEnv>()
 
+const allowedOrigins = Array.from(
+  new Set(['http://localhost:5173', 'http://127.0.0.1:5173', env.frontendUrl]),
+)
+
 app.use(
   '*',
   cors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: allowedOrigins,
     credentials: true,
   }),
 )
