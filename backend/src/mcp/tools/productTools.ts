@@ -1,6 +1,14 @@
 import { z } from 'zod'
-import { getProductById, listProducts } from '../../services/productService'
-import { toolError } from '../toolError'
+import { listProducts, getProductById } from '../../services/productService'
+import { McpAuthError, requireMcpAuth } from '../auth'
+import { HttpError } from '../../utils/httpError'
+
+function errorText(err: unknown): string {
+  if (err instanceof McpAuthError) return err.message
+  if (err instanceof HttpError) return `Error ${err.statusCode}: ${err.message}`
+  if (err instanceof Error) return err.message
+  return 'Unknown error'
+}
 
 export const productToolDefs = [
   {
@@ -22,7 +30,7 @@ export const productToolDefs = [
         const products = await listProducts(params)
         return { content: [{ type: 'text' as const, text: JSON.stringify(products, null, 2) }] }
       } catch (err) {
-        return { content: [{ type: 'text' as const, text: toolError(err) }], isError: true }
+        return { content: [{ type: 'text' as const, text: errorText(err) }], isError: true }
       }
     },
   },
@@ -37,7 +45,7 @@ export const productToolDefs = [
         const product = await getProductById(params.id)
         return { content: [{ type: 'text' as const, text: JSON.stringify(product, null, 2) }] }
       } catch (err) {
-        return { content: [{ type: 'text' as const, text: toolError(err) }], isError: true }
+        return { content: [{ type: 'text' as const, text: errorText(err) }], isError: true }
       }
     },
   },

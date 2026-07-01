@@ -14,7 +14,7 @@ export function requireAuth(verify: TokenVerifier = defaultVerifier) {
   return async (c: Context<AppEnv>, next: Next) => {
     const authHeader = c.req.header('Authorization')
 
-    if (!authHeader?.startsWith('Bearer ')) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new HttpError(401, 'Unauthorized: missing or malformed Authorization header')
     }
 

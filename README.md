@@ -1,4 +1,4 @@
-# FITGEAR - GG - ER
+# FITGEAR
 
 FITGEAR es una tienda de articulos fitness con frontend en React y Vite, backend en Express, persistencia en MongoDB, autenticacion con Clerk y flujo de checkout con Stripe. El proyecto separa claramente la capa de presentacion, el consumo de API y la logica del backend para catalogo, carrito, pedidos, usuarios, pagos y administracion.
 

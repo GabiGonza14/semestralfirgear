@@ -1,13 +1,14 @@
 import { z } from 'zod'
-import {
-  createCategory,
-  deleteCategory,
-  getCategoryById,
-  listCategories,
-  updateCategory,
-} from '../../services/categoryService'
-import { requireMcpAuth } from '../auth'
-import { toolError } from '../toolError'
+import { listCategories, getCategoryById, createCategory, updateCategory, deleteCategory } from '../../services/categoryService'
+import { McpAuthError, requireMcpAuth } from '../auth'
+import { HttpError } from '../../utils/httpError'
+
+function errorText(err: unknown): string {
+  if (err instanceof McpAuthError) return err.message
+  if (err instanceof HttpError) return `Error ${err.statusCode}: ${err.message}`
+  if (err instanceof Error) return err.message
+  return 'Unknown error'
+}
 
 export const categoryToolDefs = [
   {
@@ -19,7 +20,7 @@ export const categoryToolDefs = [
         const categories = await listCategories()
         return { content: [{ type: 'text' as const, text: JSON.stringify(categories, null, 2) }] }
       } catch (err) {
-        return { content: [{ type: 'text' as const, text: toolError(err) }], isError: true }
+        return { content: [{ type: 'text' as const, text: errorText(err) }], isError: true }
       }
     },
   },
@@ -34,7 +35,7 @@ export const categoryToolDefs = [
         const category = await getCategoryById(params.id)
         return { content: [{ type: 'text' as const, text: JSON.stringify(category, null, 2) }] }
       } catch (err) {
-        return { content: [{ type: 'text' as const, text: toolError(err) }], isError: true }
+        return { content: [{ type: 'text' as const, text: errorText(err) }], isError: true }
       }
     },
   },
@@ -52,7 +53,7 @@ export const categoryToolDefs = [
         const category = await createCategory({ name: params.name, description: params.description })
         return { content: [{ type: 'text' as const, text: JSON.stringify(category, null, 2) }] }
       } catch (err) {
-        return { content: [{ type: 'text' as const, text: toolError(err) }], isError: true }
+        return { content: [{ type: 'text' as const, text: errorText(err) }], isError: true }
       }
     },
   },
@@ -71,7 +72,7 @@ export const categoryToolDefs = [
         const category = await updateCategory(params.id, { name: params.name, description: params.description })
         return { content: [{ type: 'text' as const, text: JSON.stringify(category, null, 2) }] }
       } catch (err) {
-        return { content: [{ type: 'text' as const, text: toolError(err) }], isError: true }
+        return { content: [{ type: 'text' as const, text: errorText(err) }], isError: true }
       }
     },
   },
@@ -88,7 +89,7 @@ export const categoryToolDefs = [
         await deleteCategory(params.id)
         return { content: [{ type: 'text' as const, text: 'Category deleted successfully' }] }
       } catch (err) {
-        return { content: [{ type: 'text' as const, text: toolError(err) }], isError: true }
+        return { content: [{ type: 'text' as const, text: errorText(err) }], isError: true }
       }
     },
   },
