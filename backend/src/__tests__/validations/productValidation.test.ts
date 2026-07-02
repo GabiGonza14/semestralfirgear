@@ -138,6 +138,65 @@ describe('createProductSchema', () => {
     })
     expect(result.success).toBe(false)
   })
+
+  it('defaults hasDiscount to false and discountPercentage to 0 when omitted', () => {
+    const result = createProductSchema.safeParse(validProduct)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.hasDiscount).toBe(false)
+      expect(result.data.discountPercentage).toBe(0)
+    }
+  })
+
+  it('accepts a valid discount percentage', () => {
+    const result = createProductSchema.safeParse({
+      ...validProduct,
+      hasDiscount: true,
+      discountPercentage: 25,
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.hasDiscount).toBe(true)
+      expect(result.data.discountPercentage).toBe(25)
+    }
+  })
+
+  it('rejects a discount percentage below 0', () => {
+    const result = createProductSchema.safeParse({
+      ...validProduct,
+      hasDiscount: true,
+      discountPercentage: -1,
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].path).toContain('discountPercentage')
+    }
+  })
+
+  it('rejects a discount percentage above 100', () => {
+    const result = createProductSchema.safeParse({
+      ...validProduct,
+      hasDiscount: true,
+      discountPercentage: 101,
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].path).toContain('discountPercentage')
+    }
+  })
+
+  it('accepts hasDiscount as a form string', () => {
+    const result = createProductSchema.safeParse({
+      ...validProduct,
+      hasDiscount: 'true',
+      discountPercentage: '10',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.hasDiscount).toBe(true)
+      expect(result.data.discountPercentage).toBe(10)
+    }
+  })
 })
 
 describe('updateProductSchema', () => {
@@ -173,6 +232,21 @@ describe('updateProductSchema', () => {
 
   it('rejects name exceeding 100 characters on update', () => {
     const result = updateProductSchema.safeParse({ name: 'A'.repeat(101) })
+    expect(result.success).toBe(false)
+  })
+
+  it('accepts partial update with only discount fields', () => {
+    const result = updateProductSchema.safeParse({ hasDiscount: true, discountPercentage: 15 })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects a discount percentage above 100 on update', () => {
+    const result = updateProductSchema.safeParse({ discountPercentage: 150 })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects a discount percentage below 0 on update', () => {
+    const result = updateProductSchema.safeParse({ discountPercentage: -10 })
     expect(result.success).toBe(false)
   })
 })

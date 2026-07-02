@@ -43,7 +43,19 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                   <td className="px-5 py-4 font-medium text-white">{product.name}</td>
                   <td className="px-5 py-4 text-slate-400">{product.category}</td>
                   <td className="px-5 py-4 font-medium text-white">
-                    {formatCurrency(product.price)}
+                    {product.hasDiscount ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="inline-flex w-fit items-center rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-semibold text-rose-300 ring-1 ring-rose-400/30">
+                          -{product.discountPercentage}%
+                        </span>
+                        <span className="text-xs text-slate-500 line-through">
+                          {formatCurrency(product.price)}
+                        </span>
+                        <span className="text-white">{formatCurrency(product.finalPrice)}</span>
+                      </div>
+                    ) : (
+                      formatCurrency(product.price)
+                    )}
                   </td>
                   <td className="px-5 py-4">
                     <span

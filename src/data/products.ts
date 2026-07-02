@@ -14,6 +14,10 @@ export const products: Product[] = [
       'Set de 5 niveles de resistencia para entrenamiento funcional en casa o gimnasio.',
     isActive: true,
     featured: true,
+    hasDiscount: false,
+    discountPercentage: 0,
+    discountAmount: 0,
+    finalPrice: 29.99,
   },
   {
     id: 'p2',
@@ -28,6 +32,10 @@ export const products: Product[] = [
       'Peso ajustable para sesiones de fuerza progresiva con agarre antideslizante.',
     isActive: true,
     featured: true,
+    hasDiscount: false,
+    discountPercentage: 0,
+    discountAmount: 0,
+    finalPrice: 89.5,
   },
   {
     id: 'p3',
@@ -42,6 +50,10 @@ export const products: Product[] = [
       'Guantes transpirables con soporte de muñeca para levantamiento y cross training.',
     isActive: true,
     featured: true,
+    hasDiscount: false,
+    discountPercentage: 0,
+    discountAmount: 0,
+    finalPrice: 24.75,
   },
   {
     id: 'p4',
@@ -55,6 +67,10 @@ export const products: Product[] = [
     description:
       'Botella térmica para mantener hidratación fría por hasta 12 horas.',
     isActive: true,
+    hasDiscount: false,
+    discountPercentage: 0,
+    discountAmount: 0,
+    finalPrice: 18.99,
   },
   {
     id: 'p5',
@@ -68,6 +84,10 @@ export const products: Product[] = [
     description:
       'Colchoneta de alta densidad para yoga, movilidad y entrenamiento de piso.',
     isActive: true,
+    hasDiscount: false,
+    discountPercentage: 0,
+    discountAmount: 0,
+    finalPrice: 39.0,
   },
   {
     id: 'p6',
@@ -81,5 +101,9 @@ export const products: Product[] = [
     description:
       'Cuerda liviana para cardio de alto rendimiento con ajuste rápido de largo.',
     isActive: true,
+    hasDiscount: false,
+    discountPercentage: 0,
+    discountAmount: 0,
+    finalPrice: 19.99,
   },
 ]

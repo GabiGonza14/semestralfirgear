@@ -37,6 +37,13 @@ export const createProductSchema = z.object({
   imageUrl: z.string().trim().min(1, 'imageUrl is required').max(500, 'imageUrl is too long'),
   categoryId: objectIdSchema,
   isActive: booleanFromFormSchema.optional().default(true),
+  hasDiscount: booleanFromFormSchema.optional().default(false),
+  discountPercentage: z.coerce
+    .number()
+    .min(0, 'discountPercentage must be greater than or equal to 0')
+    .max(100, 'discountPercentage must be less than or equal to 100')
+    .optional()
+    .default(0),
 })
 
 export const updateProductSchema = z
@@ -69,6 +76,12 @@ export const updateProductSchema = z
       .optional(),
     categoryId: objectIdSchema.optional(),
     isActive: booleanFromFormSchema.optional(),
+    hasDiscount: booleanFromFormSchema.optional(),
+    discountPercentage: z.coerce
+      .number()
+      .min(0, 'discountPercentage must be greater than or equal to 0')
+      .max(100, 'discountPercentage must be less than or equal to 100')
+      .optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'At least one field is required',

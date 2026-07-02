@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ProductUpsertInput } from '../../api/fitgearApi'
 import type { Product } from '../../types'
+import { formatCurrency } from '../../utils/format'
 import type { CategoryOption } from './InventoryFilters'
 
 interface ProductFormModalProps {
@@ -22,6 +23,8 @@ type ProductFormState = {
   imagePreview: string
   categoryId: string
   isActive: boolean
+  hasDiscount: boolean
+  discountPercentage: string
 }
 
 const createEmptyState = (initialProduct: Product | null, categories: CategoryOption[]): ProductFormState => ({
@@ -33,6 +36,8 @@ const createEmptyState = (initialProduct: Product | null, categories: CategoryOp
   imagePreview: initialProduct?.image ?? '',
   categoryId: initialProduct?.categoryId ?? categories[0]?.id ?? '',
   isActive: initialProduct?.isActive ?? true,
+  hasDiscount: initialProduct?.hasDiscount ?? false,
+  discountPercentage: initialProduct?.hasDiscount ? String(initialProduct.discountPercentage) : '',
 })
 
 const maxImageSize = 5 * 1024 * 1024
@@ -71,6 +76,20 @@ export function ProductFormModal({
     setError(null)
     setIsSaving(false)
   }, [categories, initialProduct, isOpen])
+
+  const discountPreview = useMemo(() => {
+    const originalPrice = Number(form.price)
+    const percentage = Number(form.discountPercentage)
+
+    if (!form.hasDiscount || Number.isNaN(originalPrice) || Number.isNaN(percentage)) {
+      return null
+    }
+
+    const discountAmount = Math.round(originalPrice * percentage) / 100
+    const finalPrice = Math.round((originalPrice - discountAmount) * 100) / 100
+
+    return { originalPrice, percentage, discountAmount, finalPrice }
+  }, [form.discountPercentage, form.hasDiscount, form.price])
 
   if (!isOpen) {
     return null
@@ -119,6 +138,8 @@ export function ProductFormModal({
     setError(null)
 
     try {
+      const discountPercentage = form.hasDiscount ? Number(form.discountPercentage) : 0
+
       const payload: ProductUpsertInput = {
         name: form.name.trim(),
         description: form.description.trim(),
@@ -127,6 +148,8 @@ export function ProductFormModal({
         imageFile: form.imageFile,
         categoryId: form.categoryId,
         isActive: form.isActive,
+        hasDiscount: form.hasDiscount,
+        discountPercentage,
       }
 
       if (
@@ -141,6 +164,10 @@ export function ProductFormModal({
 
       if (!initialProduct && !payload.imageFile) {
         throw new Error('Selecciona una imagen para crear el producto.')
+      }
+
+      if (form.hasDiscount && (Number.isNaN(discountPercentage) || discountPercentage < 0 || discountPercentage > 100)) {
+        throw new Error('El porcentaje de descuento debe estar entre 0 y 100.')
       }
 
       await onSubmit(payload)
@@ -272,6 +299,58 @@ export function ProductFormModal({
                 />
                 Producto activo en el catalogo
               </label>
+
+              <div className="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 md:col-span-2">
+                <label className="flex items-center gap-3 text-sm font-medium text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={form.hasDiscount}
+                    onChange={(event) => {
+                      const checked = event.target.checked
+                      setForm((current) => ({
+                        ...current,
+                        hasDiscount: checked,
+                        discountPercentage: checked ? current.discountPercentage : '',
+                      }))
+                    }}
+                    className="h-4 w-4 rounded border-white/20 bg-slate-950 text-lime-500 accent-lime-400 focus:ring-lime-400"
+                  />
+                  Aplicar descuento a este producto
+                </label>
+
+                {form.hasDiscount ? (
+                  <div className="grid gap-3">
+                    <label className="grid gap-2 text-sm font-medium text-slate-300 md:max-w-xs">
+                      Porcentaje de descuento
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={form.discountPercentage}
+                        onChange={(event) => handleChange('discountPercentage', event.target.value)}
+                        className={fieldClass}
+                        placeholder="0 - 100"
+                      />
+                    </label>
+
+                    {discountPreview ? (
+                      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-slate-300 sm:grid-cols-4">
+                        <dt className="text-xs uppercase tracking-wide text-slate-500">Precio original</dt>
+                        <dd className="col-span-1">{formatCurrency(discountPreview.originalPrice)}</dd>
+                        <dt className="text-xs uppercase tracking-wide text-slate-500">Descuento</dt>
+                        <dd className="col-span-1">{discountPreview.percentage}%</dd>
+                        <dt className="text-xs uppercase tracking-wide text-slate-500">Monto descontado</dt>
+                        <dd className="col-span-1">{formatCurrency(discountPreview.discountAmount)}</dd>
+                        <dt className="text-xs uppercase tracking-wide text-slate-500">Precio final</dt>
+                        <dd className="col-span-1 font-bold text-lime-300">
+                          {formatCurrency(discountPreview.finalPrice)}
+                        </dd>
+                      </dl>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
 

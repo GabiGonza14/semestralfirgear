@@ -12,6 +12,36 @@ interface ProductPayload {
   imageUrl?: string
   categoryId?: string
   isActive?: boolean
+  hasDiscount?: boolean
+  discountPercentage?: number
+}
+
+interface DiscountResult {
+  hasDiscount: boolean
+  discountPercentage: number
+  discountAmount: number
+  finalPrice: number
+}
+
+function calculateDiscount(
+  price: number,
+  hasDiscount: boolean,
+  discountPercentage: number,
+): DiscountResult {
+  if (!hasDiscount) {
+    return { hasDiscount: false, discountPercentage: 0, discountAmount: 0, finalPrice: price }
+  }
+
+  if (discountPercentage < 0 || discountPercentage > 100) {
+    throw new HttpError(400, 'Validation failed', [
+      { path: 'discountPercentage', message: 'discountPercentage must be between 0 and 100' },
+    ])
+  }
+
+  const discountAmount = Math.round(price * discountPercentage) / 100
+  const finalPrice = Math.round((price - discountAmount) * 100) / 100
+
+  return { hasDiscount: true, discountPercentage, discountAmount, finalPrice }
 }
 
 export interface ProductQuery {
@@ -63,6 +93,12 @@ export async function createProduct(payload: ProductPayload) {
     ])
   }
 
+  const discount = calculateDiscount(
+    payload.price ?? 0,
+    payload.hasDiscount ?? false,
+    payload.discountPercentage ?? 0,
+  )
+
   return ProductModel.create({
     name: payload.name,
     description: payload.description,
@@ -71,6 +107,10 @@ export async function createProduct(payload: ProductPayload) {
     imageUrl: payload.imageUrl,
     categoryId: payload.categoryId,
     isActive: payload.isActive ?? true,
+    hasDiscount: discount.hasDiscount,
+    discountPercentage: discount.discountPercentage,
+    discountAmount: discount.discountAmount,
+    finalPrice: discount.finalPrice,
   })
 }
 
@@ -112,6 +152,14 @@ export async function updateProduct(id: string, payload: ProductPayload) {
   if (payload.isActive !== undefined) {
     product.isActive = payload.isActive
   }
+
+  const hasDiscount = payload.hasDiscount ?? product.hasDiscount
+  const discountPercentage = payload.discountPercentage ?? product.discountPercentage
+  const discount = calculateDiscount(product.price, hasDiscount, discountPercentage)
+  product.hasDiscount = discount.hasDiscount
+  product.discountPercentage = discount.discountPercentage
+  product.discountAmount = discount.discountAmount
+  product.finalPrice = discount.finalPrice
 
   await product.save()
 

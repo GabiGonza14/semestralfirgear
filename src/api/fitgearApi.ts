@@ -16,6 +16,8 @@ export interface ProductUpsertInput {
   imageFile?: File | null
   categoryId: string
   isActive: boolean
+  hasDiscount: boolean
+  discountPercentage: number
 }
 
 interface MongoProductCategory {
@@ -34,6 +36,10 @@ interface MongoProduct {
   isActive: boolean
   categoryId: string | MongoProductCategory | null
   createdAt?: string
+  hasDiscount?: boolean
+  discountPercentage?: number
+  discountAmount?: number
+  finalPrice?: number
 }
 
 interface MongoOrderUser {
@@ -96,6 +102,10 @@ function mapProduct(product: MongoProduct): Product {
     description: product.description,
     isActive: product.isActive,
     featured: false,
+    hasDiscount: product.hasDiscount ?? false,
+    discountPercentage: product.discountPercentage ?? 0,
+    discountAmount: product.discountAmount ?? 0,
+    finalPrice: product.finalPrice ?? product.price,
   }
 }
 
@@ -108,6 +118,8 @@ function toProductFormData(payload: ProductUpsertInput) {
   formData.set('stock', String(payload.stock))
   formData.set('categoryId', payload.categoryId)
   formData.set('isActive', String(payload.isActive))
+  formData.set('hasDiscount', String(payload.hasDiscount))
+  formData.set('discountPercentage', String(payload.discountPercentage))
 
   if (payload.imageFile) {
     formData.set('image', payload.imageFile)

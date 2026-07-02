@@ -11,6 +11,10 @@ export interface Product {
   description: string
   isActive: boolean
   featured?: boolean
+  hasDiscount: boolean
+  discountPercentage: number
+  discountAmount: number
+  finalPrice: number
 }
 
 export interface Order {
