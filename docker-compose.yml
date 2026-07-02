@@ -27,13 +27,10 @@ services:
       dockerfile: Dockerfile
     container_name: fitgear-backend
     restart: unless-stopped
-    depends_on:
-      mongodb:
-        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 4000
-      MONGODB_URI: mongodb://root:rootpassword@mongodb:27017/fitgear?authSource=admin
+      MONGODB_URI: ${MONGODB_URI}
       FRONTEND_URL: http://localhost:5173
       BACKEND_URL: http://localhost:4000
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}

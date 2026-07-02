@@ -1,12 +1,10 @@
 import { useRef, type ReactElement } from 'react'
 import { Link } from 'react-router-dom'
 import { CategoryCards } from '../components/CategoryCards'
-import { FeaturedProducts } from '../components/FeaturedProducts'
-import { Hero } from '../components/Hero'
+import { CategoryShowcase } from '../components/CategoryShowcase'
+import { HeroCarousel } from '../components/HeroCarousel'
 import { Marquee } from '../components/Marquee'
-import { ProgramCards } from '../components/ProgramCards'
 import { SectionDecor } from '../components/SectionDecor'
-import { WhyFitgear } from '../components/WhyFitgear'
 import { useReveal } from '../hooks/useReveal'
 
 interface TrustItem {
@@ -63,8 +61,8 @@ export function LandingPage() {
 
   return (
     <div ref={rootRef} className="bg-slate-950">
-      {/* Hero — full bleed editorial */}
-      <Hero />
+      {/* Hero — full bleed image carousel */}
+      <HeroCarousel />
 
       {/* Trust strip */}
       <div className="border-y border-white/[0.06] bg-slate-900/40">
@@ -82,16 +80,11 @@ export function LandingPage() {
         </div>
       </div>
 
-      {/* Programs — train by goal */}
-      <section className="relative overflow-hidden">
-        <SectionDecor pattern="dots" glowA="bg-lime-400/12" glowB="bg-violet-500/12" watermark="Goals" />
-        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-          <ProgramCards />
-        </div>
-      </section>
-
       {/* Dynamic marquee divider */}
       <Marquee />
+
+      {/* Featured categories — big image + related products, alternating layout */}
+      <CategoryShowcase />
 
       {/* Categories */}
       <section className="relative overflow-hidden border-t border-white/[0.06] bg-gradient-to-b from-slate-900/40 to-slate-950">
@@ -100,17 +93,6 @@ export function LandingPage() {
           <CategoryCards />
         </div>
       </section>
-
-      {/* Featured products with category tabs */}
-      <section className="relative overflow-hidden">
-        <SectionDecor pattern="dots" glowA="bg-amber-400/12" glowB="bg-lime-400/12" watermark="Gear" />
-        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-          <FeaturedProducts />
-        </div>
-      </section>
-
-      {/* Why FITGEAR — full-bleed editorial */}
-      <WhyFitgear />
 
       {/* CTA banner */}
       <section className="relative overflow-hidden">
