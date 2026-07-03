@@ -101,9 +101,9 @@ export const products: Product[] = [
     description:
       'Cuerda liviana para cardio de alto rendimiento con ajuste rápido de largo.',
     isActive: true,
-    hasDiscount: false,
-    discountPercentage: 0,
-    discountAmount: 0,
-    finalPrice: 19.99,
+    hasDiscount: true,
+    discountPercentage: 25,
+    discountAmount: 5,
+    finalPrice: 14.99,
   },
 ]
