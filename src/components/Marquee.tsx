@@ -1,9 +1,42 @@
-const words = ['Fuerza', 'Resistencia', 'Cardio', 'Movilidad', 'Recuperacion', 'Potencia']
+import { useEffect, useState } from 'react'
+import { getCategories } from '../api/fitgearApi'
 
-// Decorative infinite-scroll strip. The track holds the word list twice so the
-// CSS translateX(-50%) loop is seamless. Hidden from assistive tech.
+// Decorative infinite-scroll strip. It shows the category names from the DB.
+// The track holds the word list twice so the CSS translateX(-50%) loop is
+// seamless. Hidden from assistive tech.
 export function Marquee() {
-  const sequence = [...words, ...words]
+  const [categories, setCategories] = useState<string[]>([])
+
+  useEffect(() => {
+    let active = true
+
+    void getCategories()
+      .then((result) => {
+        if (active) {
+          setCategories(result.map((category) => category.name))
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setCategories([])
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  // Nothing to show until categories load (keeps the strip out of the way).
+  if (categories.length === 0) {
+    return null
+  }
+
+  // Repeat the categories so the strip is wide enough, then duplicate the whole
+  // unit for the seamless -50% scroll loop.
+  const repeats = Math.max(1, Math.ceil(8 / categories.length))
+  const unit = Array.from({ length: repeats }, () => categories).flat()
+  const sequence = [...unit, ...unit]
 
   return (
     <div

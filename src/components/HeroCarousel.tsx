@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { prefersReducedMotion } from '../lib/gsap'
 
 export interface HeroCarouselSlide {
@@ -7,33 +8,43 @@ export interface HeroCarouselSlide {
   image: string
   title: string
   subtitle?: string
+  /** Category name — tapping the slide opens /shop?category=<category>. */
+  category: string
 }
 
 const AUTOPLAY_MS = 6000
 
-// Placeholder — reuses the previous hero shot until the definitive campaign
-// photos are dropped into `public/hero/` (see README.md there).
-const PLACEHOLDER_IMAGE =
-  'https://images.pexels.com/photos/1552252/pexels-photo-1552252.jpeg?auto=compress&cs=tinysrgb&w=1920'
-
+// Imagen de fondo por slide, acorde a su categoria (mismas fotos que el
+// showcase de categorias, en resolucion hero). Sustituye por fotos propias en
+// `public/hero/` cuando esten listas (ver README.md ahi).
 const SLIDES: HeroCarouselSlide[] = [
   {
     id: 'slide-1',
-    image: PLACEHOLDER_IMAGE,
+    // Pesas
+    image:
+      'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=1920&q=80',
     title: 'Equipo para tu mejor version',
     subtitle: 'Entrena con accesorios resistentes y de alto rendimiento.',
+    // Categoria destino del slide — ajusta el nombre si usas otra categoria.
+    category: 'Pesas',
   },
   {
     id: 'slide-2',
-    image: PLACEHOLDER_IMAGE,
+    // Accesorios
+    image:
+      'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&w=1920&q=80',
     title: 'Fuerza, cardio y recuperacion',
     subtitle: 'Todo lo que necesitas para entrenar en casa o en el gym.',
+    category: 'Accesorios',
   },
   {
     id: 'slide-3',
-    image: PLACEHOLDER_IMAGE,
+    // Bandas
+    image:
+      'https://images.pexels.com/photos/863977/pexels-photo-863977.jpeg?auto=compress&cs=tinysrgb&w=1920',
     title: 'Rendimiento real',
     subtitle: 'Equipamiento probado para atletas exigentes.',
+    category: 'Bandas',
   },
 ]
 
@@ -81,9 +92,16 @@ export function HeroCarousel() {
           style={{ transform: `translateX(-${index * 100}%)` }}
         >
           {SLIDES.map((slide, i) => (
-            <div key={slide.id} className="relative h-full w-full shrink-0" aria-hidden={i !== index}>
+            <Link
+              key={slide.id}
+              to={`/shop?category=${encodeURIComponent(slide.category)}`}
+              className="group relative block h-full w-full shrink-0"
+              aria-hidden={i !== index}
+              tabIndex={i === index ? 0 : -1}
+              aria-label={`Ver categoria ${slide.category}`}
+            >
               <div
-                className="absolute inset-0 bg-slate-900 bg-cover bg-center"
+                className="absolute inset-0 bg-slate-900 bg-cover bg-center transition-transform duration-[1200ms] ease-out group-hover:scale-105"
                 style={{ backgroundImage: `url(${slide.image})` }}
               />
               {/* Dark wash so the title stays legible over any photo */}
@@ -98,8 +116,14 @@ export function HeroCarousel() {
                 {slide.subtitle && (
                   <p className="mt-4 max-w-xl text-base text-slate-200 sm:text-lg">{slide.subtitle}</p>
                 )}
+                <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-lime-400 transition group-hover:gap-3">
+                  Ver {slide.category}
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
