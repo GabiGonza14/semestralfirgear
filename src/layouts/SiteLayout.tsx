@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { Footer } from '../components/Footer'
 import { Navbar } from '../components/Navbar'
@@ -5,6 +6,13 @@ import { Navbar } from '../components/Navbar'
 export function SiteLayout() {
   const location = useLocation()
   const isLanding = location.pathname === '/'
+
+  // Plain BrowserRouter doesn't reset scroll on navigation — without this,
+  // clicking into a new page (e.g. a related product) keeps the old scroll
+  // position instead of starting at the top.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100">

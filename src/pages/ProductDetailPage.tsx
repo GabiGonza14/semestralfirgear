@@ -27,6 +27,18 @@ export function ProductDetailPage() {
     setQuantity(1)
   }, [id])
 
+  // Reflect the product in the browser tab, and restore the site default on leave.
+  useEffect(() => {
+    if (!product) {
+      return
+    }
+    const previousTitle = document.title
+    document.title = `${product.name} · FITGEAR`
+    return () => {
+      document.title = previousTitle
+    }
+  }, [product])
+
   useEffect(() => {
     if (!id) {
       setError('Producto no encontrado')
@@ -44,13 +56,25 @@ export function ProductDetailPage() {
         if (!active) {
           return
         }
+
+        // An admin-deactivated product is off-limits from direct links too —
+        // treat it exactly like a missing product instead of leaking it.
+        if (!result.isActive) {
+          setError('Producto no encontrado')
+          return
+        }
+
         setProduct(result)
 
         const relatedProducts = await getProducts({ categoryId: result.categoryId })
         if (!active) {
           return
         }
-        setRelated(relatedProducts.filter((item) => item.id !== result.id).slice(0, 3))
+        setRelated(
+          relatedProducts
+            .filter((item) => item.isActive && item.id !== result.id)
+            .slice(0, 3),
+        )
       })
       .catch((apiError: unknown) => {
         if (!active) {
@@ -106,6 +130,7 @@ export function ProductDetailPage() {
   }
 
   const outOfStock = product.stock <= 0
+  const lowStock = !outOfStock && product.stock <= 5
 
   return (
     <div className="space-y-14">
@@ -166,6 +191,10 @@ export function ProductDetailPage() {
             {outOfStock ? (
               <span className="mb-1 rounded-full bg-white/[0.06] px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-400 ring-1 ring-white/10">
                 Agotado
+              </span>
+            ) : lowStock ? (
+              <span className="mb-1 rounded-full bg-amber-400/90 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-900">
+                Ultimas {product.stock} unidades
               </span>
             ) : (
               <span className="mb-1 inline-flex items-center gap-1.5 text-sm font-medium text-slate-400">

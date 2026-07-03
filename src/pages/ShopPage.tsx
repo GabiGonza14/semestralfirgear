@@ -221,6 +221,10 @@ export function ShopPage() {
 
     return activeProducts
       .filter((product) => {
+        if (!product.isActive) {
+          return false
+        }
+
         const matchesCategory =
           resolvedCategory === 'all' || product.categoryId === resolvedCategory
         const matchesSearch =
