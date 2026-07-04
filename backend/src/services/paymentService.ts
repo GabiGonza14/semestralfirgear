@@ -224,20 +224,25 @@ export async function confirmCheckoutPayment(orderId: string, sessionId?: string
   return { status: 'PAID' as const }
 }
 
-export function constructWebhookEvent(payload: Buffer, signature: string | undefined) {
+export async function constructWebhookEvent(payload: string, signature: string | undefined) {
   if (!signature) {
+    console.error('[stripe-webhook] rejected event: missing Stripe signature header')
     throw new HttpError(400, 'Missing Stripe signature header')
   }
 
   if (!env.stripeWebhookSecret) {
+    console.error('[stripe-webhook] rejected event: STRIPE_WEBHOOK_SECRET is not configured')
     throw new HttpError(500, 'Stripe webhook is not configured')
   }
 
   const stripe = getStripeClient()
 
   try {
-    return stripe.webhooks.constructEvent(payload, signature, env.stripeWebhookSecret)
-  } catch {
+    // constructEventAsync (not the sync constructEvent): under Bun the Stripe SDK
+    // uses the Web Crypto provider, whose HMAC only works asynchronously.
+    return await stripe.webhooks.constructEventAsync(payload, signature, env.stripeWebhookSecret)
+  } catch (error) {
+    console.error('[stripe-webhook] signature verification failed', error)
     throw new HttpError(400, 'Invalid Stripe signature')
   }
 }
@@ -266,6 +271,12 @@ export async function handleStripeEvent(event: Stripe.Event) {
     if (error instanceof HttpError && error.statusCode === 403) {
       return
     }
+
+    console.error('[stripe-webhook] failed to process checkout.session.completed', {
+      eventId: event.id,
+      orderId,
+      error,
+    })
 
     throw error
   }

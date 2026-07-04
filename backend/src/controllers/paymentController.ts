@@ -24,10 +24,11 @@ export const confirmCheckoutPaymentController = async (c: Context<AppEnv>) => {
 
 export const stripeWebhookController = async (c: Context<AppEnv>) => {
   const signature = c.req.header('stripe-signature')
-  const rawBody = await c.req.arrayBuffer()
-  const rawPayload = Buffer.from(rawBody)
+  // c.req.text() preserves the exact raw body bytes Stripe signed. Re-encoding
+  // via arrayBuffer()/Buffer under Bun breaks signature verification.
+  const rawBody = await c.req.text()
 
-  const event = await constructWebhookEvent(rawPayload, signature)
+  const event = await constructWebhookEvent(rawBody, signature)
   await handleStripeEvent(event)
 
   return c.json({ received: true }, 200)
