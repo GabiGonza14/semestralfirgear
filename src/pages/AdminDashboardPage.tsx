@@ -15,8 +15,12 @@ type AdminSection = 'overview' | 'inventory' | 'categories' | 'orders' | 'users'
 // CANCELLED (nunca se pagó) para que "revenue acumulado" refleje ventas reales.
 const REVENUE_STATUSES = new Set<BackendOrder['status']>(['PAID', 'SHIPPED', 'DELIVERED'])
 
+const ORDER_STATUS_FILTERS = ['ALL', 'PENDING', 'PAID', 'SHIPPED'] as const
+type OrderStatusFilter = (typeof ORDER_STATUS_FILTERS)[number]
+
 export function AdminDashboardPage() {
   const [section, setSection] = useState<AdminSection>('overview')
+  const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatusFilter>('ALL')
   const { isAdmin } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<BackendOrder[]>([])
@@ -70,6 +74,14 @@ export function AdminDashboardPage() {
   const activeProductsCount = useMemo(
     () => products.filter((product) => product.isActive).length,
     [products],
+  )
+
+  const filteredOrders = useMemo(
+    () =>
+      orderStatusFilter === 'ALL'
+        ? orders
+        : orders.filter((order) => order.status === orderStatusFilter),
+    [orders, orderStatusFilter],
   )
 
   const refreshProducts = async () => {
@@ -152,26 +164,53 @@ export function AdminDashboardPage() {
 
         {(section === 'overview' || section === 'orders') && (
           <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-            <h3 className="mb-4 text-lg font-semibold text-white">Órdenes recientes</h3>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-lg font-semibold text-white">Órdenes recientes</h3>
+              <div className="flex flex-wrap gap-2">
+                {ORDER_STATUS_FILTERS.map((statusFilter) => (
+                  <button
+                    key={statusFilter}
+                    type="button"
+                    onClick={() => setOrderStatusFilter(statusFilter)}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                      orderStatusFilter === statusFilter
+                        ? 'bg-lime-400 text-slate-950'
+                        : 'border border-white/12 text-slate-300 hover:border-white/30 hover:bg-white/5'
+                    }`}
+                  >
+                    {statusFilter === 'ALL' ? 'Todos' : statusFilter}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-140 text-left text-sm text-slate-300">
                 <thead className="text-slate-400">
                   <tr>
                     <th className="pb-2">ID</th>
+                    <th className="pb-2">Fecha</th>
                     <th className="pb-2">Cliente</th>
                     <th className="pb-2">Estado</th>
                     <th className="pb-2">Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((order) => (
+                  {filteredOrders.map((order) => (
                     <tr key={order.id} className="border-t border-white/10">
                       <td className="py-2">{order.id}</td>
+                      <td>{formatDate(order.createdAt)}</td>
                       <td>{order.customerName ?? order.userId}</td>
                       <td className="capitalize">{order.status.toLowerCase()}</td>
                       <td>{formatCurrency(order.totalAmount)}</td>
                     </tr>
                   ))}
+                  {filteredOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-4 text-center text-slate-400">
+                        No hay órdenes con este estado.
+                      </td>
+                    </tr>
+                  ) : null}
                 </tbody>
               </table>
             </div>
