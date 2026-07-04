@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../app'
 import {
+  cancelOrderController,
   createOrderController,
   getOrder,
   getOrders,
@@ -16,3 +17,4 @@ orderRouter.get('/', getOrders)
 orderRouter.get('/user/:userId', validateParams(userIdParamSchema), getOrdersByUser)
 orderRouter.get('/:id', validateParams(idParamSchema), getOrder)
 orderRouter.post('/', validateBody(createOrderSchema), createOrderController)
+orderRouter.patch('/:id/cancel', validateParams(idParamSchema), cancelOrderController)

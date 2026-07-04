@@ -99,6 +99,23 @@ export async function getOrderById(id: string) {
   return buildOrderWithItems(order, items)
 }
 
+export async function cancelOrder(id: string) {
+  const order = await OrderModel.findById(id)
+
+  if (!order) {
+    throw new HttpError(404, 'Order not found')
+  }
+
+  if (order.status !== 'PENDING') {
+    throw new HttpError(400, 'Only pending orders can be cancelled')
+  }
+
+  order.status = 'CANCELLED'
+  await order.save()
+
+  return loadOrderWithItems(id)
+}
+
 export async function listOrdersByUserId(userId: string) {
   const userExists = await UserModel.exists({ _id: userId })
   if (!userExists) {
