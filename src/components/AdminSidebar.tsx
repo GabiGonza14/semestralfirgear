@@ -1,15 +1,16 @@
-type AdminSection = 'overview' | 'inventory' | 'orders' | 'users'
+type AdminSection = 'overview' | 'inventory' | 'categories' | 'orders' | 'users'
 
 interface AdminSidebarProps {
   active: AdminSection
   onChange: (section: AdminSection) => void
 }
 
-const sections: AdminSection[] = ['overview', 'inventory', 'orders', 'users']
+const sections: AdminSection[] = ['overview', 'inventory', 'categories', 'orders', 'users']
 
 const sectionLabels: Record<AdminSection, string> = {
   overview: 'Resumen',
   inventory: 'Inventario',
+  categories: 'Categorias',
   orders: 'Ordenes',
   users: 'Usuarios',
 }

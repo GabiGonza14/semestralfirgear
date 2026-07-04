@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getOrders, getProducts, getUsers } from '../api/fitgearApi'
 import { AdminSidebar } from '../components/AdminSidebar'
+import { AdminCategoriesSection } from '../components/admin/AdminCategoriesSection'
 import { AdminInventorySection } from '../components/admin/AdminInventorySection'
 import { SummaryCard } from '../components/SummaryCard'
 import { useAuth } from '../context/AuthContext'
 import type { BackendOrder, BackendUser, Product } from '../types'
 import { formatCurrency, formatDate } from '../utils/format'
 
-type AdminSection = 'overview' | 'inventory' | 'orders' | 'users'
+type AdminSection = 'overview' | 'inventory' | 'categories' | 'orders' | 'users'
 
 export function AdminDashboardPage() {
   const [section, setSection] = useState<AdminSection>('overview')
@@ -134,6 +135,8 @@ export function AdminDashboardPage() {
         {section === 'inventory' ? (
           <AdminInventorySection products={products} onRefreshProducts={refreshProducts} />
         ) : null}
+
+        {section === 'categories' ? <AdminCategoriesSection /> : null}
 
         {(section === 'overview' || section === 'orders') && (
           <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">

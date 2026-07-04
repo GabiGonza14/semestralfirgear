@@ -7,7 +7,7 @@ import {
   getProducts,
   updateProductController,
 } from '../controllers/productController'
-import { uploadSingleProductImage } from '../middlewares/uploadProductImage'
+import { uploadProductImages } from '../middlewares/uploadProductImage'
 import { validateBody, validateParams, validateQuery } from '../middlewares/validate'
 import { idParamSchema } from '../validations/commonValidation'
 import {
@@ -22,14 +22,14 @@ productRouter.get('/', validateQuery(productQuerySchema), getProducts)
 productRouter.get('/:id', validateParams(idParamSchema), getProduct)
 productRouter.post(
   '/',
-  uploadSingleProductImage,
+  uploadProductImages,
   validateBody(createProductSchema),
   createProductController,
 )
 productRouter.put(
   '/:id',
   validateParams(idParamSchema),
-  uploadSingleProductImage,
+  uploadProductImages,
   validateBody(updateProductSchema),
   updateProductController,
 )

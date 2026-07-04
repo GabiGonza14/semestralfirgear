@@ -31,7 +31,11 @@ export function CartPage() {
   )
 
   const cartFingerprint = useMemo(
-    () => items.map((item) => `${item.product.id}:${item.quantity}`).sort().join('|'),
+    () =>
+      items
+        .map((item) => `${item.product.id}:${item.size ?? ''}:${item.quantity}`)
+        .sort()
+        .join('|'),
     [items],
   )
 
@@ -54,6 +58,7 @@ export function CartPage() {
               items: items.map((item) => ({
                 productId: item.product.id,
                 quantity: item.quantity,
+                size: item.size,
               })),
             })
           ).id
@@ -138,12 +143,13 @@ export function CartPage() {
         <AnimatePresence mode="popLayout">
           {items.map((item) => (
             <CartItem
-              key={item.product.id}
+              key={`${item.product.id}-${item.size ?? ''}`}
               product={item.product}
               quantity={item.quantity}
-              onIncrease={() => increase(item.product.id)}
-              onDecrease={() => decrease(item.product.id)}
-              onRemove={() => removeItem(item.product.id)}
+              size={item.size}
+              onIncrease={() => increase(item.product.id, item.size)}
+              onDecrease={() => decrease(item.product.id, item.size)}
+              onRemove={() => removeItem(item.product.id, item.size)}
             />
           ))}
         </AnimatePresence>

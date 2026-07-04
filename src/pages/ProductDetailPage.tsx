@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ApiError } from '../api/apiClient'
 import { getProductById, getProducts } from '../api/fitgearApi'
 import { ProductCard } from '../components/ProductCard'
+import { ProductGallery } from '../components/product/ProductGallery'
+import { ProductSizeSelector } from '../components/product/ProductSizeSelector'
 import { useCart } from '../context/CartContext'
-import type { Product } from '../types'
+import type { Product, SizeLabel } from '../types'
 import { formatCurrency } from '../utils/format'
 
 const trustPoints = [
@@ -12,6 +14,41 @@ const trustPoints = [
   'Compra protegida con Stripe',
   'Devoluciones faciles',
 ]
+
+function getStockBadge(outOfStock: boolean, lowStock: boolean, stock: number): ReactNode {
+  if (outOfStock) {
+    return (
+      <span className="mb-1 rounded-full bg-white/[0.06] px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-400 ring-1 ring-white/10">
+        Agotado
+      </span>
+    )
+  }
+
+  if (lowStock) {
+    return (
+      <span className="mb-1 rounded-full bg-amber-400/90 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-900">
+        Ultimas {stock} unidades
+      </span>
+    )
+  }
+
+  return (
+    <span className="mb-1 inline-flex items-center gap-1.5 text-sm font-medium text-slate-400">
+      <span className="h-2 w-2 rounded-full bg-lime-400" aria-hidden />
+      {stock} en stock
+    </span>
+  )
+}
+
+function getAddToCartLabel(outOfStock: boolean, needsSizeChoice: boolean) {
+  if (outOfStock) {
+    return 'Sin stock'
+  }
+  if (needsSizeChoice) {
+    return 'Elige una talla'
+  }
+  return 'Agregar al carrito'
+}
 
 export function ProductDetailPage() {
   const { id } = useParams()
@@ -21,10 +58,12 @@ export function ProductDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
+  const [selectedSize, setSelectedSize] = useState<SizeLabel | null>(null)
 
-  // A different product was opened — start its quantity picker back at 1.
+  // A different product was opened — reset the picker state back to defaults.
   useEffect(() => {
     setQuantity(1)
+    setSelectedSize(null)
   }, [id])
 
   // Reflect the product in the browser tab, and restore the site default on leave.
@@ -131,6 +170,17 @@ export function ProductDetailPage() {
 
   const outOfStock = product.stock <= 0
   const lowStock = !outOfStock && product.stock <= 5
+  const hasSizes = product.sizes.length > 0
+  const selectedSizeEntry = product.sizes.find((size) => size.label === selectedSize)
+  const maxQuantity = hasSizes ? selectedSizeEntry?.stock ?? 0 : product.stock
+  const needsSizeChoice = hasSizes && !selectedSize
+  const canAddToCart = !outOfStock && (!hasSizes || Boolean(selectedSizeEntry))
+  const images = product.images.length > 0 ? product.images : [product.image]
+
+  const handleSelectSize = (label: SizeLabel, stock: number) => {
+    setSelectedSize(label)
+    setQuantity((current) => Math.max(1, Math.min(current, Math.max(stock, 1))))
+  }
 
   return (
     <div className="space-y-14">
@@ -151,14 +201,7 @@ export function ProductDetailPage() {
       </nav>
 
       <section className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
-        {/* Image */}
-        <div className="overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white to-slate-100 p-6">
-          <img
-            src={product.image}
-            alt={product.name}
-            className="mx-auto h-full max-h-[34rem] w-full rounded-2xl object-contain"
-          />
-        </div>
+        <ProductGallery key={product.id} images={images} alt={product.name} />
 
         {/* Info */}
         <div className="space-y-6 lg:pt-2">
@@ -188,24 +231,15 @@ export function ProductDetailPage() {
                 {formatCurrency(product.price)}
               </p>
             )}
-            {outOfStock ? (
-              <span className="mb-1 rounded-full bg-white/[0.06] px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-400 ring-1 ring-white/10">
-                Agotado
-              </span>
-            ) : lowStock ? (
-              <span className="mb-1 rounded-full bg-amber-400/90 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-900">
-                Ultimas {product.stock} unidades
-              </span>
-            ) : (
-              <span className="mb-1 inline-flex items-center gap-1.5 text-sm font-medium text-slate-400">
-                <span className="h-2 w-2 rounded-full bg-lime-400" aria-hidden />
-                {product.stock} en stock
-              </span>
-            )}
+            {getStockBadge(outOfStock, lowStock, product.stock)}
           </div>
 
+          {hasSizes ? (
+            <ProductSizeSelector sizes={product.sizes} selectedSize={selectedSize} onSelect={handleSelectSize} />
+          ) : null}
+
           <div className="flex flex-wrap items-center gap-3">
-            {!outOfStock ? (
+            {outOfStock ? null : (
               <div className="inline-flex items-center rounded-full border border-white/12 bg-slate-950/40">
                 <button
                   type="button"
@@ -223,8 +257,8 @@ export function ProductDetailPage() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => setQuantity((current) => Math.min(product.stock, current + 1))}
-                  disabled={quantity >= product.stock}
+                  onClick={() => setQuantity((current) => Math.min(maxQuantity, current + 1))}
+                  disabled={quantity >= maxQuantity}
                   aria-label="Aumentar cantidad"
                   className="inline-flex h-12 w-11 items-center justify-center text-white transition hover:text-lime-400 disabled:cursor-not-allowed disabled:opacity-30"
                 >
@@ -233,12 +267,12 @@ export function ProductDetailPage() {
                   </svg>
                 </button>
               </div>
-            ) : null}
+            )}
 
             <button
               type="button"
-              onClick={() => addItem(product, quantity)}
-              disabled={outOfStock}
+              onClick={() => addItem(product, quantity, selectedSize ?? undefined)}
+              disabled={!canAddToCart}
               className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-lime-400 px-7 py-4 text-sm font-bold text-slate-900 transition hover:bg-lime-300 hover:shadow-[0_0_32px_-6px_rgba(163,230,53,0.6)] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 disabled:shadow-none sm:flex-none"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -246,7 +280,7 @@ export function ProductDetailPage() {
                 <circle cx="10" cy="20" r="1" fill="currentColor" />
                 <circle cx="18" cy="20" r="1" fill="currentColor" />
               </svg>
-              {outOfStock ? 'Sin stock' : 'Agregar al carrito'}
+              {getAddToCartLabel(outOfStock, needsSizeChoice)}
             </button>
           </div>
 

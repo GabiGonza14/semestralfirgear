@@ -1,6 +1,7 @@
 export interface CategoryOption {
   id: string
   name: string
+  requiresSizes: boolean
 }
 
 interface InventoryFiltersProps {

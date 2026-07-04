@@ -43,6 +43,7 @@ export function AdminInventorySection({ products, onRefreshProducts }: AdminInve
           result.map((category) => ({
             id: category._id,
             name: category.name,
+            requiresSizes: category.requiresSizes,
           })),
         )
         setCategoriesError(null)
@@ -102,7 +103,12 @@ export function AdminInventorySection({ products, onRefreshProducts }: AdminInve
   }, [categoryId, products, search, sortBy, status])
 
   const categoryOptions = useMemo(
-    () => categories.map((category) => ({ id: category.id, name: category.name })),
+    () =>
+      categories.map((category) => ({
+        id: category.id,
+        name: category.name,
+        requiresSizes: category.requiresSizes,
+      })),
     [categories],
   )
 

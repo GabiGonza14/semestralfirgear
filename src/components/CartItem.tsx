@@ -1,17 +1,18 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import type { Product } from '../types'
+import type { Product, SizeLabel } from '../types'
 import { formatCurrency } from '../utils/format'
 
 interface CartItemProps {
   product: Product
   quantity: number
+  size?: SizeLabel
   onIncrease: () => void
   onDecrease: () => void
   onRemove: () => void
 }
 
-export function CartItem({ product, quantity, onIncrease, onDecrease, onRemove }: CartItemProps) {
+export function CartItem({ product, quantity, size, onIncrease, onDecrease, onRemove }: Readonly<CartItemProps>) {
   const unitPrice = product.hasDiscount ? product.finalPrice : product.price
   const subtotal = quantity * unitPrice
 
@@ -38,6 +39,11 @@ export function CartItem({ product, quantity, onIncrease, onDecrease, onRemove }
             {product.name}
           </h3>
         </Link>
+        {size ? (
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Talla: <span className="text-white">{size}</span>
+          </p>
+        ) : null}
         <p className="mt-1.5 text-sm text-slate-400">
           {formatCurrency(unitPrice)} c/u
           {product.hasDiscount ? (

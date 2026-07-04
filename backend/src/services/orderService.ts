@@ -8,6 +8,7 @@ import { HttpError } from '../utils/httpError'
 interface CreateOrderItemInput {
   productId: string
   quantity: number
+  size?: string
 }
 
 interface CreateOrderPayload {
@@ -42,11 +43,19 @@ async function assertCustomerUser(userId: string, session?: ClientSession) {
 }
 
 function groupOrderItems(items: CreateOrderItemInput[]) {
-  const grouped = new Map<string, number>()
+  // Group by product + size so two lines for the same product but different
+  // sizes (e.g. Guantes M and Guantes L) stay separate stock buckets.
+  const grouped = new Map<string, { productId: string; quantity: number; size?: string }>()
   for (const item of items) {
-    grouped.set(item.productId, (grouped.get(item.productId) ?? 0) + item.quantity)
+    const key = `${item.productId}::${item.size ?? ''}`
+    const existing = grouped.get(key)
+    if (existing) {
+      existing.quantity += item.quantity
+    } else {
+      grouped.set(key, { productId: item.productId, quantity: item.quantity, size: item.size })
+    }
   }
-  return Array.from(grouped.entries()).map(([productId, quantity]) => ({ productId, quantity }))
+  return Array.from(grouped.values())
 }
 
 function buildOrderWithItems<TOrder extends { _id: Types.ObjectId }>(
@@ -70,7 +79,7 @@ export async function listOrders() {
   const orderIds = orders.map((order) => order._id)
   const items = await OrderItemModel.find({ orderId: { $in: orderIds } }).populate(
     'productId',
-    'name price imageUrl isActive',
+    'name price images isActive',
   )
 
   return orders.map((order) => buildOrderWithItems(order, items))
@@ -84,7 +93,7 @@ export async function getOrderById(id: string) {
 
   const items = await OrderItemModel.find({ orderId: order._id }).populate(
     'productId',
-    'name price imageUrl isActive',
+    'name price images isActive',
   )
 
   return buildOrderWithItems(order, items)
@@ -103,7 +112,7 @@ export async function listOrdersByUserId(userId: string) {
   const orderIds = orders.map((order) => order._id)
   const items = await OrderItemModel.find({ orderId: { $in: orderIds } }).populate(
     'productId',
-    'name price imageUrl isActive',
+    'name price images isActive',
   )
 
   return orders.map((order) => buildOrderWithItems(order, items))
@@ -143,7 +152,7 @@ async function loadOrderWithItems(orderId: string) {
 
   const hydratedItems = await OrderItemModel.find({ orderId: hydratedOrder._id }).populate(
     'productId',
-    'name price imageUrl isActive',
+    'name price images isActive',
   )
 
   return buildOrderWithItems(hydratedOrder, hydratedItems)
@@ -171,12 +180,15 @@ async function persistOrder(payload: CreateOrderPayload, session?: ClientSession
   await assertCustomerUser(payload.userId, session)
 
   const groupedItems = groupOrderItems(payload.items)
-  const productIds = groupedItems.map((item) => new Types.ObjectId(item.productId))
+  // Dedupe productIds for the lookup — the same product can appear twice in
+  // groupedItems when the cart holds it in two different sizes.
+  const uniqueProductIds = [...new Set(groupedItems.map((item) => item.productId))]
+  const productIds = uniqueProductIds.map((productId) => new Types.ObjectId(productId))
 
   const productsQuery = ProductModel.find({ _id: { $in: productIds } })
   const products = session ? await productsQuery.session(session) : await productsQuery
 
-  if (products.length !== groupedItems.length) {
+  if (products.length !== uniqueProductIds.length) {
     throw new HttpError(404, 'Product not found')
   }
 
@@ -196,11 +208,31 @@ async function persistOrder(payload: CreateOrderPayload, session?: ClientSession
       ])
     }
 
-    if (product.stock < item.quantity) {
+    const hasSizes = product.sizes.length > 0
+    let availableStock = product.stock
+
+    if (hasSizes) {
+      if (!item.size) {
+        throw new HttpError(400, 'Validation failed', [
+          { path: `items.${item.productId}.size`, message: `Product ${product.name} requires a size` },
+        ])
+      }
+
+      const sizeEntry = product.sizes.find((size) => size.label === item.size)
+      if (!sizeEntry) {
+        throw new HttpError(400, 'Validation failed', [
+          { path: `items.${item.productId}.size`, message: `Invalid size for ${product.name}` },
+        ])
+      }
+
+      availableStock = sizeEntry.stock
+    }
+
+    if (availableStock < item.quantity) {
       throw new HttpError(400, 'Validation failed', [
         {
           path: `items.${item.productId}.quantity`,
-          message: `Insufficient stock for ${product.name}. Available: ${product.stock}`,
+          message: `Insufficient stock for ${product.name}. Available: ${availableStock}`,
         },
       ])
     }
@@ -211,6 +243,7 @@ async function persistOrder(payload: CreateOrderPayload, session?: ClientSession
     return {
       productId: product._id,
       quantity: item.quantity,
+      size: hasSizes ? item.size : undefined,
       unitPrice,
       subtotal,
     }
@@ -248,6 +281,7 @@ async function persistOrder(payload: CreateOrderPayload, session?: ClientSession
     orderId: createdOrder._id,
     productId: item.productId,
     quantity: item.quantity,
+    size: item.size,
     unitPrice: item.unitPrice,
     subtotal: item.subtotal,
   }))

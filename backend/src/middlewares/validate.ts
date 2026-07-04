@@ -11,9 +11,13 @@ export function validateBody<T>(schema: ZodType<T>) {
     const result = schema.safeParse(raw)
 
     if (!result.success) {
-      const uploadedImagePath = (raw as Record<string, unknown>)?.imageUrl
-      if (typeof uploadedImagePath === 'string' && isLocalProductUploadPath(uploadedImagePath)) {
-        void removeLocalUploadFile(uploadedImagePath)
+      const newlyUploadedImagePaths = (raw as Record<string, unknown>)?.newlyUploadedImagePaths
+      if (Array.isArray(newlyUploadedImagePaths)) {
+        for (const uploadedImagePath of newlyUploadedImagePaths) {
+          if (typeof uploadedImagePath === 'string' && isLocalProductUploadPath(uploadedImagePath)) {
+            void removeLocalUploadFile(uploadedImagePath)
+          }
+        }
       }
 
       const issues = result.error.issues.map((issue) => ({
