@@ -4,6 +4,7 @@ import {
   useContext,
   useMemo,
   useReducer,
+  useState,
   type ReactNode,
 } from 'react'
 import type { CartItemModel, Product, SizeLabel } from '../types'
@@ -20,6 +21,9 @@ interface CartContextValue {
   taxAmount: number
   shippingAmount: number
   total: number
+  isCartOpen: boolean
+  openCart: () => void
+  closeCart: () => void
   addItem: (product: Product, quantity?: number, size?: SizeLabel) => void
   removeItem: (productId: string, size?: SizeLabel) => void
   increase: (productId: string, size?: SizeLabel) => void
@@ -87,6 +91,7 @@ const CartContext = createContext<CartContextValue | undefined>(undefined)
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, [])
+  const [isCartOpen, setIsCartOpen] = useState(false)
 
   const items = useMemo(() => state as CartLine[], [state])
 
@@ -109,8 +114,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [subtotal, taxAmount, shippingAmount],
   )
 
+  const openCart = useCallback(() => setIsCartOpen(true), [])
+  const closeCart = useCallback(() => setIsCartOpen(false), [])
+
   const addItem = useCallback((product: Product, quantity = 1, size?: SizeLabel) => {
     dispatch({ type: 'add', product, quantity, size })
+    setIsCartOpen(true)
   }, [])
 
   const removeItem = useCallback((productId: string, size?: SizeLabel) => {
@@ -136,13 +145,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
       taxAmount,
       shippingAmount,
       total,
+      isCartOpen,
+      openCart,
+      closeCart,
       addItem,
       removeItem,
       increase,
       decrease,
       clearCart,
     }),
-    [items, subtotal, taxAmount, shippingAmount, total, addItem, removeItem, increase, decrease, clearCart],
+    [
+      items,
+      subtotal,
+      taxAmount,
+      shippingAmount,
+      total,
+      isCartOpen,
+      openCart,
+      closeCart,
+      addItem,
+      removeItem,
+      increase,
+      decrease,
+      clearCart,
+    ],
   )
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>

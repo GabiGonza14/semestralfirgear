@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useCart } from '../context/CartContext'
 
 const shopLinks = [
   { label: 'Pesas', to: '/shop?category=Pesas' },
@@ -10,10 +11,11 @@ const shopLinks = [
 const accountLinks = [
   { label: 'Mis pedidos', to: '/orders' },
   { label: 'Mi cuenta', to: '/account' },
-  { label: 'Carrito', to: '/cart' },
 ]
 
 export function Footer() {
+  const { openCart } = useCart()
+
   return (
     <footer className="bg-slate-950 border-t border-white/[0.06]">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -90,6 +92,15 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <button
+                  type="button"
+                  onClick={openCart}
+                  className="text-sm text-slate-400 transition hover:text-white"
+                >
+                  Carrito
+                </button>
+              </li>
             </ul>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { GiftFinder } from '../components/GiftFinder'
 import { HeroCarousel } from '../components/HeroCarousel'
 import { Marquee } from '../components/Marquee'
 import { SectionDecor } from '../components/SectionDecor'
+import { useCart } from '../context/CartContext'
 import { useReveal } from '../hooks/useReveal'
 
 interface TrustItem {
@@ -57,6 +58,7 @@ const trustItems: TrustItem[] = [
 
 export function LandingPage() {
   const rootRef = useRef<HTMLDivElement>(null)
+  const { openCart } = useCart()
   useReveal(rootRef)
 
   return (
@@ -108,12 +110,13 @@ export function LandingPage() {
                   <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </Link>
-              <Link
-                to="/cart"
+              <button
+                type="button"
+                onClick={openCart}
                 className="inline-flex rounded-full border border-white/15 px-8 py-3.5 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5"
               >
                 Ver carrito
-              </Link>
+              </button>
             </div>
           </div>
         </div>
