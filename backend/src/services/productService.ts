@@ -4,16 +4,52 @@ import { ProductModel } from '../models/Product'
 import { HttpError } from '../utils/httpError'
 import { isLocalProductUploadPath, removeLocalUploadFile } from '../utils/uploadPaths'
 
+interface ProductSizeInput {
+  label: string
+  stock: number
+}
+
 interface ProductPayload {
   name?: string
   description?: string
   price?: number
   stock?: number
-  imageUrl?: string
+  images?: string[]
+  sizes?: ProductSizeInput[]
   categoryId?: string
   isActive?: boolean
   hasDiscount?: boolean
   discountPercentage?: number
+}
+
+// When a category requires sizes, the per-size breakdown is the source of
+// truth for stock — the flat `stock` field becomes an auto-computed sum so
+// every existing consumer that just reads `product.stock` keeps working.
+function resolveSizesAndStock(
+  requiresSizes: boolean,
+  sizesInput: ProductSizeInput[] | undefined,
+  flatStock: number,
+) {
+  if (!requiresSizes) {
+    return { sizes: [] as ProductSizeInput[], stock: flatStock }
+  }
+
+  const sizes = sizesInput ?? []
+  if (sizes.length === 0) {
+    throw new HttpError(400, 'Validation failed', [
+      { path: 'sizes', message: 'This category requires at least one size with stock' },
+    ])
+  }
+
+  const labels = sizes.map((size) => size.label)
+  if (new Set(labels).size !== labels.length) {
+    throw new HttpError(400, 'Validation failed', [
+      { path: 'sizes', message: 'Duplicate size labels are not allowed' },
+    ])
+  }
+
+  const stock = sizes.reduce((sum, size) => sum + size.stock, 0)
+  return { sizes, stock }
 }
 
 interface DiscountResult {
@@ -86,12 +122,14 @@ export async function createProduct(payload: ProductPayload) {
     ])
   }
 
-  const categoryExists = await CategoryModel.exists({ _id: payload.categoryId })
-  if (!categoryExists) {
+  const category = await CategoryModel.findById(payload.categoryId)
+  if (!category) {
     throw new HttpError(400, 'Validation failed', [
       { path: 'categoryId', message: 'categoryId does not exist' },
     ])
   }
+
+  const { sizes, stock } = resolveSizesAndStock(category.requiresSizes, payload.sizes, payload.stock ?? 0)
 
   const discount = calculateDiscount(
     payload.price ?? 0,
@@ -103,8 +141,9 @@ export async function createProduct(payload: ProductPayload) {
     name: payload.name,
     description: payload.description,
     price: payload.price,
-    stock: payload.stock,
-    imageUrl: payload.imageUrl,
+    stock,
+    images: payload.images ?? [],
+    sizes,
     categoryId: payload.categoryId,
     isActive: payload.isActive ?? true,
     hasDiscount: discount.hasDiscount,
@@ -120,8 +159,8 @@ export async function updateProduct(id: string, payload: ProductPayload) {
     throw new HttpError(404, 'Product not found')
   }
 
-  const previousImageUrl = product.imageUrl
-  let imageReplaced = false
+  const previousImages = product.images ?? []
+  let removedImages: string[] = []
 
   if (payload.categoryId) {
     const categoryExists = await CategoryModel.exists({ _id: payload.categoryId })
@@ -133,6 +172,14 @@ export async function updateProduct(id: string, payload: ProductPayload) {
     product.categoryId = new Types.ObjectId(payload.categoryId)
   }
 
+  // Sizes-requirement is driven by the product's (possibly just-changed) category.
+  const effectiveCategory = await CategoryModel.findById(product.categoryId)
+  if (!effectiveCategory) {
+    throw new HttpError(400, 'Validation failed', [
+      { path: 'categoryId', message: 'categoryId does not exist' },
+    ])
+  }
+
   if (payload.name !== undefined) {
     product.name = payload.name
   }
@@ -142,13 +189,35 @@ export async function updateProduct(id: string, payload: ProductPayload) {
   if (payload.price !== undefined) {
     product.price = payload.price
   }
-  if (payload.stock !== undefined) {
-    product.stock = payload.stock
+
+  if (payload.images !== undefined) {
+    removedImages = previousImages.filter((url) => !payload.images!.includes(url))
+    product.images = payload.images
   }
-  if (payload.imageUrl !== undefined) {
-    imageReplaced = payload.imageUrl !== previousImageUrl
-    product.imageUrl = payload.imageUrl
+
+  if (effectiveCategory.requiresSizes) {
+    if (payload.sizes !== undefined) {
+      const { sizes, stock } = resolveSizesAndStock(true, payload.sizes, 0)
+      product.set('sizes', sizes)
+      product.stock = stock
+    } else if (payload.stock !== undefined) {
+      throw new HttpError(400, 'Validation failed', [
+        { path: 'stock', message: 'Stock is derived from sizes for this category; update sizes instead' },
+      ])
+    }
+
+    if (product.sizes.length === 0) {
+      throw new HttpError(400, 'Validation failed', [
+        { path: 'sizes', message: 'This category requires at least one size with stock' },
+      ])
+    }
+  } else {
+    product.set('sizes', [])
+    if (payload.stock !== undefined) {
+      product.stock = payload.stock
+    }
   }
+
   if (payload.isActive !== undefined) {
     product.isActive = payload.isActive
   }
@@ -163,8 +232,10 @@ export async function updateProduct(id: string, payload: ProductPayload) {
 
   await product.save()
 
-  if (imageReplaced && isLocalProductUploadPath(previousImageUrl)) {
-    await removeLocalUploadFile(previousImageUrl)
+  for (const url of removedImages) {
+    if (isLocalProductUploadPath(url)) {
+      await removeLocalUploadFile(url)
+    }
   }
 
   return product
@@ -176,10 +247,12 @@ export async function deleteProduct(id: string) {
     throw new HttpError(404, 'Product not found')
   }
 
-  const imageUrl = product.imageUrl
+  const images = product.images ?? []
   await product.deleteOne()
 
-  if (isLocalProductUploadPath(imageUrl)) {
-    await removeLocalUploadFile(imageUrl)
+  for (const url of images) {
+    if (isLocalProductUploadPath(url)) {
+      await removeLocalUploadFile(url)
+    }
   }
 }

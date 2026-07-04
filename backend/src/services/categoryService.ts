@@ -5,6 +5,7 @@ import { HttpError } from '../utils/httpError'
 interface CategoryPayload {
   name?: string
   description?: string
+  requiresSizes?: boolean
 }
 
 function normalizeName(name: string) {
@@ -37,6 +38,7 @@ export async function createCategory(payload: CategoryPayload) {
   return CategoryModel.create({
     name: payload.name,
     description: payload.description ?? '',
+    requiresSizes: payload.requiresSizes ?? false,
   })
 }
 
@@ -62,6 +64,10 @@ export async function updateCategory(id: string, payload: CategoryPayload) {
 
   if (payload.description !== undefined) {
     category.description = payload.description
+  }
+
+  if (payload.requiresSizes !== undefined) {
+    category.requiresSizes = payload.requiresSizes
   }
 
   await category.save()

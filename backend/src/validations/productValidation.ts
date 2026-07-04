@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { objectIdSchema } from './commonValidation'
 import { stripHtml } from '../utils/sanitize'
+import { SIZE_OPTIONS } from '../utils/sizes'
 
 const booleanFromFormSchema = z.preprocess((value) => {
   if (typeof value === 'string') {
@@ -15,6 +16,33 @@ const booleanFromFormSchema = z.preprocess((value) => {
 
   return value
 }, z.boolean())
+
+const sizeEntrySchema = z.object({
+  label: z.enum(SIZE_OPTIONS),
+  stock: z.coerce.number().int('stock must be an integer').min(0, 'stock must be greater than or equal to 0'),
+})
+
+// The upload middleware sends form fields as strings — sizes arrives as a
+// JSON-encoded array under one form field, so it needs parsing before zod
+// can validate its shape.
+const sizesFromFormSchema = z.preprocess((value) => {
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value)
+    } catch {
+      return value
+    }
+  }
+  return value
+}, z.array(sizeEntrySchema))
+  .refine((sizes) => new Set(sizes.map((size) => size.label)).size === sizes.length, {
+    message: 'Duplicate size labels are not allowed',
+  })
+
+const imagesFromFormSchema = z
+  .array(z.string().trim().min(1, 'image path cannot be empty'))
+  .min(1, 'at least one image is required')
+  .max(4, 'a product can have at most 4 images')
 
 export const createProductSchema = z.object({
   name: z
@@ -34,7 +62,8 @@ export const createProductSchema = z.object({
     .number()
     .int('stock must be an integer')
     .min(0, 'stock must be greater than or equal to 0'),
-  imageUrl: z.string().trim().min(1, 'imageUrl is required').max(500, 'imageUrl is too long'),
+  images: imagesFromFormSchema,
+  sizes: sizesFromFormSchema.optional().default([]),
   categoryId: objectIdSchema,
   isActive: booleanFromFormSchema.optional().default(true),
   hasDiscount: booleanFromFormSchema.optional().default(false),
@@ -68,12 +97,8 @@ export const updateProductSchema = z
       .int('stock must be an integer')
       .min(0, 'stock must be greater than or equal to 0')
       .optional(),
-    imageUrl: z
-      .string()
-      .trim()
-      .min(1, 'imageUrl cannot be empty')
-      .max(500, 'imageUrl is too long')
-      .optional(),
+    images: imagesFromFormSchema.optional(),
+    sizes: sizesFromFormSchema.optional(),
     categoryId: objectIdSchema.optional(),
     isActive: booleanFromFormSchema.optional(),
     hasDiscount: booleanFromFormSchema.optional(),

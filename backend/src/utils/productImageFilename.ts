@@ -9,10 +9,14 @@ function toSlug(value: string) {
     .replace(/^-+|-+$/g, '')
 }
 
-export function buildProductImageFilename(productName: string, originalFilename: string) {
+export function buildProductImageFilename(
+  productName: string,
+  originalFilename: string,
+  index = 0,
+) {
   const extension = path.extname(originalFilename).toLowerCase() || '.jpg'
   const baseName = toSlug(productName) || 'producto'
   const timestamp = Date.now()
 
-  return `${baseName}-${timestamp}${extension}`
+  return `${baseName}-${timestamp}-${index}${extension}`
 }

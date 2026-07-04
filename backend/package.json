@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "bun --watch src/server.ts",
     "start": "bun src/server.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "migrate:images": "bun src/scripts/migrateProductImages.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

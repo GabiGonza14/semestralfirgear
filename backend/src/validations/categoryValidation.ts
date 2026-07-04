@@ -15,6 +15,7 @@ export const createCategorySchema = z.object({
     .transform(stripHtml)
     .optional()
     .default(''),
+  requiresSizes: z.boolean().optional().default(false),
 })
 
 export const updateCategorySchema = z
@@ -32,6 +33,7 @@ export const updateCategorySchema = z
       .max(500, 'description cannot exceed 500 characters')
       .transform(stripHtml)
       .optional(),
+    requiresSizes: z.boolean().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'At least one field is required',

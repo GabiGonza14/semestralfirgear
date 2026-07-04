@@ -4,7 +4,7 @@ import { ApiError } from '../api/apiClient'
 import { getProductById, getProducts } from '../api/fitgearApi'
 import { ProductCard } from '../components/ProductCard'
 import { useCart } from '../context/CartContext'
-import type { Product } from '../types'
+import type { Product, SizeLabel } from '../types'
 import { formatCurrency } from '../utils/format'
 
 const trustPoints = [
@@ -21,10 +21,16 @@ export function ProductDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+  const [selectedSize, setSelectedSize] = useState<SizeLabel | null>(null)
 
-  // A different product was opened — start its quantity picker back at 1.
+  // A different product was opened — reset the picker state back to defaults.
   useEffect(() => {
     setQuantity(1)
+    setSelectedImageIndex(0)
+    setIsLightboxOpen(false)
+    setSelectedSize(null)
   }, [id])
 
   // Reflect the product in the browser tab, and restore the site default on leave.
@@ -131,6 +137,17 @@ export function ProductDetailPage() {
 
   const outOfStock = product.stock <= 0
   const lowStock = !outOfStock && product.stock <= 5
+  const hasSizes = product.sizes.length > 0
+  const selectedSizeEntry = product.sizes.find((size) => size.label === selectedSize)
+  const maxQuantity = hasSizes ? selectedSizeEntry?.stock ?? 0 : product.stock
+  const canAddToCart = !outOfStock && (!hasSizes || Boolean(selectedSizeEntry))
+  const images = product.images.length > 0 ? product.images : [product.image]
+  const activeImage = images[selectedImageIndex] ?? images[0]
+
+  const handleSelectSize = (label: SizeLabel, stock: number) => {
+    setSelectedSize(label)
+    setQuantity((current) => Math.max(1, Math.min(current, Math.max(stock, 1))))
+  }
 
   return (
     <div className="space-y-14">
@@ -151,13 +168,41 @@ export function ProductDetailPage() {
       </nav>
 
       <section className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
-        {/* Image */}
-        <div className="overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white to-slate-100 p-6">
-          <img
-            src={product.image}
-            alt={product.name}
-            className="mx-auto h-full max-h-[34rem] w-full rounded-2xl object-contain"
-          />
+        {/* Gallery */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setIsLightboxOpen(true)}
+            className="block w-full cursor-zoom-in overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white to-slate-100 p-6"
+            aria-label="Ampliar imagen"
+          >
+            <img
+              src={activeImage}
+              alt={product.name}
+              className="mx-auto h-full max-h-[34rem] w-full rounded-2xl object-contain"
+            />
+          </button>
+
+          {images.length > 1 ? (
+            <div className="mt-3 grid grid-cols-4 gap-3">
+              {images.map((image, index) => (
+                <button
+                  key={image}
+                  type="button"
+                  onClick={() => setSelectedImageIndex(index)}
+                  aria-label={`Ver imagen ${index + 1}`}
+                  aria-current={index === selectedImageIndex}
+                  className={`overflow-hidden rounded-2xl border bg-gradient-to-b from-white to-slate-100 p-2 transition ${
+                    index === selectedImageIndex
+                      ? 'border-lime-400 ring-2 ring-lime-400/40'
+                      : 'border-white/10 hover:border-white/30'
+                  }`}
+                >
+                  <img src={image} alt="" className="aspect-square w-full object-contain" />
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         {/* Info */}
@@ -204,6 +249,41 @@ export function ProductDetailPage() {
             )}
           </div>
 
+          {hasSizes ? (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-slate-300">
+                Talla{selectedSize ? `: ${selectedSize}` : ''}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {product.sizes.map((size) => {
+                  const sizeOutOfStock = size.stock <= 0
+                  const isSelected = size.label === selectedSize
+                  return (
+                    <button
+                      key={size.label}
+                      type="button"
+                      onClick={() => handleSelectSize(size.label, size.stock)}
+                      disabled={sizeOutOfStock}
+                      aria-pressed={isSelected}
+                      className={`inline-flex h-11 min-w-11 items-center justify-center rounded-xl border px-3 text-sm font-bold transition ${
+                        isSelected
+                          ? 'border-lime-400 bg-lime-400 text-slate-900'
+                          : sizeOutOfStock
+                            ? 'cursor-not-allowed border-white/10 text-slate-600 line-through'
+                            : 'border-white/15 text-slate-200 hover:border-lime-400/50 hover:text-white'
+                      }`}
+                    >
+                      {size.label}
+                    </button>
+                  )
+                })}
+              </div>
+              {!selectedSize ? (
+                <p className="text-xs text-slate-500">Selecciona una talla para continuar.</p>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="flex flex-wrap items-center gap-3">
             {!outOfStock ? (
               <div className="inline-flex items-center rounded-full border border-white/12 bg-slate-950/40">
@@ -223,8 +303,8 @@ export function ProductDetailPage() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => setQuantity((current) => Math.min(product.stock, current + 1))}
-                  disabled={quantity >= product.stock}
+                  onClick={() => setQuantity((current) => Math.min(maxQuantity, current + 1))}
+                  disabled={quantity >= maxQuantity}
                   aria-label="Aumentar cantidad"
                   className="inline-flex h-12 w-11 items-center justify-center text-white transition hover:text-lime-400 disabled:cursor-not-allowed disabled:opacity-30"
                 >
@@ -237,8 +317,8 @@ export function ProductDetailPage() {
 
             <button
               type="button"
-              onClick={() => addItem(product, quantity)}
-              disabled={outOfStock}
+              onClick={() => addItem(product, quantity, selectedSize ?? undefined)}
+              disabled={!canAddToCart}
               className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-lime-400 px-7 py-4 text-sm font-bold text-slate-900 transition hover:bg-lime-300 hover:shadow-[0_0_32px_-6px_rgba(163,230,53,0.6)] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 disabled:shadow-none sm:flex-none"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -246,7 +326,7 @@ export function ProductDetailPage() {
                 <circle cx="10" cy="20" r="1" fill="currentColor" />
                 <circle cx="18" cy="20" r="1" fill="currentColor" />
               </svg>
-              {outOfStock ? 'Sin stock' : 'Agregar al carrito'}
+              {outOfStock ? 'Sin stock' : hasSizes && !selectedSize ? 'Elige una talla' : 'Agregar al carrito'}
             </button>
           </div>
 
@@ -284,6 +364,62 @@ export function ProductDetailPage() {
             ))}
           </div>
         </section>
+      ) : null}
+
+      {isLightboxOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 p-4 backdrop-blur-sm"
+          onClick={() => setIsLightboxOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setIsLightboxOpen(false)}
+            aria-label="Cerrar"
+            className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white transition hover:border-white/40 hover:bg-white/10"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+
+          {images.length > 1 ? (
+            <>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setSelectedImageIndex((current) => (current - 1 + images.length) % images.length)
+                }}
+                aria-label="Imagen anterior"
+                className="absolute left-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-slate-950/50 text-white transition hover:border-white/40 sm:left-6"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setSelectedImageIndex((current) => (current + 1) % images.length)
+                }}
+                aria-label="Siguiente imagen"
+                className="absolute right-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-slate-950/50 text-white transition hover:border-white/40 sm:right-6"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </>
+          ) : null}
+
+          <img
+            src={activeImage}
+            alt={product.name}
+            className="max-h-[85vh] max-w-[90vw] rounded-2xl object-contain"
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
       ) : null}
     </div>
   )

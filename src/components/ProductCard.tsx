@@ -71,25 +71,35 @@ export function ProductCard({ product }: { product: Product }) {
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => addItem(product)}
-          disabled={outOfStock}
-          className="mt-1 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-lime-400 px-4 py-2 text-xs font-bold text-slate-900 transition hover:bg-lime-300 hover:shadow-[0_0_24px_-6px_rgba(163,230,53,0.6)] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 disabled:shadow-none"
-        >
-          {outOfStock ? (
-            'Sin stock'
-          ) : (
-            <>
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M3 4h2l2.4 11.5a1 1 0 0 0 1 .8h9.9a1 1 0 0 0 1-.8L21 7H7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="10" cy="20" r="1" fill="currentColor" />
-                <circle cx="18" cy="20" r="1" fill="currentColor" />
-              </svg>
-              Agregar
-            </>
-          )}
-        </button>
+        {product.sizes.length > 0 ? (
+          // Sized products need a size picked first — send them to the detail page instead.
+          <Link
+            to={`/product/${product.id}`}
+            className="mt-1 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-lime-400 px-4 py-2 text-xs font-bold text-slate-900 transition hover:bg-lime-300 hover:shadow-[0_0_24px_-6px_rgba(163,230,53,0.6)]"
+          >
+            Ver tallas
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => addItem(product)}
+            disabled={outOfStock}
+            className="mt-1 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-lime-400 px-4 py-2 text-xs font-bold text-slate-900 transition hover:bg-lime-300 hover:shadow-[0_0_24px_-6px_rgba(163,230,53,0.6)] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 disabled:shadow-none"
+          >
+            {outOfStock ? (
+              'Sin stock'
+            ) : (
+              <>
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M3 4h2l2.4 11.5a1 1 0 0 0 1 .8h9.9a1 1 0 0 0 1-.8L21 7H7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="10" cy="20" r="1" fill="currentColor" />
+                  <circle cx="18" cy="20" r="1" fill="currentColor" />
+                </svg>
+                Agregar
+              </>
+            )}
+          </button>
+        )}
       </div>
     </article>
   )

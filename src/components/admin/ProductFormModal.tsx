@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ProductUpsertInput } from '../../api/fitgearApi'
-import type { Product } from '../../types'
+import type { Product, SizeLabel } from '../../types'
+import { SIZE_OPTIONS } from '../../utils/sizes'
 import { formatCurrency } from '../../utils/format'
 import type { CategoryOption } from './InventoryFilters'
 
@@ -14,31 +15,47 @@ interface ProductFormModalProps {
   onSubmit: (payload: ProductUpsertInput) => Promise<void>
 }
 
+interface ImageSlot {
+  kind: 'existing' | 'new'
+  url: string
+  file?: File
+}
+
+const MAX_IMAGES = 4
+
 type ProductFormState = {
   name: string
   description: string
   price: string
   stock: string
-  imageFile: File | null
-  imagePreview: string
+  images: ImageSlot[]
   categoryId: string
   isActive: boolean
   hasDiscount: boolean
   discountPercentage: string
+  /** Present only for sizes the admin has checked; value is the stock string. */
+  sizeStocks: Partial<Record<SizeLabel, string>>
 }
 
-const createEmptyState = (initialProduct: Product | null, categories: CategoryOption[]): ProductFormState => ({
-  name: initialProduct?.name ?? '',
-  description: initialProduct?.description ?? '',
-  price: initialProduct ? String(initialProduct.price) : '',
-  stock: initialProduct ? String(initialProduct.stock) : '',
-  imageFile: null,
-  imagePreview: initialProduct?.image ?? '',
-  categoryId: initialProduct?.categoryId ?? categories[0]?.id ?? '',
-  isActive: initialProduct?.isActive ?? true,
-  hasDiscount: initialProduct?.hasDiscount ?? false,
-  discountPercentage: initialProduct?.hasDiscount ? String(initialProduct.discountPercentage) : '',
-})
+const createEmptyState = (initialProduct: Product | null, categories: CategoryOption[]): ProductFormState => {
+  const sizeStocks: Partial<Record<SizeLabel, string>> = {}
+  for (const size of initialProduct?.sizes ?? []) {
+    sizeStocks[size.label] = String(size.stock)
+  }
+
+  return {
+    name: initialProduct?.name ?? '',
+    description: initialProduct?.description ?? '',
+    price: initialProduct ? String(initialProduct.price) : '',
+    stock: initialProduct ? String(initialProduct.stock) : '',
+    images: (initialProduct?.images ?? []).map((url) => ({ kind: 'existing', url })),
+    categoryId: initialProduct?.categoryId ?? categories[0]?.id ?? '',
+    isActive: initialProduct?.isActive ?? true,
+    hasDiscount: initialProduct?.hasDiscount ?? false,
+    discountPercentage: initialProduct?.hasDiscount ? String(initialProduct.discountPercentage) : '',
+    sizeStocks,
+  }
+}
 
 const maxImageSize = 5 * 1024 * 1024
 const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/gif'])
@@ -59,13 +76,21 @@ export function ProductFormModal({
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Revoke blob previews as they're replaced/removed, and on unmount.
+  const blobUrlsRef = useRef<string[]>([])
   useEffect(() => {
-    return () => {
-      if (form.imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(form.imagePreview)
-      }
-    }
-  }, [form.imagePreview])
+    const currentBlobUrls = form.images.filter((slot) => slot.kind === 'new').map((slot) => slot.url)
+    const removed = blobUrlsRef.current.filter((url) => !currentBlobUrls.includes(url))
+    removed.forEach((url) => URL.revokeObjectURL(url))
+    blobUrlsRef.current = currentBlobUrls
+  }, [form.images])
+
+  useEffect(
+    () => () => {
+      blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
+    },
+    [],
+  )
 
   useEffect(() => {
     if (!isOpen) {
@@ -76,6 +101,18 @@ export function ProductFormModal({
     setError(null)
     setIsSaving(false)
   }, [categories, initialProduct, isOpen])
+
+  const selectedCategory = categories.find((category) => category.id === form.categoryId)
+  const requiresSizes = selectedCategory?.requiresSizes ?? false
+
+  const sizesTotalStock = useMemo(
+    () =>
+      Object.values(form.sizeStocks).reduce((sum, value) => {
+        const parsed = Number(value)
+        return sum + (Number.isFinite(parsed) ? parsed : 0)
+      }, 0),
+    [form.sizeStocks],
+  )
 
   const discountPreview = useMemo(() => {
     const originalPrice = Number(form.price)
@@ -99,37 +136,67 @@ export function ProductFormModal({
     setForm((current) => ({ ...current, [key]: value }))
   }
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = event.target.files?.[0] ?? null
+  const handleImagesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(event.target.files ?? [])
+    event.target.value = ''
 
-    if (!selected) {
+    if (selected.length === 0) {
       return
     }
 
-    if (!allowedImageTypes.has(selected.type)) {
-      setError('Solo se permiten imagenes JPG, PNG, WEBP o GIF.')
-      event.target.value = ''
+    const remainingSlots = MAX_IMAGES - form.images.length
+    if (remainingSlots <= 0) {
+      setError(`Ya tienes el maximo de ${MAX_IMAGES} imagenes. Elimina una para agregar otra.`)
       return
     }
 
-    if (selected.size > maxImageSize) {
-      setError('La imagen supera el tamaño máximo permitido de 5MB.')
-      event.target.value = ''
-      return
+    const accepted: ImageSlot[] = []
+    for (const file of selected.slice(0, remainingSlots)) {
+      if (!allowedImageTypes.has(file.type)) {
+        setError('Solo se permiten imagenes JPG, PNG, WEBP o GIF.')
+        continue
+      }
+      if (file.size > maxImageSize) {
+        setError('La imagen supera el tamaño máximo permitido de 5MB.')
+        continue
+      }
+      accepted.push({ kind: 'new', url: URL.createObjectURL(file), file })
     }
 
-    setError(null)
+    if (accepted.length > 0) {
+      setError(null)
+      setForm((current) => ({ ...current, images: [...current.images, ...accepted] }))
+    }
+
+    if (selected.length > remainingSlots) {
+      setError(`Solo se agregaron ${remainingSlots} imagen(es) — el maximo es ${MAX_IMAGES}.`)
+    }
+  }
+
+  const handleRemoveImage = (index: number) => {
+    setForm((current) => ({
+      ...current,
+      images: current.images.filter((_, imageIndex) => imageIndex !== index),
+    }))
+  }
+
+  const toggleSize = (label: SizeLabel, checked: boolean) => {
     setForm((current) => {
-      if (current.imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(current.imagePreview)
+      const sizeStocks = { ...current.sizeStocks }
+      if (checked) {
+        sizeStocks[label] = sizeStocks[label] ?? '0'
+      } else {
+        delete sizeStocks[label]
       }
-
-      return {
-        ...current,
-        imageFile: selected,
-        imagePreview: URL.createObjectURL(selected),
-      }
+      return { ...current, sizeStocks }
     })
+  }
+
+  const handleSizeStockChange = (label: SizeLabel, value: string) => {
+    setForm((current) => ({
+      ...current,
+      sizeStocks: { ...current.sizeStocks, [label]: value },
+    }))
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -140,16 +207,27 @@ export function ProductFormModal({
     try {
       const discountPercentage = form.hasDiscount ? Number(form.discountPercentage) : 0
 
+      const sizes = requiresSizes
+        ? SIZE_OPTIONS.filter((label) => form.sizeStocks[label] !== undefined).map((label) => ({
+            label,
+            stock: Number(form.sizeStocks[label]),
+          }))
+        : []
+
       const payload: ProductUpsertInput = {
         name: form.name.trim(),
         description: form.description.trim(),
         price: Number(form.price),
-        stock: Number(form.stock),
-        imageFile: form.imageFile,
+        stock: requiresSizes ? sizesTotalStock : Number(form.stock),
+        existingImages: form.images.filter((slot) => slot.kind === 'existing').map((slot) => slot.url),
+        newImageFiles: form.images
+          .filter((slot): slot is ImageSlot & { file: File } => slot.kind === 'new' && Boolean(slot.file))
+          .map((slot) => slot.file),
         categoryId: form.categoryId,
         isActive: form.isActive,
         hasDiscount: form.hasDiscount,
         discountPercentage,
+        sizes,
       }
 
       if (
@@ -162,8 +240,17 @@ export function ProductFormModal({
         throw new Error('Completa todos los campos obligatorios.')
       }
 
-      if (!initialProduct && !payload.imageFile) {
-        throw new Error('Selecciona una imagen para crear el producto.')
+      if (form.images.length === 0) {
+        throw new Error('Agrega al menos 1 imagen (maximo 4).')
+      }
+
+      if (requiresSizes) {
+        if (sizes.length === 0) {
+          throw new Error('Esta categoria requiere al menos una talla con stock.')
+        }
+        if (sizes.some((size) => Number.isNaN(size.stock) || size.stock < 0)) {
+          throw new Error('El stock de cada talla debe ser un numero valido (0 o mayor).')
+        }
       }
 
       if (form.hasDiscount && (Number.isNaN(discountPercentage) || discountPercentage < 0 || discountPercentage > 100)) {
@@ -240,39 +327,70 @@ export function ProductFormModal({
                 />
               </label>
 
-              <label className="grid gap-2 text-sm font-medium text-slate-300">
-                Stock
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.stock}
-                  onChange={(event) => handleChange('stock', event.target.value)}
-                  className={fieldClass}
-                />
-              </label>
-
-              <label className="grid gap-2 text-sm font-medium text-slate-300 md:col-span-2">
-                Imagen del producto
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
-                  onChange={handleImageChange}
-                  className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-slate-300 outline-none file:mr-3 file:rounded-full file:border-0 file:bg-lime-400 file:px-4 file:py-2 file:text-sm file:font-bold file:text-slate-900 hover:file:bg-lime-300"
-                />
-                <p className="text-xs text-slate-400">JPG, PNG, WEBP o GIF. Maximo 5MB.</p>
-              </label>
-
-              {form.imagePreview ? (
-                <div className="md:col-span-2">
-                  <p className="mb-2 text-sm font-medium text-slate-300">Preview</p>
-                  <img
-                    src={form.imagePreview}
-                    alt="Preview de producto"
-                    className="h-40 w-full rounded-2xl border border-white/10 bg-gradient-to-b from-white to-slate-100 object-contain"
+              {!requiresSizes ? (
+                <label className="grid gap-2 text-sm font-medium text-slate-300">
+                  Stock
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={form.stock}
+                    onChange={(event) => handleChange('stock', event.target.value)}
+                    className={fieldClass}
                   />
+                </label>
+              ) : (
+                <div className="grid gap-2 text-sm font-medium text-slate-300">
+                  Stock total
+                  <p className={`${fieldClass} flex items-center text-slate-400`}>
+                    {sizesTotalStock} (suma de las tallas)
+                  </p>
                 </div>
-              ) : null}
+              )}
+
+              <div className="md:col-span-2">
+                <p className="mb-2 text-sm font-medium text-slate-300">
+                  Imagenes del producto ({form.images.length}/{MAX_IMAGES})
+                </p>
+
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {form.images.map((slot, index) => (
+                    <div
+                      key={`${slot.kind}-${slot.url}`}
+                      className="group relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white to-slate-100"
+                    >
+                      <img src={slot.url} alt={`Producto ${index + 1}`} className="h-full w-full object-contain p-2" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        aria-label="Quitar imagen"
+                        className="absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-950/80 text-white transition hover:bg-rose-500"
+                      >
+                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
+                          <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+
+                  {form.images.length < MAX_IMAGES ? (
+                    <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed border-white/15 text-slate-400 transition hover:border-lime-400/40 hover:text-lime-400">
+                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                      <span className="text-xs font-semibold">Agregar</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                        multiple
+                        onChange={handleImagesChange}
+                        className="hidden"
+                      />
+                    </label>
+                  ) : null}
+                </div>
+                <p className="mt-2 text-xs text-slate-400">JPG, PNG, WEBP o GIF. Maximo 5MB por foto, hasta {MAX_IMAGES} fotos.</p>
+              </div>
 
               <label className="grid gap-2 text-sm font-medium text-slate-300">
                 Categoria
@@ -289,6 +407,48 @@ export function ProductFormModal({
                   ))}
                 </select>
               </label>
+
+              {requiresSizes ? (
+                <div className="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 md:col-span-2">
+                  <p className="text-sm font-medium text-slate-300">
+                    Tallas disponibles y stock por talla
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {SIZE_OPTIONS.map((size) => {
+                      const checked = form.sizeStocks[size] !== undefined
+                      return (
+                        <div
+                          key={size}
+                          className={`flex items-center gap-3 rounded-xl border px-3 py-2 transition ${
+                            checked ? 'border-lime-400/40 bg-lime-400/5' : 'border-white/10'
+                          }`}
+                        >
+                          <label className="flex flex-1 items-center gap-2 text-sm font-semibold text-white">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(event) => toggleSize(size, event.target.checked)}
+                              className="h-4 w-4 rounded border-white/20 bg-slate-950 text-lime-500 accent-lime-400 focus:ring-lime-400"
+                            />
+                            {size}
+                          </label>
+                          {checked ? (
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={form.sizeStocks[size] ?? ''}
+                              onChange={(event) => handleSizeStockChange(size, event.target.value)}
+                              placeholder="Stock"
+                              className="w-20 rounded-lg border border-white/10 bg-slate-950/60 px-2 py-1.5 text-sm text-slate-100 outline-none focus:border-lime-400/60"
+                            />
+                          ) : null}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : null}
 
               <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm font-medium text-slate-300 md:col-span-2">
                 <input

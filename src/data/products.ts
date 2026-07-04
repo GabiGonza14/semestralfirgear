@@ -10,6 +10,10 @@ export const products: Product[] = [
     stock: 34,
     image:
       '/uploads/products/kit-de-mancuernas-para-pesas-20-kg-1776876019385.webp',
+    images: [
+      '/uploads/products/kit-de-mancuernas-para-pesas-20-kg-1776876019385.webp',
+    ],
+    sizes: [],
     description:
       'Set de 5 niveles de resistencia para entrenamiento funcional en casa o gimnasio.',
     isActive: true,
@@ -28,6 +32,10 @@ export const products: Product[] = [
     stock: 12,
     image:
       '/uploads/products/kit-de-mancuernas-de-musculacion-de-10-kg-1776876263786.webp',
+    images: [
+      '/uploads/products/kit-de-mancuernas-de-musculacion-de-10-kg-1776876263786.webp',
+    ],
+    sizes: [],
     description:
       'Peso ajustable para sesiones de fuerza progresiva con agarre antideslizante.',
     isActive: true,
@@ -46,6 +54,12 @@ export const products: Product[] = [
     stock: 56,
     image:
       '/uploads/products/mancuerna-1777335111876.png',
+    images: ['/uploads/products/mancuerna-1777335111876.png'],
+    sizes: [
+      { label: 'S', stock: 18 },
+      { label: 'M', stock: 22 },
+      { label: 'L', stock: 16 },
+    ],
     description:
       'Guantes transpirables con soporte de muñeca para levantamiento y cross training.',
     isActive: true,
@@ -64,6 +78,10 @@ export const products: Product[] = [
     stock: 88,
     image:
       '/uploads/products/masajeador-manual-roll-on-1776877368773.webp',
+    images: [
+      '/uploads/products/masajeador-manual-roll-on-1776877368773.webp',
+    ],
+    sizes: [],
     description:
       'Botella térmica para mantener hidratación fría por hasta 12 horas.',
     isActive: true,
@@ -81,6 +99,10 @@ export const products: Product[] = [
     stock: 27,
     image:
       '/uploads/products/rodillo-de-masaje-liso-1776877329260.webp',
+    images: [
+      '/uploads/products/rodillo-de-masaje-liso-1776877329260.webp',
+    ],
+    sizes: [],
     description:
       'Colchoneta de alta densidad para yoga, movilidad y entrenamiento de piso.',
     isActive: true,
@@ -98,6 +120,10 @@ export const products: Product[] = [
     stock: 63,
     image:
       '/uploads/products/cuerda-para-saltar-de-cross-training-de-velocidad-negra-speed-rope-1776876773477.webp',
+    images: [
+      '/uploads/products/cuerda-para-saltar-de-cross-training-de-velocidad-negra-speed-rope-1776876773477.webp',
+    ],
+    sizes: [],
     description:
       'Cuerda liviana para cardio de alto rendimiento con ajuste rápido de largo.',
     isActive: true,
