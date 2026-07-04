@@ -95,7 +95,7 @@ interface MongoOrder {
   _id: string
   userId: string | MongoOrderUser | null
   totalAmount: number
-  status: 'PENDING' | 'PAID' | 'SHIPPED' | 'CANCELLED'
+  status: 'PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
   createdAt: string
   items: MongoOrderItem[]
 }

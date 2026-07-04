@@ -69,7 +69,7 @@ export interface BackendOrder {
   userId: string
   customerName?: string
   totalAmount: number
-  status: 'PENDING' | 'PAID' | 'SHIPPED' | 'CANCELLED'
+  status: 'PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
   createdAt: string
   items: BackendOrderItem[]
 }

@@ -16,6 +16,10 @@ function statusStyles(status: BackendOrder['status']) {
     return 'bg-amber-400/15 text-amber-300 ring-1 ring-amber-400/30'
   }
 
+  if (status === 'DELIVERED') {
+    return 'bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-400/30'
+  }
+
   if (status === 'CANCELLED') {
     return 'bg-white/[0.06] text-slate-400 ring-1 ring-white/10'
   }
