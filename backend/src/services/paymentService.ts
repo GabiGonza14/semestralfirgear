@@ -81,6 +81,10 @@ export async function createCheckoutSession(orderId: string): Promise<CheckoutSe
     throw new HttpError(400, 'Order is already paid')
   }
 
+  if (order.status === 'CANCELLED') {
+    throw new HttpError(400, 'Order is cancelled and cannot be paid')
+  }
+
   await ensureOrderHasAvailableStock(order._id.toString())
 
   const items = await OrderItemModel.find({ orderId: order._id }).populate(

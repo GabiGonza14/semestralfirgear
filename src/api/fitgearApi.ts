@@ -310,6 +310,13 @@ export async function createOrder(payload: {
   return mapOrder(order)
 }
 
+export async function cancelOrder(orderId: string) {
+  const order = await apiRequest<MongoOrder>(`/orders/${orderId}/cancel`, {
+    method: 'PATCH',
+  })
+  return mapOrder(order)
+}
+
 interface CheckoutSessionResponse {
   sessionId: string
   url: string
