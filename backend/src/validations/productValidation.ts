@@ -122,4 +122,9 @@ export const productQuerySchema = z.object({
     .optional(),
   sortBy: z.enum(['createdAt', 'name', 'price']).optional(),
   sortOrder: z.enum(['asc', 'desc']).optional(),
+  // Public catalog only sees active products; admin opts into the full list.
+  includeInactive: z
+    .enum(['true', 'false'])
+    .transform((value) => value === 'true')
+    .optional(),
 })

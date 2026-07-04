@@ -136,10 +136,16 @@ export interface ProductQuery {
   search?: string
   sortBy?: 'createdAt' | 'name' | 'price'
   sortOrder?: 'asc' | 'desc'
+  includeInactive?: boolean
 }
 
 export async function listProducts(query: ProductQuery) {
   const filter: Record<string, unknown> = {}
+
+  // Hide inactive products from the public catalog; admin passes includeInactive.
+  if (!query.includeInactive) {
+    filter.isActive = true
+  }
 
   if (query.categoryId) {
     filter.categoryId = query.categoryId
@@ -199,6 +205,21 @@ export async function createProduct(payload: ProductPayload) {
   })
 }
 
+// Images are stored as root-relative paths (/uploads/...), but the admin form
+// round-trips them as absolute URLs. Normalize before comparing/storing so we
+// never delete a file that's actually being kept (and self-heal any product
+// whose images were previously saved as absolute URLs).
+function toRelativeUploadPath(url: string): string {
+  if (/^https?:\/\//i.test(url)) {
+    try {
+      return new URL(url).pathname
+    } catch {
+      return url
+    }
+  }
+  return url
+}
+
 export async function updateProduct(id: string, payload: ProductPayload) {
   const product = await ProductModel.findById(id)
   if (!product) {
@@ -227,8 +248,11 @@ export async function updateProduct(id: string, payload: ProductPayload) {
 
   let removedImages: string[] = []
   if (payload.images !== undefined) {
-    removedImages = previousImages.filter((url) => !payload.images!.includes(url))
-    product.images = payload.images
+    const nextImages = payload.images.map(toRelativeUploadPath)
+    removedImages = previousImages.filter(
+      (url) => !nextImages.includes(toRelativeUploadPath(url)),
+    )
+    product.images = nextImages
   }
 
   applySizesOrStock(product, effectiveCategory.requiresSizes, payload)

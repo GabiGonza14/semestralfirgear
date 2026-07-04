@@ -231,6 +231,7 @@ export async function getProducts(params?: {
   search?: string
   sortBy?: 'createdAt' | 'name' | 'price'
   sortOrder?: 'asc' | 'desc'
+  includeInactive?: boolean
 }) {
   const products = await apiRequest<MongoProduct[]>('/products', {
     method: 'GET',
