@@ -1,6 +1,6 @@
 # FITGEAR
 
-FITGEAR es una tienda de articulos fitness con frontend en React y Vite, backend en Express, persistencia en MongoDB, autenticacion con Clerk y flujo de checkout con Stripe. El proyecto separa claramente la capa de presentacion, el consumo de API y la logica del backend para catalogo, carrito, pedidos, usuarios, pagos y administracion.
+FITGEAR es una tienda de articulos fitness con frontend en React y Vite, backend en Hono sobre Bun, persistencia en MongoDB, autenticacion con Clerk y flujo de checkout con Stripe. El proyecto separa claramente la capa de presentacion, el consumo de API y la logica del backend para catalogo, carrito, pedidos, usuarios, pagos y administracion.
 
 ## Descripcion del proyecto
 
@@ -16,10 +16,12 @@ La aplicacion permite navegar un catalogo real de productos, filtrar por categor
 - Clerk
 - Framer Motion
 - Tailwind CSS
-- Express
+- Hono (framework del backend)
+- Bun (runtime del backend)
 - MongoDB con Mongoose
 - Stripe
 - Zod
+- Docker / Docker Compose
 
 ## Requisitos previos
 
@@ -65,6 +67,7 @@ Crear un archivo `backend/.env` con:
 ```bash
 PORT=4000
 MONGODB_URI=mongodb://127.0.0.1:27017/fitgear
+CLERK_SECRET_KEY=sk_test_your_clerk_secret_key
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
 STRIPE_WEBHOOK_SECRET=whsec_your_stripe_webhook_secret
 FRONTEND_URL=http://localhost:5173
@@ -101,6 +104,16 @@ El backend queda disponible en:
 ```bash
 http://localhost:4000/
 ```
+
+## Ejecutar con Docker Compose
+
+El repositorio incluye un `docker-compose.yml` que levanta **MongoDB** y el **backend** juntos. Requiere Docker instalado y un archivo `.env` en la raiz con al menos `MONGODB_URI`, `STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET` (docker-compose los inyecta al contenedor del backend).
+
+```bash
+docker compose up --build
+```
+
+El backend queda en `http://localhost:4000` y MongoDB en el puerto `27017`. El frontend se ejecuta aparte con `npm run dev`.
 
 ## Estructura del proyecto
 

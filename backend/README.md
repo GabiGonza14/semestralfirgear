@@ -1,25 +1,18 @@
-# FITGEAR Backend - Block A
+# FITGEAR Backend
 
-Base backend for FITGEAR using Bun + MongoDB.
+Backend for FITGEAR using Hono + Bun + MongoDB.
 
-Block B implemented:
+## Features
 
 - Full CRUD for Categories and Products
+- Product image upload (multipart, JPG/PNG/WEBP/GIF, served from `/uploads`)
 - Request validation with Zod
 - Consistent error handling with status codes
-- Optional product filter/search/sort in list endpoint
-
-Block C implemented:
-
-- Real Users endpoints
-- Clerk sync endpoint (`/api/users/sync-clerk`)
-- Backend role assignment (`ADMIN` / `CUSTOMER`)
-
-Block D implemented:
-
-- Real Orders and OrderItems creation flow
-- Total and subtotal calculation from real product prices
-- Optional transactional write with fallback for standalone MongoDB
+- Optional product filter/search/sort in the list endpoint
+- Users endpoints with Clerk sync (`/api/users/sync-clerk`) and role assignment (`ADMIN` / `CUSTOMER`)
+- Orders and OrderItems creation with total/subtotal from real product prices
+- Transactional write with fallback for standalone MongoDB
+- Stripe checkout, payment confirmation and webhook handling
 
 ## Requirements
 
@@ -38,7 +31,9 @@ Variables:
 
 - `PORT`: API port
 - `MONGODB_URI`: MongoDB connection string
+- `CLERK_SECRET_KEY`: Clerk backend secret key
 - `FRONTEND_URL`: frontend base URL for Stripe success/cancel redirects
+- `BACKEND_URL`: backend base URL (used to build absolute image URLs)
 - `STRIPE_SECRET_KEY`: Stripe secret API key
 - `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret
 
@@ -84,6 +79,7 @@ bun run start
 - `POST /api/orders`
 - `GET /api/orders/user/:userId`
 - `POST /api/payments/create-checkout-session`
+- `POST /api/payments/confirm-checkout-payment`
 - `POST /api/payments/webhook`
 
 ## Status codes used
@@ -132,21 +128,20 @@ curl -X PUT http://localhost:4000/api/categories/<categoryId> \
 	}'
 ```
 
-Create product:
+Create product (multipart form-data; images are uploaded as files):
 
 ```bash
 curl -X POST http://localhost:4000/api/products \
-	-H "Content-Type: application/json" \
-	-d '{
-		"name": "Banda Pro XL",
-		"description": "Banda de alta resistencia",
-		"price": 49.9,
-		"stock": 30,
-		"imageUrl": "https://example.com/banda-pro-xl.jpg",
-		"categoryId": "<categoryId>",
-		"isActive": true
-	}'
+	-F "name=Banda Pro XL" \
+	-F "description=Banda de alta resistencia" \
+	-F "price=49.9" \
+	-F "stock=30" \
+	-F "categoryId=<categoryId>" \
+	-F "isActive=true" \
+	-F "images=@banda-pro-xl.jpg"
 ```
+
+Images are validated as JPG/PNG/WEBP/GIF, max 5MB each, up to 4 per product.
 
 Update product:
 
@@ -178,7 +173,7 @@ Product:
 - `description`: required, non-empty string
 - `price`: required number > 0
 - `stock`: required number >= 0
-- `imageUrl`: required, non-empty string
+- `images`: required, 1 to 4 image files uploaded via multipart (JPG/PNG/WEBP/GIF, max 5MB each)
 - `categoryId`: required valid Mongo ObjectId and must exist
 - `isActive`: optional boolean, defaults to `true`
 
@@ -187,7 +182,7 @@ User sync-clerk:
 - `clerkUserId`: required, non-empty string
 - `fullName`: required, non-empty string
 - `email`: required valid email
-- role rule: `admin@fitgear.com` -> `ADMIN`; any other email -> `CUSTOMER`
+- role rule: `gabigonza449@gmail.com` -> `ADMIN`; any other email -> `CUSTOMER`
 
 Order creation:
 
@@ -218,7 +213,7 @@ curl -X POST http://localhost:4000/api/users/sync-clerk \
 	-d '{
 		"clerkUserId": "user_admin_1",
 		"fullName": "Admin Fitgear",
-		"email": "admin@fitgear.com"
+		"email": "gabigonza449@gmail.com"
 	}'
 ```
 
