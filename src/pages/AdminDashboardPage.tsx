@@ -32,7 +32,7 @@ export function AdminDashboardPage() {
     let active = true
     setLoading(true)
 
-    Promise.all([getProducts(), getOrders(), getUsers()])
+    Promise.all([getProducts({ includeInactive: true }), getOrders(), getUsers()])
       .then(([productsData, ordersData, usersData]) => {
         if (!active) {
           return
@@ -74,7 +74,7 @@ export function AdminDashboardPage() {
 
   const refreshProducts = async () => {
     const [productsData, ordersData, usersData] = await Promise.all([
-      getProducts(),
+      getProducts({ includeInactive: true }),
       getOrders(),
       getUsers(),
     ])

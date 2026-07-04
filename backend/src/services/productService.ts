@@ -136,10 +136,16 @@ export interface ProductQuery {
   search?: string
   sortBy?: 'createdAt' | 'name' | 'price'
   sortOrder?: 'asc' | 'desc'
+  includeInactive?: boolean
 }
 
 export async function listProducts(query: ProductQuery) {
   const filter: Record<string, unknown> = {}
+
+  // Hide inactive products from the public catalog; admin passes includeInactive.
+  if (!query.includeInactive) {
+    filter.isActive = true
+  }
 
   if (query.categoryId) {
     filter.categoryId = query.categoryId

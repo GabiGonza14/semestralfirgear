@@ -42,6 +42,7 @@ export function ShopPage() {
   const [error, setError] = useState<string | null>(null)
   const [useFallbackCatalog, setUseFallbackCatalog] = useState(false)
   const [page, setPage] = useState(1)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const gridRef = useRef<HTMLDivElement>(null)
 
@@ -50,6 +51,22 @@ export function ShopPage() {
     const timeout = setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS)
     return () => clearTimeout(timeout)
   }, [query])
+
+  // Refetch when the user returns to the tab, so admin edits made elsewhere
+  // (new/edited/removed products) show up without a manual reload.
+  useEffect(() => {
+    const refetchOnReturn = () => {
+      if (document.visibilityState === 'visible') {
+        setRefreshKey((key) => key + 1)
+      }
+    }
+    document.addEventListener('visibilitychange', refetchOnReturn)
+    window.addEventListener('focus', refetchOnReturn)
+    return () => {
+      document.removeEventListener('visibilitychange', refetchOnReturn)
+      window.removeEventListener('focus', refetchOnReturn)
+    }
+  }, [])
 
   const activeCategories = useFallbackCatalog ? fallbackCategories : categories
 
@@ -214,7 +231,7 @@ export function ShopPage() {
     return () => {
       active = false
     }
-  }, [resolvedCategory, debouncedQuery, sortBy, useFallbackCatalog])
+  }, [resolvedCategory, debouncedQuery, sortBy, useFallbackCatalog, refreshKey])
 
   const displayedProducts = useMemo(() => {
     const normalizedQuery = normalizeText(query)
