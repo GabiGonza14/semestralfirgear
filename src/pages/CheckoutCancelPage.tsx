@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { createCheckoutSession } from '../api/fitgearApi'
 import { useAuth } from '../context/AuthContext'
+import { useCart } from '../context/CartContext'
 import { useOrderDetailQuery } from '../hooks/useOrdersQueries'
 import { queryKeys } from '../lib/queryKeys'
 
@@ -10,6 +11,7 @@ export function CheckoutCancelPage() {
   const [searchParams] = useSearchParams()
   const orderId = searchParams.get('orderId')
   const { backendUser } = useAuth()
+  const { openCart } = useCart()
   const queryClient = useQueryClient()
 
   const orderQuery = useOrderDetailQuery(orderId, Boolean(orderId))
@@ -108,12 +110,13 @@ export function CheckoutCancelPage() {
         >
           {retryCheckoutMutation.isPending ? 'Reintentando pago...' : 'Reintentar pago'}
         </button>
-        <Link
-          to="/cart"
+        <button
+          type="button"
+          onClick={openCart}
           className="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5"
         >
           Volver al carrito
-        </Link>
+        </button>
         <Link
           to="/shop"
           className="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5"

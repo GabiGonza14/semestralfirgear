@@ -8,7 +8,7 @@ export function Navbar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { isAdmin } = useAuth()
-  const { items } = useCart()
+  const { items, openCart } = useCart()
   const [mobileOpen, setMobileOpen] = useState(false)
   const cartCount = items.reduce((acc, item) => acc + item.quantity, 0)
   const shouldReloadDocument = location.pathname.startsWith('/checkout/')
@@ -125,8 +125,11 @@ export function Navbar() {
           {!isAdmin && (
             <button
               type="button"
-              onClick={() => navigateTo('/cart')}
-              aria-label="Ir al carrito"
+              onClick={() => {
+                setMobileOpen(false)
+                openCart()
+              }}
+              aria-label="Ver carrito"
               className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:border-lime-400/40 hover:text-white hover:bg-white/5"
             >
               <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" aria-hidden>

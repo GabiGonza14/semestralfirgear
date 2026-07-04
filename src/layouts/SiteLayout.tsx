@@ -1,11 +1,14 @@
 import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
+import { CartDrawer } from '../components/cart/CartDrawer'
 import { Footer } from '../components/Footer'
 import { Navbar } from '../components/Navbar'
+import { useCart } from '../context/CartContext'
 
 export function SiteLayout() {
   const location = useLocation()
   const isLanding = location.pathname === '/'
+  const { closeCart } = useCart()
 
   // Plain BrowserRouter doesn't reset scroll on navigation — without this,
   // clicking into a new page (e.g. a related product) keeps the old scroll
@@ -13,6 +16,12 @@ export function SiteLayout() {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [location.pathname])
+
+  // Navigating away (e.g. clicking a product inside the cart) should close
+  // the drawer instead of leaving it open over the new page.
+  useEffect(() => {
+    closeCart()
+  }, [location.pathname, closeCart])
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
@@ -33,6 +42,7 @@ export function SiteLayout() {
       )}
 
       <Footer />
+      <CartDrawer />
     </div>
   )
 }

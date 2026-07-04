@@ -2,7 +2,6 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { SiteLayout } from '../layouts/SiteLayout'
 import { AccountPage } from '../pages/AccountPage'
 import { AdminDashboardPage } from '../pages/AdminDashboardPage'
-import { CartPage } from '../pages/CartPage'
 import { CheckoutCancelPage } from '../pages/CheckoutCancelPage'
 import { CheckoutSuccessPage } from '../pages/CheckoutSuccessPage'
 import { LandingPage } from '../pages/LandingPage'
@@ -45,14 +44,6 @@ export function AppRouter() {
             element={
               <CustomerRoute>
                 <ProductDetailPage />
-              </CustomerRoute>
-            }
-          />
-          <Route
-            path="/cart"
-            element={
-              <CustomerRoute>
-                <CartPage />
               </CustomerRoute>
             }
           />
@@ -102,6 +93,8 @@ export function AppRouter() {
           />
           <Route path="/sso-callback" element={<SsoCallbackPage />} />
           <Route path="/home" element={<Navigate to="/" replace />} />
+          {/* The cart is now a slide-in drawer, not a page — send old links home. */}
+          <Route path="/cart" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
