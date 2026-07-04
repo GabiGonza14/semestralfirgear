@@ -327,7 +327,14 @@ export function ProductFormModal({
                 />
               </label>
 
-              {!requiresSizes ? (
+              {requiresSizes ? (
+                <div className="grid gap-2 text-sm font-medium text-slate-300">
+                  Stock total
+                  <p className={`${fieldClass} flex items-center text-slate-400`}>
+                    {sizesTotalStock} (suma de las tallas)
+                  </p>
+                </div>
+              ) : (
                 <label className="grid gap-2 text-sm font-medium text-slate-300">
                   Stock
                   <input
@@ -339,13 +346,6 @@ export function ProductFormModal({
                     className={fieldClass}
                   />
                 </label>
-              ) : (
-                <div className="grid gap-2 text-sm font-medium text-slate-300">
-                  Stock total
-                  <p className={`${fieldClass} flex items-center text-slate-400`}>
-                    {sizesTotalStock} (suma de las tallas)
-                  </p>
-                </div>
               )}
 
               <div className="md:col-span-2">

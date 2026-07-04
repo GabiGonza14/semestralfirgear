@@ -50,7 +50,7 @@ function isSameLine(item: CartItemModel, productId: string, size: SizeLabel | un
 function cartReducer(state: CartItemModel[], action: CartAction): CartItemModel[] {
   switch (action.type) {
     case 'add': {
-      const existing = state.find((item) => isSameLine(item, action.product.id, action.size))
+      const existing = state.some((item) => isSameLine(item, action.product.id, action.size))
       if (existing) {
         return state.map((item) =>
           isSameLine(item, action.product.id, action.size)

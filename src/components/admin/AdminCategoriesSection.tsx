@@ -140,7 +140,7 @@ export function AdminCategoriesSection() {
 
         <form onSubmit={handleCreate} className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="grid gap-2 text-sm font-medium text-slate-300">
-            Nombre
+            <span>Nombre</span>
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
@@ -150,7 +150,7 @@ export function AdminCategoriesSection() {
           </label>
 
           <label className="grid gap-2 text-sm font-medium text-slate-300">
-            Descripcion
+            <span>Descripcion</span>
             <input
               value={description}
               onChange={(event) => setDescription(event.target.value)}
@@ -166,7 +166,7 @@ export function AdminCategoriesSection() {
               onChange={(event) => setRequiresSizes(event.target.checked)}
               className="h-4 w-4 rounded border-white/20 bg-slate-950 text-lime-500 accent-lime-400 focus:ring-lime-400"
             />
-            Esta categoria requiere talla (XS - XXL)
+            <span>Esta categoria requiere talla (XS - XXL)</span>
           </label>
 
           <div className="md:col-span-2">

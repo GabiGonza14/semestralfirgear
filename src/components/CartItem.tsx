@@ -12,7 +12,7 @@ interface CartItemProps {
   onRemove: () => void
 }
 
-export function CartItem({ product, quantity, size, onIncrease, onDecrease, onRemove }: CartItemProps) {
+export function CartItem({ product, quantity, size, onIncrease, onDecrease, onRemove }: Readonly<CartItemProps>) {
   const unitPrice = product.hasDiscount ? product.finalPrice : product.price
   const subtotal = quantity * unitPrice
 

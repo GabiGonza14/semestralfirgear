@@ -7,7 +7,7 @@ import mongoose from 'mongoose'
 import { connectDatabase } from '../config/db'
 import { ProductModel } from '../models/Product'
 
-async function migrate() {
+try {
   await connectDatabase()
 
   const collection = ProductModel.collection
@@ -31,9 +31,7 @@ async function migrate() {
 
   console.info('Migration complete.')
   await mongoose.disconnect()
-}
-
-migrate().catch((error) => {
+} catch (error) {
   console.error('Migration failed', error)
   process.exit(1)
-})
+}
