@@ -11,6 +11,10 @@ import { formatCurrency, formatDate } from '../utils/format'
 
 type AdminSection = 'overview' | 'inventory' | 'categories' | 'orders' | 'users'
 
+// Órdenes que representan dinero cobrado — excluye PENDING (intención no pagada) y
+// CANCELLED (nunca se pagó) para que "revenue acumulado" refleje ventas reales.
+const REVENUE_STATUSES = new Set<BackendOrder['status']>(['PAID', 'SHIPPED', 'DELIVERED'])
+
 export function AdminDashboardPage() {
   const [section, setSection] = useState<AdminSection>('overview')
   const { isAdmin } = useAuth()
@@ -56,8 +60,16 @@ export function AdminDashboardPage() {
   }, [isAdmin])
 
   const totalRevenue = useMemo(
-    () => orders.reduce((acc, order) => acc + order.totalAmount, 0),
+    () =>
+      orders
+        .filter((order) => REVENUE_STATUSES.has(order.status))
+        .reduce((acc, order) => acc + order.totalAmount, 0),
     [orders],
+  )
+
+  const activeProductsCount = useMemo(
+    () => products.filter((product) => product.isActive).length,
+    [products],
   )
 
   const refreshProducts = async () => {
@@ -118,7 +130,7 @@ export function AdminDashboardPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <SummaryCard label="Productos" value={`${products.length}`} trend="En el catálogo" />
+          <SummaryCard label="Productos" value={`${activeProductsCount}`} trend="Activos en el catálogo" />
           <SummaryCard label="Órdenes" value={`${orders.length}`} trend="En procesamiento" />
           <SummaryCard label="Usuarios" value={`${users.length}`} trend="Registrados" />
           <SummaryCard label="Ingresos" value={formatCurrency(totalRevenue)} trend="Total de ventas" />
