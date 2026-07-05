@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { connectDatabase } from '../config/db'
+import { getOrderStatusTool } from './tools/getOrderStatus'
 import { getProductDetailsTool } from './tools/getProductDetails'
 import { searchProductsInputSchema, searchProductsTool } from './tools/searchProducts'
 
@@ -65,6 +66,31 @@ server.registerTool(
   },
   async (args) => {
     const result = await getProductDetailsTool(args)
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    }
+  },
+)
+
+server.registerTool(
+  'get_order_status',
+  {
+    description:
+      "Fetch the authenticated customer's own order history and status. Requires a valid Clerk JWT (protected tool). Returns the caller's orders with status, totals, and items, or an empty list if they have none.",
+    inputSchema: {
+      token: {
+        type: 'string',
+        description: 'Clerk JWT bearer token of the requesting customer (required)',
+      },
+    },
+  },
+  async (args) => {
+    const result = await getOrderStatusTool(args)
     return {
       content: [
         {
