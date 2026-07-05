@@ -71,3 +71,35 @@ MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
 ```
 
 ---
+
+## 3. `get_order_status`
+
+- **HU envuelta:** HU-15 — Historial de órdenes del cliente
+- **Rol:** protegida (strict-auth)
+- **Rama:** `mcp/get-order-status`
+- **Issue / PR:** #83 → PR #84 (contra `develop`)
+
+Herramienta MCP **protegida** que devuelve el historial de órdenes del cliente
+autenticado. A diferencia de las dos tools públicas, expone datos personales, así
+que exige un JWT de Clerk válido y rechaza llamadas sin él. Su único input es
+`token`; nunca acepta un `userId` arbitrario, de modo que un cliente solo puede
+ver sus propias órdenes. Devuelve `{ authenticated: true, orders: [...] }` con
+`id`, `status`, `totalAmount`, fechas e ítems; si el usuario no tiene perfil
+vinculado o no tiene órdenes, retorna `orders: []` sin lanzar.
+
+**Reuso de código:** llama a `listOrdersByUserId()` de
+`backend/src/services/orderService.ts` — cero lógica duplicada.
+
+**Autenticación:** usa `requireAuthStrict` de `requireAuth.ts`, que lanza si el
+JWT falta o es inválido. Como Clerk entrega el `sub` (no el `_id` de Mongo), la
+tool resuelve primero `clerkUserId → User._id` vía `UserModel` antes de
+consultar las órdenes.
+
+**Cómo levantar el servidor MCP local:**
+
+```bash
+cd backend
+MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
+```
+
+---
