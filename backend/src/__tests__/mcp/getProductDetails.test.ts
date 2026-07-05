@@ -11,6 +11,7 @@ const mockGetProductById = mock(async () => ({}))
 mock.module('../../services/productService', () => ({
   getProductById: mockGetProductById,
   listProducts: mock(async () => []),
+  updateProduct: mock(async () => ({})),
 }))
 
 // requireAuth is a soft-auth — always resolves for public tools.

@@ -135,3 +135,38 @@ MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
 ```
 
 ---
+
+## 5. `update_stock`
+
+- **HU envuelta:** HU-17 — CRUD de productos (sólo la parte de gestión de inventario)
+- **Rol:** **admin** (strict-auth + rol ADMIN)
+- **Rama:** `mcp/update-stock`
+- **Issue / PR:** #87 → PR #88 (contra `develop`)
+
+Herramienta MCP **solo para administradores** que actualiza el stock de un único
+producto. **A propósito NO expone el CRUD completo** (nada de crear/eliminar ni de
+editar name/price/images/category/discount): una superficie de escritura tan amplia
+es demasiado riesgosa para una tool de agente. Inputs: `productId` (ObjectId,
+requerido), `token` (requerido), y **exactamente uno** de `stock` (número flat) o
+`sizes` (`{ label, stock }[]`), según si la categoría del producto usa tallas. Si el
+`productId` no existe devuelve `{ found: false, productId, message }` sin propagar
+un stack.
+
+**Reuso de código:** llama a `updateProduct(id, payload)` de
+`backend/src/services/productService.ts`, que ya resuelve la lógica
+sizes-vs-flat-stock y valida labels duplicados / sizes vacíos (lanza
+`HttpError(400)`). La tool sólo traduce esos errores a respuestas legibles y reenvía
+únicamente el campo de stock elegido.
+
+**Autenticación:** usa `requireAuthStrict` de `requireAuth.ts` (lanza sin JWT
+válido). Como Clerk entrega el `sub`, la tool resuelve `clerkUserId → User` vía
+`UserModel` y **rechaza con 403** si `role !== 'ADMIN'`.
+
+**Cómo levantar el servidor MCP local:**
+
+```bash
+cd backend
+MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
+```
+
+---
