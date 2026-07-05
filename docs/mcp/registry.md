@@ -170,3 +170,35 @@ MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
 ```
 
 ---
+
+## 6. `list_orders`
+
+- **HU envuelta:** HU-18 — Vista de órdenes de administrador
+- **Rol:** **admin** (strict-auth + rol ADMIN)
+- **Rama:** `mcp/list-orders`
+- **Issue / PR:** #89 → PR #90 (contra `develop`)
+
+Herramienta MCP **solo para administradores** que lista **todas** las órdenes de
+todos los clientes (a diferencia de `get_order_status`, acotada a un solo cliente
+autenticado). Inputs: `token` (requerido), `status` (opcional, uno de los estados
+del modelo `Order`) y `limit` (opcional, 1–100, default 50). Devuelve un array
+compacto — por orden: `orderId`, `createdAt`, `customerName`, `customerEmail`,
+`status`, `totalAmount` e `itemsCount` (un conteo, no el detalle anidado de ítems).
+
+**Reuso de código:** llama a `listOrders()` de
+`backend/src/services/orderService.ts` **tal cual** — el filtro por `status` y el
+`limit` se aplican dentro de la tool sobre el array resultante, sin añadir
+parámetros al service ni tocar el controlador REST.
+
+**Autenticación:** usa `requireAuthStrict` de `requireAuth.ts` (lanza sin JWT
+válido). Como Clerk entrega el `sub`, la tool resuelve `clerkUserId → User` vía
+`UserModel` y **rechaza con 403** si `role !== 'ADMIN'`.
+
+**Cómo levantar el servidor MCP local:**
+
+```bash
+cd backend
+MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
+```
+
+---

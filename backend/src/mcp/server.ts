@@ -4,7 +4,8 @@ import { connectDatabase } from '../config/db'
 import { getOrderStatusTool } from './tools/getOrderStatus'
 import { getProductDetailsTool } from './tools/getProductDetails'
 import { getSalesMetricsTool } from './tools/getSalesMetrics'
-import { searchProductsInputSchema, searchProductsTool } from './tools/searchProducts'
+import { listOrdersTool } from './tools/listOrders'
+import { searchProductsTool } from './tools/searchProducts'
 import { updateStockTool } from './tools/updateStock'
 
 const server = new McpServer({
@@ -159,6 +160,40 @@ server.registerTool(
   },
   async (args) => {
     const result = await updateStockTool(args)
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    }
+  },
+)
+
+server.registerTool(
+  'list_orders',
+  {
+    description:
+      'List ALL orders across every customer (admin order view). Returns a compact array — per order: orderId, createdAt, customer name/email, status, totalAmount, and itemsCount. Admin-only — requires a valid Clerk JWT whose user has the ADMIN role. Optional filters: status and limit.',
+    inputSchema: {
+      token: {
+        type: 'string',
+        description: 'Clerk JWT bearer token of the requesting admin (required)',
+      },
+      status: {
+        type: 'string',
+        enum: ['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED'],
+        description: 'Optional filter by order status',
+      },
+      limit: {
+        type: 'number',
+        description: 'Max orders to return (1–100, default 50)',
+      },
+    },
+  },
+  async (args) => {
+    const result = await listOrdersTool(args)
     return {
       content: [
         {
