@@ -5,6 +5,7 @@ import { getOrderStatusTool } from './tools/getOrderStatus'
 import { getProductDetailsTool } from './tools/getProductDetails'
 import { getSalesMetricsTool } from './tools/getSalesMetrics'
 import { listOrdersTool } from './tools/listOrders'
+import { manageCategoriesTool } from './tools/manageCategories'
 import { searchProductsTool } from './tools/searchProducts'
 import { updateStockTool } from './tools/updateStock'
 
@@ -194,6 +195,49 @@ server.registerTool(
   },
   async (args) => {
     const result = await listOrdersTool(args)
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    }
+  },
+)
+
+server.registerTool(
+  'manage_categories',
+  {
+    description:
+      "Full CRUD for product categories (name, description, requiresSizes) via an `action` discriminator: list | create | update | delete. Admin-only — requires a valid Clerk JWT whose user has the ADMIN role (all actions, including list). Service invariants (unique name, in-use delete guard) are enforced and surfaced as readable ok:false results.",
+    inputSchema: {
+      action: {
+        type: 'string',
+        enum: ['list', 'create', 'update', 'delete'],
+        description: 'The category operation to perform',
+      },
+      token: {
+        type: 'string',
+        description: 'Clerk JWT bearer token of the requesting admin (required)',
+      },
+      id: {
+        type: 'string',
+        description: 'Category ObjectId (required for update and delete)',
+      },
+      name: {
+        type: 'string',
+        description: 'Category name (required for create; optional for update)',
+      },
+      description: { type: 'string', description: 'Category description (optional)' },
+      requiresSizes: {
+        type: 'boolean',
+        description: 'Whether products in this category require a size breakdown (optional)',
+      },
+    },
+  },
+  async (args) => {
+    const result = await manageCategoriesTool(args)
     return {
       content: [
         {
