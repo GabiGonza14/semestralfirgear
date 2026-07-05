@@ -71,3 +71,39 @@ MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
 ```
 
 ---
+
+## 7. `manage_categories`
+
+- **HU envuelta:** HU-20 — API de categorías
+- **Rol:** **admin** (strict-auth + rol ADMIN)
+- **Rama:** `mcp/manage-categories`
+- **Issue / PR:** #91 → PR #92 (contra `develop`)
+
+Herramienta MCP **solo para administradores** que expone el **CRUD completo** de
+categorías en una sola tool, con un discriminador `action`: `list` | `create` |
+`update` | `delete`. A diferencia del CRUD de productos (reducido a `update_stock`
+por su mayor superficie de riesgo), el modelo `Category` es simple (`name`,
+`description`, `requiresSizes`) y sus invariantes ya están protegidas en el service.
+El input es una unión discriminada de Zod: `token` siempre requerido; `list` sin más
+campos; `create` requiere `name` (opcional `description`, `requiresSizes`); `update`
+requiere `id` más al menos un campo; `delete` requiere `id`.
+
+**Reuso de código:** llama a `listCategories()`, `createCategory()`,
+`updateCategory()` y `deleteCategory()` de `backend/src/services/categoryService.ts`
+**tal cual** — no se reimplementan sus validaciones (nombre único
+case-insensitive, guard de borrado en uso). La tool sólo traduce los
+`HttpError(404)`/`HttpError(409)` a resultados legibles `{ ok: false, statusCode,
+message }`.
+
+**Autenticación:** usa `requireAuthStrict` de `requireAuth.ts` (lanza sin JWT
+válido). Resuelve `clerkUserId → User` vía `UserModel` y **rechaza con 403** si
+`role !== 'ADMIN'` — la comprobación aplica a las cuatro acciones, incluido `list`.
+
+**Cómo levantar el servidor MCP local:**
+
+```bash
+cd backend
+MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
+```
+
+---
