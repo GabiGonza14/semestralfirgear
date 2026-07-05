@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { connectDatabase } from '../config/db'
+import { getProductDetailsTool } from './tools/getProductDetails'
 import { searchProductsInputSchema, searchProductsTool } from './tools/searchProducts'
 
 const server = new McpServer({
@@ -43,6 +44,32 @@ server.registerTool(
         {
           type: 'text',
           text: JSON.stringify(results, null, 2),
+        },
+      ],
+    }
+  },
+)
+
+server.registerTool(
+  'get_product_details',
+  {
+    description:
+      'Fetch full details for a single FITGEAR product by its id. Returns core fields (name, description, price, finalPrice, discount, stock, isActive, category, images) or a clear not-found result if the product does not exist.',
+    inputSchema: {
+      productId: { type: 'string', description: 'Mongo ObjectId of the product' },
+      token: {
+        type: 'string',
+        description: 'Optional Clerk JWT bearer token for authenticated requests',
+      },
+    },
+  },
+  async (args) => {
+    const result = await getProductDetailsTool(args)
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result, null, 2),
         },
       ],
     }
