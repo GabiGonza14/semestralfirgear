@@ -3,6 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { connectDatabase } from '../config/db'
 import { getOrderStatusTool } from './tools/getOrderStatus'
 import { getProductDetailsTool } from './tools/getProductDetails'
+import { getSalesMetricsTool } from './tools/getSalesMetrics'
 import { searchProductsInputSchema, searchProductsTool } from './tools/searchProducts'
 
 const server = new McpServer({
@@ -91,6 +92,31 @@ server.registerTool(
   },
   async (args) => {
     const result = await getOrderStatusTool(args)
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    }
+  },
+)
+
+server.registerTool(
+  'get_sales_metrics',
+  {
+    description:
+      'Return the FITGEAR admin dashboard summary metrics: totalRevenue (PAID/SHIPPED/DELIVERED orders), ordersCount, activeProductsCount, and usersCount. Admin-only — requires a valid Clerk JWT whose user has the ADMIN role.',
+    inputSchema: {
+      token: {
+        type: 'string',
+        description: 'Clerk JWT bearer token of the requesting admin (required)',
+      },
+    },
+  },
+  async (args) => {
+    const result = await getSalesMetricsTool(args)
     return {
       content: [
         {

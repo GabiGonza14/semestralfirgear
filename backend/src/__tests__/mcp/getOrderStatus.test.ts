@@ -4,8 +4,11 @@ import { describe, it, expect, mock, beforeEach } from 'bun:test'
 // to the mocked version.
 const mockListOrdersByUserId = mock(async () => [] as unknown[])
 
+// Export both order-service fns so this mock coexists with the getSalesMetrics /
+// list_orders suites — Bun's mock.module is global across the run.
 mock.module('../../services/orderService', () => ({
   listOrdersByUserId: mockListOrdersByUserId,
+  listOrders: mock(async () => []),
 }))
 
 // Mock the User model — the tool resolves clerkUserId -> Mongo _id via findOne().select().

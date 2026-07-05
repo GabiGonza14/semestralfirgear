@@ -103,3 +103,35 @@ MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
 ```
 
 ---
+
+## 4. `get_sales_metrics`
+
+- **HU envuelta:** HU-16 — Métricas del dashboard de administrador
+- **Rol:** **admin** (strict-auth + rol ADMIN)
+- **Rama:** `mcp/get-sales-metrics`
+- **Issue / PR:** #85 → PR #86 (contra `develop`)
+
+Herramienta MCP **solo para administradores** que devuelve las cuatro métricas
+resumen del dashboard: `totalRevenue` (suma de `totalAmount` de las órdenes en
+estado `PAID`, `SHIPPED` o `DELIVERED` — se excluyen `PENDING` y `CANCELLED`),
+`ordersCount` (total de órdenes), `activeProductsCount` (productos con
+`isActive: true`) y `usersCount` (total de usuarios). Es una tool de resumen: sólo
+devuelve esos cuatro números, no las listas completas.
+
+**Reuso de código:** llama a `listOrders()`, `listProducts({ includeInactive: true })`
+y `listUsers()` de los services de backend — cero lógica duplicada. Replica el
+conjunto `REVENUE_STATUSES` de `src/pages/AdminDashboardPage.tsx`, que hasta ahora
+computaba estas métricas en el cliente.
+
+**Autenticación:** usa `requireAuthStrict` de `requireAuth.ts` (lanza sin JWT
+válido). Como Clerk entrega el `sub`, la tool resuelve `clerkUserId → User` vía
+`UserModel` y **rechaza con 403** si `role !== 'ADMIN'`. El único input es `token`.
+
+**Cómo levantar el servidor MCP local:**
+
+```bash
+cd backend
+MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
+```
+
+---
