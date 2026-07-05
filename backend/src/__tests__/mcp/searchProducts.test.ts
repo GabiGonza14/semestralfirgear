@@ -4,8 +4,12 @@ import { describe, it, expect, mock, beforeEach } from 'bun:test'
 // resolves to the mocked version.
 const mockListProducts = mock(async () => [])
 
+// Export both service fns so this mock coexists with getProductDetails.test.ts —
+// Bun's mock.module is global across the run, so a partial mock would break
+// the other suite's import.
 mock.module('../../services/productService', () => ({
   listProducts: mockListProducts,
+  getProductById: mock(async () => ({})),
 }))
 
 // requireAuth is a soft-auth — always resolves for public tools.
