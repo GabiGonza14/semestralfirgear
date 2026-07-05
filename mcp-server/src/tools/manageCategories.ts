@@ -1,13 +1,13 @@
 import { z } from 'zod'
-import { requireAuthStrict } from '../../middlewares/requireAuth'
-import { UserModel } from '../../models/User'
+import { requireAuthStrict } from '../../../backend/src/middlewares/requireAuth'
+import { UserModel } from '../../../backend/src/models/User'
 import {
   createCategory,
   deleteCategory,
   listCategories,
   updateCategory,
-} from '../../services/categoryService'
-import { HttpError } from '../../utils/httpError'
+} from '../../../backend/src/services/categoryService'
+import { HttpError } from '../../../backend/src/utils/httpError'
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, 'id must be a valid ObjectId')
 

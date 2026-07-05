@@ -1,8 +1,8 @@
 import { z } from 'zod'
-import { requireAuthStrict } from '../../middlewares/requireAuth'
-import { UserModel } from '../../models/User'
-import { updateProduct } from '../../services/productService'
-import { HttpError } from '../../utils/httpError'
+import { requireAuthStrict } from '../../../backend/src/middlewares/requireAuth'
+import { UserModel } from '../../../backend/src/models/User'
+import { updateProduct } from '../../../backend/src/services/productService'
+import { HttpError } from '../../../backend/src/utils/httpError'
 
 // This tool intentionally exposes ONLY stock management — never create/delete or
 // editing name/price/images/category/discount. A full CRUD write surface is too

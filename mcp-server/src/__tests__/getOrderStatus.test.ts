@@ -6,7 +6,7 @@ const mockListOrdersByUserId = mock(async () => [] as unknown[])
 
 // Export both order-service fns so this mock coexists with the getSalesMetrics /
 // list_orders suites — Bun's mock.module is global across the run.
-mock.module('../../services/orderService', () => ({
+mock.module('../../../backend/src/services/orderService', () => ({
   listOrdersByUserId: mockListOrdersByUserId,
   listOrders: mock(async () => []),
 }))
@@ -15,21 +15,21 @@ mock.module('../../services/orderService', () => ({
 const mockSelect = mock(async () => null as unknown)
 const mockFindOne = mock(() => ({ select: mockSelect }))
 
-mock.module('../../models/User', () => ({
+mock.module('../../../backend/src/models/User', () => ({
   UserModel: { findOne: mockFindOne },
 }))
 
 // requireAuthStrict is the protected-auth gate — controlled per test.
 const mockRequireAuthStrict = mock(async () => ({ userId: 'clerk_abc', authenticated: true }))
 
-mock.module('../../middlewares/requireAuth', () => ({
+mock.module('../../../backend/src/middlewares/requireAuth', () => ({
   // Keep soft-auth identical to the other suites so coexistence is safe.
   requireAuth: mock(async () => ({ userId: null, authenticated: false })),
   requireAuthStrict: mockRequireAuthStrict,
 }))
 
 // Import after mocking so the tool picks up the mocked modules.
-const { getOrderStatusTool } = await import('../../mcp/tools/getOrderStatus')
+const { getOrderStatusTool } = await import('../tools/getOrderStatus')
 
 const USER_ID = '507f1f77bcf86cd799439099'
 

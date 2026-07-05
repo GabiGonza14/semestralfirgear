@@ -1,8 +1,8 @@
 import { z } from 'zod'
-import { requireAuthStrict } from '../../middlewares/requireAuth'
-import { UserModel } from '../../models/User'
-import { listOrders } from '../../services/orderService'
-import { HttpError } from '../../utils/httpError'
+import { requireAuthStrict } from '../../../backend/src/middlewares/requireAuth'
+import { UserModel } from '../../../backend/src/models/User'
+import { listOrders } from '../../../backend/src/services/orderService'
+import { HttpError } from '../../../backend/src/utils/httpError'
 
 // Mirror of the Order model's status enum (backend/src/models/Order.ts).
 const ORDER_STATUSES = ['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED'] as const

@@ -7,20 +7,20 @@ const mockListUsers = mock(async () => [] as unknown[])
 
 // Export both order-service fns so this mock coexists with the get_order_status /
 // list_orders suites — Bun's mock.module is global across the run.
-mock.module('../../services/orderService', () => ({
+mock.module('../../../backend/src/services/orderService', () => ({
   listOrders: mockListOrders,
   listOrdersByUserId: mock(async () => []),
 }))
 
 // Export every product-service fn any suite may import so this mock coexists —
 // Bun's mock.module is global across the run.
-mock.module('../../services/productService', () => ({
+mock.module('../../../backend/src/services/productService', () => ({
   listProducts: mockListProducts,
   getProductById: mock(async () => ({})),
   updateProduct: mock(async () => ({})),
 }))
 
-mock.module('../../services/userService', () => ({
+mock.module('../../../backend/src/services/userService', () => ({
   listUsers: mockListUsers,
 }))
 
@@ -28,20 +28,20 @@ mock.module('../../services/userService', () => ({
 const mockSelect = mock(async () => null as unknown)
 const mockFindOne = mock(() => ({ select: mockSelect }))
 
-mock.module('../../models/User', () => ({
+mock.module('../../../backend/src/models/User', () => ({
   UserModel: { findOne: mockFindOne },
 }))
 
 // requireAuthStrict is the protected-auth gate — controlled per test.
 const mockRequireAuthStrict = mock(async () => ({ userId: 'clerk_admin', authenticated: true }))
 
-mock.module('../../middlewares/requireAuth', () => ({
+mock.module('../../../backend/src/middlewares/requireAuth', () => ({
   requireAuth: mock(async () => ({ userId: null, authenticated: false })),
   requireAuthStrict: mockRequireAuthStrict,
 }))
 
 // Import after mocking so the tool picks up the mocked modules.
-const { getSalesMetricsTool } = await import('../../mcp/tools/getSalesMetrics')
+const { getSalesMetricsTool } = await import('../tools/getSalesMetrics')
 
 const order = (status: string, totalAmount: number) => ({ status, totalAmount })
 

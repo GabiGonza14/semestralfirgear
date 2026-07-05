@@ -3,7 +3,7 @@ import { describe, it, expect, mock, beforeEach } from 'bun:test'
 // Mock the orderService before importing the tool.
 const mockListOrders = mock(async () => [] as unknown[])
 
-mock.module('../../services/orderService', () => ({
+mock.module('../../../backend/src/services/orderService', () => ({
   listOrders: mockListOrders,
 }))
 
@@ -11,20 +11,20 @@ mock.module('../../services/orderService', () => ({
 const mockSelect = mock(async () => null as unknown)
 const mockFindOne = mock(() => ({ select: mockSelect }))
 
-mock.module('../../models/User', () => ({
+mock.module('../../../backend/src/models/User', () => ({
   UserModel: { findOne: mockFindOne },
 }))
 
 // requireAuthStrict is the protected-auth gate — controlled per test.
 const mockRequireAuthStrict = mock(async () => ({ userId: 'clerk_admin', authenticated: true }))
 
-mock.module('../../middlewares/requireAuth', () => ({
+mock.module('../../../backend/src/middlewares/requireAuth', () => ({
   requireAuth: mock(async () => ({ userId: null, authenticated: false })),
   requireAuthStrict: mockRequireAuthStrict,
 }))
 
 // Import after mocking so the tool picks up the mocked modules.
-const { listOrdersTool } = await import('../../mcp/tools/listOrders')
+const { listOrdersTool } = await import('../tools/listOrders')
 
 const makeOrder = (overrides: Record<string, unknown> = {}) => ({
   _id: '507f1f77bcf86cd799439011',

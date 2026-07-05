@@ -1,12 +1,12 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test'
-import { HttpError } from '../../utils/httpError'
+import { HttpError } from '../../../backend/src/utils/httpError'
 
 // Mock the productService before importing the tool. Export both other product
 // fns too so this mock coexists with the other suites (Bun's mock.module is
 // global across the run).
 const mockUpdateProduct = mock(async () => ({}))
 
-mock.module('../../services/productService', () => ({
+mock.module('../../../backend/src/services/productService', () => ({
   updateProduct: mockUpdateProduct,
   getProductById: mock(async () => ({})),
   listProducts: mock(async () => []),
@@ -16,20 +16,20 @@ mock.module('../../services/productService', () => ({
 const mockSelect = mock(async () => null as unknown)
 const mockFindOne = mock(() => ({ select: mockSelect }))
 
-mock.module('../../models/User', () => ({
+mock.module('../../../backend/src/models/User', () => ({
   UserModel: { findOne: mockFindOne },
 }))
 
 // requireAuthStrict is the protected-auth gate — controlled per test.
 const mockRequireAuthStrict = mock(async () => ({ userId: 'clerk_admin', authenticated: true }))
 
-mock.module('../../middlewares/requireAuth', () => ({
+mock.module('../../../backend/src/middlewares/requireAuth', () => ({
   requireAuth: mock(async () => ({ userId: null, authenticated: false })),
   requireAuthStrict: mockRequireAuthStrict,
 }))
 
 // Import after mocking so the tool picks up the mocked modules.
-const { updateStockTool } = await import('../../mcp/tools/updateStock')
+const { updateStockTool } = await import('../tools/updateStock')
 
 const PRODUCT_ID = '507f1f77bcf86cd799439011'
 

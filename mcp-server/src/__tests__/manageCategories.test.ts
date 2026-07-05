@@ -1,5 +1,5 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test'
-import { HttpError } from '../../utils/httpError'
+import { HttpError } from '../../../backend/src/utils/httpError'
 
 // Mock the categoryService before importing the tool.
 const mockListCategories = mock(async () => [] as unknown[])
@@ -7,7 +7,7 @@ const mockCreateCategory = mock(async () => ({}))
 const mockUpdateCategory = mock(async () => ({}))
 const mockDeleteCategory = mock(async () => undefined)
 
-mock.module('../../services/categoryService', () => ({
+mock.module('../../../backend/src/services/categoryService', () => ({
   listCategories: mockListCategories,
   createCategory: mockCreateCategory,
   updateCategory: mockUpdateCategory,
@@ -18,20 +18,20 @@ mock.module('../../services/categoryService', () => ({
 const mockSelect = mock(async () => null as unknown)
 const mockFindOne = mock(() => ({ select: mockSelect }))
 
-mock.module('../../models/User', () => ({
+mock.module('../../../backend/src/models/User', () => ({
   UserModel: { findOne: mockFindOne },
 }))
 
 // requireAuthStrict is the protected-auth gate — controlled per test.
 const mockRequireAuthStrict = mock(async () => ({ userId: 'clerk_admin', authenticated: true }))
 
-mock.module('../../middlewares/requireAuth', () => ({
+mock.module('../../../backend/src/middlewares/requireAuth', () => ({
   requireAuth: mock(async () => ({ userId: null, authenticated: false })),
   requireAuthStrict: mockRequireAuthStrict,
 }))
 
 // Import after mocking so the tool picks up the mocked modules.
-const { manageCategoriesTool } = await import('../../mcp/tools/manageCategories')
+const { manageCategoriesTool } = await import('../tools/manageCategories')
 
 const CAT_ID = '507f1f77bcf86cd799439011'
 

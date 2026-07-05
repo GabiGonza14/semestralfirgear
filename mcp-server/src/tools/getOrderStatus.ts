@@ -1,7 +1,7 @@
 import { z } from 'zod'
-import { requireAuthStrict } from '../../middlewares/requireAuth'
-import { UserModel } from '../../models/User'
-import { listOrdersByUserId } from '../../services/orderService'
+import { requireAuthStrict } from '../../../backend/src/middlewares/requireAuth'
+import { UserModel } from '../../../backend/src/models/User'
+import { listOrdersByUserId } from '../../../backend/src/services/orderService'
 
 // The only accepted input is the caller's own Clerk JWT. A client can never
 // pass an arbitrary userId — orders are always scoped to the authenticated user.

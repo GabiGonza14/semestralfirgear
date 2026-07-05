@@ -1,5 +1,5 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test'
-import { HttpError } from '../../utils/httpError'
+import { HttpError } from '../../../backend/src/utils/httpError'
 
 // Mock the productService before importing the tool so the module
 // resolves to the mocked version.
@@ -8,20 +8,20 @@ const mockGetProductById = mock(async () => ({}))
 // Export both service fns so this mock coexists with searchProducts.test.ts —
 // Bun's mock.module is global across the run, so a partial mock would break
 // the other suite's import.
-mock.module('../../services/productService', () => ({
+mock.module('../../../backend/src/services/productService', () => ({
   getProductById: mockGetProductById,
   listProducts: mock(async () => []),
   updateProduct: mock(async () => ({})),
 }))
 
 // requireAuth is a soft-auth — always resolves for public tools.
-mock.module('../../middlewares/requireAuth', () => ({
+mock.module('../../../backend/src/middlewares/requireAuth', () => ({
   requireAuth: mock(async () => ({ userId: null, authenticated: false })),
   requireAuthStrict: mock(async () => { throw new Error('Unauthorized') }),
 }))
 
 // Import after mocking so the tool picks up the mocked modules.
-const { getProductDetailsTool } = await import('../../mcp/tools/getProductDetails')
+const { getProductDetailsTool } = await import('../tools/getProductDetails')
 
 const VALID_ID = '507f1f77bcf86cd799439011'
 

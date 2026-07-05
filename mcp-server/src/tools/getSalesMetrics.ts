@@ -1,10 +1,10 @@
 import { z } from 'zod'
-import { requireAuthStrict } from '../../middlewares/requireAuth'
-import { UserModel } from '../../models/User'
-import { listOrders } from '../../services/orderService'
-import { listProducts } from '../../services/productService'
-import { listUsers } from '../../services/userService'
-import { HttpError } from '../../utils/httpError'
+import { requireAuthStrict } from '../../../backend/src/middlewares/requireAuth'
+import { UserModel } from '../../../backend/src/models/User'
+import { listOrders } from '../../../backend/src/services/orderService'
+import { listProducts } from '../../../backend/src/services/productService'
+import { listUsers } from '../../../backend/src/services/userService'
+import { HttpError } from '../../../backend/src/utils/httpError'
 
 // Mirror of REVENUE_STATUSES in src/pages/AdminDashboardPage.tsx — only orders
 // in these states count toward revenue (PENDING and CANCELLED are excluded).

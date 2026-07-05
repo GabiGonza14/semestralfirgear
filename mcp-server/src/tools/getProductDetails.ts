@@ -1,7 +1,7 @@
 import { z } from 'zod'
-import { requireAuth } from '../../middlewares/requireAuth'
-import { getProductById } from '../../services/productService'
-import { HttpError } from '../../utils/httpError'
+import { requireAuth } from '../../../backend/src/middlewares/requireAuth'
+import { getProductById } from '../../../backend/src/services/productService'
+import { HttpError } from '../../../backend/src/utils/httpError'
 
 export const getProductDetailsInputSchema = z.object({
   productId: z

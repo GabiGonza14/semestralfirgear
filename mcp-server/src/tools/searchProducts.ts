@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { requireAuth } from '../../middlewares/requireAuth'
-import { listProducts } from '../../services/productService'
+import { requireAuth } from '../../../backend/src/middlewares/requireAuth'
+import { listProducts } from '../../../backend/src/services/productService'
 
 export const searchProductsInputSchema = z.object({
   search: z.string().trim().optional(),

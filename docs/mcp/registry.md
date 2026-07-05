@@ -7,6 +7,11 @@ base para generar la documentación pública del servidor MCP.
 Formato por entrada:
 - **Tool**, **HU envuelta**, **Rol**, **Rama**, **PR**, y una explicación breve.
 
+> **Ubicación:** el servidor MCP vive en su propio paquete `mcp-server/` (entrypoint
+> stdio en `mcp-server/src/server.ts`, tools en `mcp-server/src/tools/`). Reutiliza
+> los services/models/middlewares de `backend/src/` sin duplicarlos. Se levanta con
+> `cd mcp-server && bun install && bun run start`.
+
 ---
 
 ## 1. `search_products`
@@ -34,8 +39,8 @@ Clerk usando `@clerk/backend`. Si no hay token o no está configurado
 **Cómo levantar el servidor MCP local:**
 
 ```bash
-cd backend
-MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
+cd mcp-server
+MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run start
 ```
 
 ---
@@ -66,8 +71,8 @@ lógica. El `HttpError(404)` del service se traduce a un not-found legible.
 **Cómo levantar el servidor MCP local:**
 
 ```bash
-cd backend
-MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
+cd mcp-server
+MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run start
 ```
 
 ---
@@ -98,8 +103,8 @@ consultar las órdenes.
 **Cómo levantar el servidor MCP local:**
 
 ```bash
-cd backend
-MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
+cd mcp-server
+MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run start
 ```
 
 ---
@@ -130,8 +135,8 @@ válido). Como Clerk entrega el `sub`, la tool resuelve `clerkUserId → User` v
 **Cómo levantar el servidor MCP local:**
 
 ```bash
-cd backend
-MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
+cd mcp-server
+MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run start
 ```
 
 ---
@@ -165,8 +170,8 @@ válido). Como Clerk entrega el `sub`, la tool resuelve `clerkUserId → User` v
 **Cómo levantar el servidor MCP local:**
 
 ```bash
-cd backend
-MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
+cd mcp-server
+MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run start
 ```
 
 ---
@@ -197,8 +202,8 @@ válido). Como Clerk entrega el `sub`, la tool resuelve `clerkUserId → User` v
 **Cómo levantar el servidor MCP local:**
 
 ```bash
-cd backend
-MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
+cd mcp-server
+MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run start
 ```
 
 ---
@@ -233,8 +238,8 @@ válido). Resuelve `clerkUserId → User` vía `UserModel` y **rechaza con 403**
 **Cómo levantar el servidor MCP local:**
 
 ```bash
-cd backend
-MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run mcp:start
+cd mcp-server
+MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run start
 ```
 
 ---
