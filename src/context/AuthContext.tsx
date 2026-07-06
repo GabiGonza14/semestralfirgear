@@ -1,4 +1,4 @@
-import { useUser } from '@clerk/clerk-react'
+import { useAuth as useClerkAuth, useUser } from '@clerk/clerk-react'
 import {
   createContext,
   useContext,
@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { setAuthTokenGetter } from '../api/authToken'
 import { syncClerkUser } from '../api/fitgearApi'
 import type { BackendUser, UserRole } from '../types'
 
@@ -22,9 +23,17 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { user, isLoaded } = useUser()
+  const { getToken } = useClerkAuth()
   const [backendUser, setBackendUser] = useState<BackendUser | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
+
+  // Must run before the sync effect below so apiClient already has a token
+  // getter by the time syncClerkUser fires — reading window.Clerk directly
+  // instead races the post-login redirect and can miss the token entirely.
+  useEffect(() => {
+    setAuthTokenGetter(user ? getToken : null)
+  }, [user, getToken])
 
   useEffect(() => {
     if (!isLoaded) {
