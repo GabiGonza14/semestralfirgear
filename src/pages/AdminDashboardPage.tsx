@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getOrders, getProducts, getUsers } from '../api/fitgearApi'
+import { getAdminMetrics, getOrders, getProducts, getUsers, type AdminMetrics } from '../api/fitgearApi'
 import { AdminSidebar } from '../components/AdminSidebar'
 import { AdminCategoriesSection } from '../components/admin/AdminCategoriesSection'
 import { AdminInventorySection } from '../components/admin/AdminInventorySection'
@@ -11,10 +11,6 @@ import { formatCurrency, formatDate } from '../utils/format'
 
 type AdminSection = 'overview' | 'inventory' | 'categories' | 'orders' | 'users'
 
-// Órdenes que representan dinero cobrado — excluye PENDING (intención no pagada) y
-// CANCELLED (nunca se pagó) para que "revenue acumulado" refleje ventas reales.
-const REVENUE_STATUSES = new Set<BackendOrder['status']>(['PAID', 'SHIPPED', 'DELIVERED'])
-
 const ORDER_STATUS_FILTERS = ['ALL', 'PENDING', 'PAID', 'SHIPPED'] as const
 type OrderStatusFilter = (typeof ORDER_STATUS_FILTERS)[number]
 
@@ -22,6 +18,7 @@ export function AdminDashboardPage() {
   const [section, setSection] = useState<AdminSection>('overview')
   const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatusFilter>('ALL')
   const { isAdmin } = useAuth()
+  const [metrics, setMetrics] = useState<AdminMetrics | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<BackendOrder[]>([])
   const [users, setUsers] = useState<BackendUser[]>([])
@@ -36,11 +33,14 @@ export function AdminDashboardPage() {
     let active = true
     setLoading(true)
 
-    Promise.all([getProducts({ includeInactive: true }), getOrders(), getUsers()])
-      .then(([productsData, ordersData, usersData]) => {
+    // Metrics come server-computed from /api/admin/metrics; the lists are still
+    // needed for the orders/users tables and the inventory section.
+    Promise.all([getAdminMetrics(), getProducts({ includeInactive: true }), getOrders(), getUsers()])
+      .then(([metricsData, productsData, ordersData, usersData]) => {
         if (!active) {
           return
         }
+        setMetrics(metricsData)
         setProducts(productsData)
         setOrders(ordersData)
         setUsers(usersData)
@@ -63,19 +63,6 @@ export function AdminDashboardPage() {
     }
   }, [isAdmin])
 
-  const totalRevenue = useMemo(
-    () =>
-      orders
-        .filter((order) => REVENUE_STATUSES.has(order.status))
-        .reduce((acc, order) => acc + order.totalAmount, 0),
-    [orders],
-  )
-
-  const activeProductsCount = useMemo(
-    () => products.filter((product) => product.isActive).length,
-    [products],
-  )
-
   const filteredOrders = useMemo(
     () =>
       orderStatusFilter === 'ALL'
@@ -85,12 +72,15 @@ export function AdminDashboardPage() {
   )
 
   const refreshProducts = async () => {
-    const [productsData, ordersData, usersData] = await Promise.all([
+    // Refresh metrics too: editing inventory/stock changes activeProductsCount.
+    const [metricsData, productsData, ordersData, usersData] = await Promise.all([
+      getAdminMetrics(),
       getProducts({ includeInactive: true }),
       getOrders(),
       getUsers(),
     ])
 
+    setMetrics(metricsData)
     setProducts(productsData)
     setOrders(ordersData)
     setUsers(usersData)
@@ -142,10 +132,10 @@ export function AdminDashboardPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <SummaryCard label="Productos" value={`${activeProductsCount}`} trend="Activos en el catálogo" />
-          <SummaryCard label="Órdenes" value={`${orders.length}`} trend="En procesamiento" />
-          <SummaryCard label="Usuarios" value={`${users.length}`} trend="Registrados" />
-          <SummaryCard label="Ingresos" value={formatCurrency(totalRevenue)} trend="Total de ventas" />
+          <SummaryCard label="Productos" value={`${metrics?.activeProductsCount ?? 0}`} trend="Activos en el catálogo" />
+          <SummaryCard label="Órdenes" value={`${metrics?.ordersCount ?? 0}`} trend="En procesamiento" />
+          <SummaryCard label="Usuarios" value={`${metrics?.usersCount ?? 0}`} trend="Registrados" />
+          <SummaryCard label="Ingresos" value={formatCurrency(metrics?.totalRevenue ?? 0)} trend="Total de ventas" />
         </div>
 
         {loading ? (

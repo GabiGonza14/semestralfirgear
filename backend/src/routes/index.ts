@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../app'
+import { adminRouter } from './adminRoutes'
 import { categoryRouter } from './categoryRoutes'
 import { orderRouter } from './orderRoutes'
 import { paymentRouter } from './paymentRoutes'
@@ -15,3 +16,4 @@ apiRouter.route('/products', productRouter)
 apiRouter.route('/users', userRouter)
 apiRouter.route('/orders', orderRouter)
 apiRouter.route('/payments', paymentRouter)
+apiRouter.route('/admin', adminRouter)

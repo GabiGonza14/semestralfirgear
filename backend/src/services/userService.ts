@@ -15,6 +15,19 @@ export async function listUsers() {
   return UserModel.find().sort({ createdAt: -1 })
 }
 
+/**
+ * Resolves the RBAC role for a Clerk-authenticated user. Clerk's `sub`
+ * (the JWT subject) is NOT the Mongo _id, so we look the profile up by
+ * clerkUserId. Returns null when no synced profile exists yet — callers
+ * treat "no profile" the same as "not authorized".
+ */
+export async function getUserRoleByClerkId(
+  clerkUserId: string,
+): Promise<'ADMIN' | 'CUSTOMER' | null> {
+  const user = await UserModel.findOne({ clerkUserId }).select('role')
+  return user ? (user.role as 'ADMIN' | 'CUSTOMER') : null
+}
+
 export async function getUserById(id: string) {
   const user = await UserModel.findById(id)
   if (!user) {
