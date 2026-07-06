@@ -10,6 +10,7 @@ Backend for FITGEAR using Hono + Bun + MongoDB.
 - Consistent error handling with status codes
 - Optional product filter/search/sort in the list endpoint
 - Users endpoints with Clerk sync (`/api/users/sync-clerk`) and role assignment (`ADMIN` / `CUSTOMER`)
+- Server-side RBAC: admin operations (product/category writes, user reads, and the `/api/admin/*` namespace) require a valid Clerk JWT **and** the `ADMIN` role — a `CUSTOMER` gets `403`. Enforced by `requireAdminMiddleware`, verified on every request
 - Orders and OrderItems creation with total/subtotal from real product prices
 - Transactional write with fallback for standalone MongoDB
 - Stripe checkout, payment confirmation and webhook handling

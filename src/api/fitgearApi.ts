@@ -285,6 +285,22 @@ export async function getUsers() {
   return users.map(mapUser)
 }
 
+export interface AdminMetrics {
+  totalRevenue: number
+  ordersCount: number
+  activeProductsCount: number
+  usersCount: number
+}
+
+/**
+ * Server-computed admin dashboard summary (GET /api/admin/metrics). Admin-only:
+ * the backend returns 403 for a CUSTOMER token. Single source of truth for the
+ * four overview numbers — no client-side aggregation.
+ */
+export async function getAdminMetrics() {
+  return apiRequest<AdminMetrics>('/admin/metrics', { method: 'GET' })
+}
+
 export async function getOrders() {
   const orders = await apiRequest<MongoOrder[]>('/orders', { method: 'GET' })
   return orders.map(mapOrder)

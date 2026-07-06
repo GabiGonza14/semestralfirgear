@@ -7,6 +7,7 @@ import {
   getCategory,
   updateCategoryController,
 } from '../controllers/categoryController'
+import { requireAdminMiddleware } from '../middlewares/requireAdmin'
 import { requireAuthMiddleware } from '../middlewares/requireAuth'
 import { validateBody, validateParams } from '../middlewares/validate'
 import { idParamSchema } from '../validations/commonValidation'
@@ -18,16 +19,18 @@ export const categoryRouter = new Hono<AppEnv>()
 categoryRouter.get('/', getCategories)
 categoryRouter.get('/:id', validateParams(idParamSchema), getCategory)
 
-// Admin writes — require a valid Clerk JWT.
+// Admin writes — require a valid Clerk JWT AND the ADMIN role (RBAC).
 categoryRouter.post(
   '/',
   requireAuthMiddleware(),
+  requireAdminMiddleware(),
   validateBody(createCategorySchema),
   createCategoryController,
 )
 categoryRouter.put(
   '/:id',
   requireAuthMiddleware(),
+  requireAdminMiddleware(),
   validateParams(idParamSchema),
   validateBody(updateCategorySchema),
   updateCategoryController,
@@ -35,6 +38,7 @@ categoryRouter.put(
 categoryRouter.delete(
   '/:id',
   requireAuthMiddleware(),
+  requireAdminMiddleware(),
   validateParams(idParamSchema),
   deleteCategoryController,
 )
