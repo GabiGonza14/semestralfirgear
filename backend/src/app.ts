@@ -14,6 +14,7 @@ export type AppVariables = {
   validatedParams: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   validatedQuery: any
+  userId: string | null
 }
 
 export type AppEnv = { Variables: AppVariables }

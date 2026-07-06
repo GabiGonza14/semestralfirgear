@@ -7,19 +7,34 @@ import {
   getCategory,
   updateCategoryController,
 } from '../controllers/categoryController'
+import { requireAuthMiddleware } from '../middlewares/requireAuth'
 import { validateBody, validateParams } from '../middlewares/validate'
 import { idParamSchema } from '../validations/commonValidation'
 import { createCategorySchema, updateCategorySchema } from '../validations/categoryValidation'
 
 export const categoryRouter = new Hono<AppEnv>()
 
+// Public catalog reads — no auth required.
 categoryRouter.get('/', getCategories)
 categoryRouter.get('/:id', validateParams(idParamSchema), getCategory)
-categoryRouter.post('/', validateBody(createCategorySchema), createCategoryController)
+
+// Admin writes — require a valid Clerk JWT.
+categoryRouter.post(
+  '/',
+  requireAuthMiddleware(),
+  validateBody(createCategorySchema),
+  createCategoryController,
+)
 categoryRouter.put(
   '/:id',
+  requireAuthMiddleware(),
   validateParams(idParamSchema),
   validateBody(updateCategorySchema),
   updateCategoryController,
 )
-categoryRouter.delete('/:id', validateParams(idParamSchema), deleteCategoryController)
+categoryRouter.delete(
+  '/:id',
+  requireAuthMiddleware(),
+  validateParams(idParamSchema),
+  deleteCategoryController,
+)

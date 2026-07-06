@@ -1,3 +1,5 @@
+import { getAuthToken } from './authToken'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000/api'
 
 interface ApiErrorPayload {
@@ -38,15 +40,15 @@ function buildUrl(path: string, query?: RequestOptions['query']) {
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { query, headers, body, ...rest } = options
   const isFormData = body instanceof FormData
+  const token = await getAuthToken()
 
   const response = await fetch(buildUrl(path, query), {
     ...rest,
-    headers: isFormData
-      ? headers
-      : {
-          'Content-Type': 'application/json',
-          ...headers,
-        },
+    headers: {
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...headers,
+    },
     body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
   })
 
