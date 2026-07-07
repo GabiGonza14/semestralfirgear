@@ -19,6 +19,10 @@ const orderSchema = new Schema(
     stripeCheckoutSessionId: { type: String, required: false },
     stripePaymentIntentId: { type: String, required: false },
     paidAt: { type: Date, required: false },
+    // Set when an admin ships the order (PAID -> SHIPPED). trackingNumber is
+    // optional — carriers are not integrated, so it's filled in by hand (HU-31).
+    shippedAt: { type: Date, required: false },
+    trackingNumber: { type: String, required: false },
   },
   { timestamps: true },
 )

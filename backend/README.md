@@ -16,6 +16,7 @@ Backend for FITGEAR using Hono + Bun + MongoDB.
 - Stripe checkout, payment confirmation and webhook handling
 - Failed-payment webhook (`payment_intent.payment_failed`): marks the order `FAILED`, emails the customer retry instructions, and records the event in the audit log (HU-28)
 - Purchase-confirmation email on successful payment: sent once on the `PENDING`->`PAID` transition, with the order number, purchased items, total and estimated delivery date (HU-30)
+- Order-shipped email: admin-only `PATCH /api/orders/:id/ship` moves a `PAID` order to `SHIPPED`, stamps `shippedAt`, and emails the customer the order number, ship date and optional tracking number (HU-31)
 - Transactional email via SendGrid with async delivery + up to 3 retries (exponential backoff, transient failures only); every send is audited in `NotificationLog`
 
 ## Requirements

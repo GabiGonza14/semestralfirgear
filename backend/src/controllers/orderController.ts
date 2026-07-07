@@ -1,6 +1,13 @@
 import type { Context } from 'hono'
 import type { AppEnv } from '../app'
-import { cancelOrder, createOrder, getOrderById, listOrders, listOrdersByUserId } from '../services/orderService'
+import {
+  cancelOrder,
+  createOrder,
+  getOrderById,
+  listOrders,
+  listOrdersByUserId,
+  markOrderAsShipped,
+} from '../services/orderService'
 
 export const getOrders = async (c: Context<AppEnv>) => {
   const orders = await listOrders()
@@ -31,5 +38,12 @@ export const createOrderController = async (c: Context<AppEnv>) => {
 export const cancelOrderController = async (c: Context<AppEnv>) => {
   const { id } = c.get('validatedParams') as { id: string }
   const order = await cancelOrder(id)
+  return c.json(order, 200)
+}
+
+export const shipOrderController = async (c: Context<AppEnv>) => {
+  const { id } = c.get('validatedParams') as { id: string }
+  const { trackingNumber } = c.get('validatedBody') as { trackingNumber?: string }
+  const order = await markOrderAsShipped(id, trackingNumber)
   return c.json(order, 200)
 }

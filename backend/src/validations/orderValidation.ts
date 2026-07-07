@@ -19,3 +19,15 @@ export const createOrderSchema = z.object({
 export const userIdParamSchema = z.object({
   userId: objectIdSchema,
 })
+
+// Shipping an order (HU-31). trackingNumber is optional — included in the
+// customer email only "if available". Empty/whitespace collapses to undefined so
+// a blank field never renders an empty tracking line in the email.
+export const shipOrderSchema = z.object({
+  trackingNumber: z
+    .string()
+    .trim()
+    .max(64, 'trackingNumber must be at most 64 characters')
+    .optional()
+    .transform((value) => (value ? value : undefined)),
+})
