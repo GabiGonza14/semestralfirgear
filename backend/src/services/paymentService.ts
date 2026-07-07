@@ -480,6 +480,148 @@ function buildPaymentFailedEmailHtml(params: {
   </div>`
 }
 
+interface ConfirmationLineItem {
+  name: string
+  quantity: number
+  size?: string | null
+  subtotal: number
+}
+
+// HU-30: loads everything the confirmation email needs (customer + line items),
+// builds the template and dispatches it. Fire-and-forget via dispatchNotification
+// so it never blocks the caller; all failures are logged/audited, never thrown.
+// Exported for unit testing the confirmation behaviour in isolation.
+export async function notifyCustomerPurchaseConfirmed(orderId: string) {
+  try {
+    const order = await OrderModel.findById(orderId).populate('userId', 'email fullName')
+
+    if (!order) {
+      console.warn('[stripe-webhook] cannot send confirmation: order not found', { orderId })
+      return
+    }
+
+    const customer = order.userId as unknown as PopulatedOrderCustomer | null
+    const email = typeof order.userId === 'string' ? undefined : customer?.email
+
+    if (!email) {
+      console.warn('[stripe-webhook] cannot send confirmation: order has no customer email', { orderId })
+      return
+    }
+
+    const items = await OrderItemModel.find({ orderId: order._id }).populate('productId', 'name')
+    const lineItems: ConfirmationLineItem[] = items.map((item) => {
+      const product = item.productId as unknown as PopulatedProductRef | null
+      return {
+        name: product?.name ?? 'Producto',
+        quantity: item.quantity,
+        size: item.size,
+        subtotal: item.subtotal,
+      }
+    })
+
+    const estimatedDelivery = estimateDeliveryDate(order.paidAt ?? new Date())
+
+    dispatchNotification({
+      type: 'PURCHASE_CONFIRMATION',
+      to: email,
+      orderId,
+      subject: `Confirmación de compra — Orden #${orderId.slice(-6).toUpperCase()}`,
+      html: buildPurchaseConfirmationEmailHtml({
+        name: customer?.fullName,
+        orderId,
+        items: lineItems,
+        total: order.totalAmount,
+        estimatedDelivery,
+      }),
+    })
+  } catch (error) {
+    // A confirmation-email failure must never break the payment flow itself.
+    console.error('[stripe-webhook] failed to send purchase confirmation', { orderId, error })
+  }
+}
+
+// Estimated delivery = paid date + 5 business days (weekends skipped). Kept
+// simple: FITGEAR has no carrier integration, so this is an informational ETA.
+// Exported for unit testing.
+export function estimateDeliveryDate(from: Date): Date {
+  const date = new Date(from)
+  let added = 0
+  while (added < 5) {
+    date.setDate(date.getDate() + 1)
+    const day = date.getDay()
+    if (day !== 0 && day !== 6) {
+      added++
+    }
+  }
+  return date
+}
+
+function formatDeliveryDate(date: Date): string {
+  return date.toLocaleDateString('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+function buildPurchaseConfirmationEmailHtml(params: {
+  name?: string
+  orderId: string
+  items: ConfirmationLineItem[]
+  total: number
+  estimatedDelivery: Date
+}): string {
+  const greeting = params.name ? `Hola ${params.name},` : 'Hola,'
+  const orderNumber = params.orderId.slice(-6).toUpperCase()
+  const ordersUrl = `${env.frontendUrl}/orders/${params.orderId}`
+
+  const rows = params.items
+    .map((item) => {
+      const sizeLabel = item.size ? ` <span style="color:#94a3b8;">(Talla ${item.size})</span>` : ''
+      return `
+      <tr>
+        <td style="padding:8px 0; border-bottom:1px solid #e2e8f0;">${item.name}${sizeLabel}</td>
+        <td style="padding:8px 0; border-bottom:1px solid #e2e8f0; text-align:center;">${item.quantity}</td>
+        <td style="padding:8px 0; border-bottom:1px solid #e2e8f0; text-align:right;">$${item.subtotal.toFixed(2)}</td>
+      </tr>`
+    })
+    .join('')
+
+  return `
+  <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #0f172a;">
+    <h2 style="color: #4d7c0f;">¡Gracias por tu compra!</h2>
+    <p>${greeting}</p>
+    <p>Hemos recibido tu pago y tu orden <strong>#${orderNumber}</strong> está confirmada.
+      Aquí tienes el resumen:</p>
+    <table style="width:100%; border-collapse:collapse; margin:16px 0;">
+      <thead>
+        <tr style="color:#64748b; text-align:left; font-size:13px;">
+          <th style="padding:8px 0; border-bottom:2px solid #cbd5e1;">Producto</th>
+          <th style="padding:8px 0; border-bottom:2px solid #cbd5e1; text-align:center;">Cant.</th>
+          <th style="padding:8px 0; border-bottom:2px solid #cbd5e1; text-align:right;">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2" style="padding:12px 0; font-weight:bold; text-align:right;">Total</td>
+          <td style="padding:12px 0; font-weight:bold; text-align:right;">$${params.total.toFixed(2)}</td>
+        </tr>
+      </tfoot>
+    </table>
+    <p style="background:#f0fdf4; border-radius:8px; padding:12px 16px; color:#166534;">
+      📦 <strong>Entrega estimada:</strong> ${formatDeliveryDate(params.estimatedDelivery)}
+    </p>
+    <p style="margin: 24px 0;">
+      <a href="${ordersUrl}"
+         style="background:#84cc16; color:#0f172a; padding:12px 24px; border-radius:9999px;
+                text-decoration:none; font-weight:bold;">Ver mi orden</a>
+    </p>
+    <p style="color:#94a3b8; font-size:12px;">Este es un correo automático de confirmación. — Equipo FITGEAR</p>
+  </div>`
+}
+
 function groupOrderItems(
   items: Array<{ productId: Types.ObjectId | string; quantity: number; size?: string | null }>,
 ) {
@@ -604,10 +746,11 @@ async function markOrderAsPaidAndDeductStock(
   await assertCustomerOrder(orderId)
 
   const session = await mongoose.startSession()
+  let didTransitionToPaid = false
 
   try {
     session.startTransaction()
-    await markOrderAsPaidAndDeductStockWithSession(
+    didTransitionToPaid = await markOrderAsPaidAndDeductStockWithSession(
       orderId,
       stripeCheckoutSessionId,
       stripePaymentIntentId,
@@ -618,31 +761,44 @@ async function markOrderAsPaidAndDeductStock(
     await session.abortTransaction()
 
     if (isTransactionUnsupportedError(error)) {
-      await markOrderAsPaidAndDeductStockFallback(orderId, stripeCheckoutSessionId, stripePaymentIntentId)
-      return
+      didTransitionToPaid = await markOrderAsPaidAndDeductStockFallback(
+        orderId,
+        stripeCheckoutSessionId,
+        stripePaymentIntentId,
+      )
+    } else {
+      throw error
     }
-
-    throw error
   } finally {
     await session.endSession()
   }
+
+  // HU-30: send the purchase confirmation email only on the real PENDING->PAID
+  // transition. Both the webhook and the confirm endpoint route through here, and
+  // both early-return when the order is already PAID, so this fires exactly once.
+  if (didTransitionToPaid) {
+    await notifyCustomerPurchaseConfirmed(orderId)
+  }
 }
 
+// Returns true when the order actually transitioned PENDING->PAID in this call
+// (false when there was no order or it was already PAID), so the caller knows
+// whether to send the one-time purchase confirmation email (HU-30).
 async function markOrderAsPaidAndDeductStockWithSession(
   orderId: string,
   stripeCheckoutSessionId: string,
   stripePaymentIntentId: string | undefined,
   session: ClientSession,
-) {
+): Promise<boolean> {
   const orderQuery = OrderModel.findById(orderId)
   const order = await orderQuery.session(session)
 
   if (!order) {
-    return
+    return false
   }
 
   if (order.status === 'PAID') {
-    return
+    return false
   }
 
   const groupedItems = await ensureOrderHasAvailableStock(orderId, session)
@@ -654,21 +810,25 @@ async function markOrderAsPaidAndDeductStockWithSession(
   order.stripePaymentIntentId = stripePaymentIntentId
   order.paidAt = new Date()
   await order.save({ session })
+
+  return true
 }
 
+// Same PENDING->PAID contract as the transactional path: returns true only when
+// this call performed the transition (HU-30 confirmation email trigger).
 async function markOrderAsPaidAndDeductStockFallback(
   orderId: string,
   stripeCheckoutSessionId: string,
   stripePaymentIntentId?: string,
-) {
+): Promise<boolean> {
   const order = await OrderModel.findById(orderId)
 
   if (!order) {
-    return
+    return false
   }
 
   if (order.status === 'PAID') {
-    return
+    return false
   }
 
   const groupedItems = await ensureOrderHasAvailableStock(orderId)
@@ -691,6 +851,8 @@ async function markOrderAsPaidAndDeductStockFallback(
     order.stripePaymentIntentId = stripePaymentIntentId
     order.paidAt = new Date()
     await order.save()
+
+    return true
   } catch (error) {
     for (const item of decremented) {
       await restoreProductStock(item)
