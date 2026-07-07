@@ -19,4 +19,12 @@ export const env = {
   stripeSecretKey: process.env.STRIPE_SECRET_KEY,
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
   clerkSecretKey: process.env.CLERK_SECRET_KEY,
+  // Transactional email (SendGrid). When SENDGRID_API_KEY is absent/blank the
+  // email service degrades gracefully (logs instead of sending) so dev/test never
+  // break. `|| undefined` normalizes the empty string Docker Compose injects for
+  // an unset ${SENDGRID_API_KEY}, and `||` (not `??`) lets a blank EMAIL_FROM
+  // fall back to the default sender instead of becoming an empty from-address.
+  // EMAIL_FROM must be a SendGrid-verified sender (Single Sender Verification).
+  sendgridApiKey: process.env.SENDGRID_API_KEY || undefined,
+  emailFrom: process.env.EMAIL_FROM || 'FITGEAR <no-reply@example.com>',
 }

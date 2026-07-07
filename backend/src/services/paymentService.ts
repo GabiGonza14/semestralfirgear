@@ -6,6 +6,14 @@ import { OrderItemModel } from '../models/OrderItem'
 import { OrderModel } from '../models/Order'
 import { ProductModel } from '../models/Product'
 import { HttpError } from '../utils/httpError'
+import { dispatchNotification } from './notificationService'
+import {
+  markWebhookFailed,
+  markWebhookProcessed,
+  markWebhookProcessing,
+  recordWebhookEvent,
+  type WebhookEventData,
+} from './webhookAuditService'
 
 interface CheckoutSessionResult {
   sessionId: string
@@ -166,6 +174,14 @@ export async function createCheckoutSession(orderId: string): Promise<CheckoutSe
     metadata: {
       orderId: order._id.toString(),
     },
+    // Propagate orderId onto the PaymentIntent as well: Stripe does NOT copy the
+    // session metadata to the PaymentIntent, and payment_intent.payment_failed
+    // (HU-28) only carries the PaymentIntent — this is how we trace it back.
+    payment_intent_data: {
+      metadata: {
+        orderId: order._id.toString(),
+      },
+    },
     client_reference_id: order._id.toString(),
     customer_email: customerEmail,
   })
@@ -248,10 +264,91 @@ export async function constructWebhookEvent(payload: string, signature: string |
 }
 
 export async function handleStripeEvent(event: Stripe.Event) {
-  if (event.type !== 'checkout.session.completed') {
+  // Every received event is written to the audit log (idempotent on Stripe's
+  // event id, since Stripe retries deliveries).
+  let alreadyProcessed = false
+  try {
+    const record = await recordWebhookEvent(event, extractWebhookData(event))
+    alreadyProcessed = record.alreadyProcessed
+  } catch (error) {
+    console.error('[stripe-webhook] failed to record audit event', { eventId: event.id, error })
+  }
+
+  // Idempotency: a redelivery of an already-processed event does no work twice.
+  if (alreadyProcessed) {
     return
   }
 
+  try {
+    await markWebhookProcessing(event.id)
+
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutCompleted(event)
+        break
+      case 'payment_intent.payment_failed':
+        await handlePaymentFailed(event)
+        break
+      default:
+        // Received and audited, but no side effect for this event type.
+        break
+    }
+
+    await markWebhookProcessed(event.id)
+  } catch (error) {
+    // The customer-vs-admin guard (403) is an expected skip, not a failure.
+    if (error instanceof HttpError && error.statusCode === 403) {
+      await markWebhookProcessed(event.id).catch(() => {})
+      return
+    }
+
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('[stripe-webhook] failed to process event', {
+      eventId: event.id,
+      type: event.type,
+      error,
+    })
+    await markWebhookFailed(event.id, message).catch(() => {})
+    throw error
+  }
+}
+
+// Pulls the fields worth indexing in the audit log out of each event type.
+function extractWebhookData(event: Stripe.Event): WebhookEventData {
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session
+    return {
+      orderId: session.metadata?.orderId ?? session.client_reference_id ?? undefined,
+      sessionId: session.id,
+      paymentIntentId:
+        typeof session.payment_intent === 'string'
+          ? session.payment_intent
+          : (session.payment_intent?.id ?? undefined),
+      customerEmail: session.customer_details?.email ?? session.customer_email ?? undefined,
+      amountTotal: session.amount_total ?? undefined,
+      currency: session.currency ?? undefined,
+      paymentStatus: session.payment_status ?? undefined,
+      rawObjectType: 'checkout.session',
+    }
+  }
+
+  if (event.type === 'payment_intent.payment_failed') {
+    const paymentIntent = event.data.object as Stripe.PaymentIntent
+    return {
+      orderId: paymentIntent.metadata?.orderId ?? undefined,
+      paymentIntentId: paymentIntent.id,
+      customerEmail: paymentIntent.receipt_email ?? undefined,
+      amountTotal: paymentIntent.amount ?? undefined,
+      currency: paymentIntent.currency ?? undefined,
+      paymentStatus: paymentIntent.status ?? undefined,
+      rawObjectType: 'payment_intent',
+    }
+  }
+
+  return { rawObjectType: (event.data.object as { object?: string }).object }
+}
+
+async function handleCheckoutCompleted(event: Stripe.Event) {
   const session = event.data.object as Stripe.Checkout.Session
   const orderId = session.metadata?.orderId ?? session.client_reference_id
 
@@ -259,27 +356,128 @@ export async function handleStripeEvent(event: Stripe.Event) {
     return
   }
 
-  try {
-    await markOrderAsPaidAndDeductStock(
-      orderId,
-      session.id,
-      typeof session.payment_intent === 'string'
-        ? session.payment_intent
-        : (session.payment_intent?.id ?? undefined),
-    )
-  } catch (error) {
-    if (error instanceof HttpError && error.statusCode === 403) {
-      return
-    }
+  await markOrderAsPaidAndDeductStock(
+    orderId,
+    session.id,
+    typeof session.payment_intent === 'string'
+      ? session.payment_intent
+      : (session.payment_intent?.id ?? undefined),
+  )
+}
 
-    console.error('[stripe-webhook] failed to process checkout.session.completed', {
-      eventId: event.id,
-      orderId,
-      error,
+async function handlePaymentFailed(event: Stripe.Event) {
+  const paymentIntent = event.data.object as Stripe.PaymentIntent
+  const orderId = paymentIntent.metadata?.orderId
+
+  if (!orderId) {
+    console.warn('[stripe-webhook] payment_intent.payment_failed without orderId metadata', {
+      paymentIntentId: paymentIntent.id,
     })
-
-    throw error
+    return
   }
+
+  const failureReason = paymentIntent.last_payment_error?.message ?? 'El pago no pudo completarse.'
+  const order = await markOrderAsFailed(orderId, paymentIntent.id, failureReason)
+
+  if (order) {
+    // Notify the customer with retry instructions — fire-and-forget so the
+    // webhook response is never blocked by the email round-trip.
+    notifyCustomerPaymentFailed(order, failureReason)
+  }
+}
+
+interface PopulatedOrderCustomer {
+  email?: string
+  fullName?: string
+}
+
+async function markOrderAsFailed(orderId: string, paymentIntentId: string, reason: string) {
+  const order = await OrderModel.findById(orderId).populate('userId', 'email fullName')
+
+  if (!order) {
+    console.warn('[stripe-webhook] payment failed for unknown order', { orderId })
+    return null
+  }
+
+  // Only fail an order that is still awaiting payment — never clobber an order
+  // that already reached PAID/SHIPPED/DELIVERED/CANCELLED/REFUNDED. Returning
+  // null here also means the customer is NOT re-notified for such late events.
+  if (order.status !== 'PENDING') {
+    console.info('[stripe-webhook] ignoring payment_failed for non-pending order', {
+      orderId,
+      status: order.status,
+    })
+    return null
+  }
+
+  order.status = 'FAILED'
+  order.paymentProvider = 'STRIPE'
+  order.stripePaymentIntentId = paymentIntentId
+  await order.save()
+
+  console.info('[stripe-webhook] order marked FAILED', { orderId, paymentIntentId, reason })
+  return order
+}
+
+function notifyCustomerPaymentFailed(
+  order: InstanceType<typeof OrderModel>,
+  reason: string,
+) {
+  const customer = order.userId as unknown as PopulatedOrderCustomer | null
+  const email = typeof order.userId === 'string' ? undefined : customer?.email
+
+  if (!email) {
+    console.warn('[stripe-webhook] cannot notify: order has no customer email', {
+      orderId: order._id.toString(),
+    })
+    return
+  }
+
+  const orderId = order._id.toString()
+
+  dispatchNotification({
+    type: 'PAYMENT_FAILED',
+    to: email,
+    orderId,
+    subject: `Tu pago no se pudo procesar — Orden #${orderId.slice(-6).toUpperCase()}`,
+    html: buildPaymentFailedEmailHtml({
+      name: customer?.fullName,
+      orderId,
+      amount: order.totalAmount,
+      reason,
+    }),
+  })
+}
+
+function buildPaymentFailedEmailHtml(params: {
+  name?: string
+  orderId: string
+  amount: number
+  reason: string
+}): string {
+  const retryUrl = `${env.frontendUrl}/checkout/cancel?orderId=${params.orderId}`
+  const greeting = params.name ? `Hola ${params.name},` : 'Hola,'
+
+  return `
+  <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #0f172a;">
+    <h2 style="color: #b91c1c;">No pudimos procesar tu pago</h2>
+    <p>${greeting}</p>
+    <p>Tu pago para la orden <strong>#${params.orderId.slice(-6).toUpperCase()}</strong> por
+      <strong>$${params.amount.toFixed(2)}</strong> no se pudo completar.</p>
+    <p style="color:#475569;"><em>Motivo: ${params.reason}</em></p>
+    <h3>¿Cómo reintentar?</h3>
+    <ol style="color:#334155;">
+      <li>Verifica los datos de tu tarjeta o usa otro método de pago.</li>
+      <li>Asegúrate de tener fondos suficientes.</li>
+      <li>Vuelve a intentar el pago desde el botón de abajo.</li>
+    </ol>
+    <p style="margin: 24px 0;">
+      <a href="${retryUrl}"
+         style="background:#84cc16; color:#0f172a; padding:12px 24px; border-radius:9999px;
+                text-decoration:none; font-weight:bold;">Reintentar pago</a>
+    </p>
+    <p style="color:#94a3b8; font-size:12px;">Si no reconoces esta compra, ignora este correo. — Equipo FITGEAR</p>
+  </div>`
 }
 
 function groupOrderItems(

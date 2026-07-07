@@ -14,6 +14,8 @@ Backend for FITGEAR using Hono + Bun + MongoDB.
 - Orders and OrderItems creation with total/subtotal from real product prices
 - Transactional write with fallback for standalone MongoDB
 - Stripe checkout, payment confirmation and webhook handling
+- Failed-payment webhook (`payment_intent.payment_failed`): marks the order `FAILED`, emails the customer retry instructions, and records the event in the audit log (HU-28)
+- Transactional email via SendGrid with async delivery + up to 3 retries (exponential backoff, transient failures only); every send is audited in `NotificationLog`
 
 ## Requirements
 
@@ -37,6 +39,8 @@ Variables:
 - `BACKEND_URL`: backend base URL (used to build absolute image URLs)
 - `STRIPE_SECRET_KEY`: Stripe secret API key
 - `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret
+- `SENDGRID_API_KEY`: SendGrid API key for transactional emails (optional — when absent, emails are logged instead of sent)
+- `EMAIL_FROM`: SendGrid Single-Sender-verified sender for transactional emails (e.g. `FITGEAR <you@example.com>`)
 
 ## Install dependencies
 

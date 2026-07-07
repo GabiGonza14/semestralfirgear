@@ -6,7 +6,8 @@ const orderSchema = new Schema(
     totalAmount: { type: Number, required: true, min: 0 },
     status: {
       type: String,
-      enum: ['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED'],
+      // FAILED: payment_intent.payment_failed (HU-28). REFUNDED reserved for HU-29.
+      enum: ['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'FAILED', 'REFUNDED'],
       default: 'PENDING',
       required: true,
     },
