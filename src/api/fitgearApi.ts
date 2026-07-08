@@ -1,5 +1,13 @@
 import { apiRequest } from './apiClient'
-import type { BackendOrder, BackendOrderItem, BackendUser, Product, SizeLabel } from '../types'
+import type {
+  BackendOrder,
+  BackendOrderItem,
+  BackendUser,
+  OrderEvent,
+  OrderStatus,
+  Product,
+  SizeLabel,
+} from '../types'
 import { resolveMediaUrl } from '../utils/media'
 
 interface MongoCategory {
@@ -95,9 +103,19 @@ interface MongoOrder {
   _id: string
   userId: string | MongoOrderUser | null
   totalAmount: number
-  status: 'PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
+  status: OrderStatus
   createdAt: string
   items: MongoOrderItem[]
+}
+
+interface MongoOrderEvent {
+  _id: string
+  orderId: string
+  type: string
+  actorClerkId?: string
+  reason?: string
+  metadata?: Record<string, unknown>
+  createdAt: string
 }
 
 function mapProduct(product: MongoProduct): Product {
@@ -332,6 +350,38 @@ export async function cancelOrder(orderId: string) {
     method: 'PATCH',
   })
   return mapOrder(order)
+}
+
+function mapOrderEvent(event: MongoOrderEvent): OrderEvent {
+  return {
+    id: event._id,
+    orderId: event.orderId,
+    type: event.type,
+    actorClerkId: event.actorClerkId,
+    reason: event.reason,
+    metadata: event.metadata,
+    createdAt: event.createdAt,
+  }
+}
+
+/**
+ * Issues a full Stripe refund for an order (admin-only). The backend marks it
+ * REFUNDED, emails the customer and records the action in the order history.
+ */
+export async function refundOrder(orderId: string, reason?: string) {
+  const order = await apiRequest<MongoOrder>(`/orders/${orderId}/refund`, {
+    method: 'POST',
+    body: { reason },
+  })
+  return mapOrder(order)
+}
+
+/** Admin-only order event history (refunds, etc.), newest first. */
+export async function getOrderHistory(orderId: string) {
+  const events = await apiRequest<MongoOrderEvent[]>(`/orders/${orderId}/history`, {
+    method: 'GET',
+  })
+  return events.map(mapOrderEvent)
 }
 
 interface CheckoutSessionResponse {

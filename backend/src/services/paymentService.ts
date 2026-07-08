@@ -2,6 +2,7 @@ import Stripe from 'stripe'
 import mongoose, { Types, type ClientSession } from 'mongoose'
 import { env } from '../config/env'
 import { getStripeClient } from '../config/stripe'
+import { OrderEventModel } from '../models/OrderEvent'
 import { OrderItemModel } from '../models/OrderItem'
 import { OrderModel } from '../models/Order'
 import { ProductModel } from '../models/Product'
@@ -238,6 +239,170 @@ export async function confirmCheckoutPayment(orderId: string, sessionId?: string
   )
 
   return { status: 'PAID' as const }
+}
+
+// An order can only be refunded from a state where money actually changed hands.
+const REFUNDABLE_STATUSES = new Set(['PAID', 'SHIPPED', 'DELIVERED'])
+
+interface RefundOrderOptions {
+  reason?: string
+  actorClerkId?: string | null
+}
+
+/**
+ * HU-29: refunds an order in full through the Stripe Refunds API and marks it
+ * REFUNDED. Stripe is called FIRST — the order is only mutated once Stripe
+ * confirms the refund, so a Stripe failure never leaves an order REFUNDED
+ * without the money actually being returned (atomicity). Idempotent on the order
+ * id so a double click cannot issue two refunds. Records the action in the order
+ * history (OrderEvent) and emails the customer the refund detail.
+ */
+export async function refundOrder(orderId: string, options: RefundOrderOptions = {}) {
+  const order = await OrderModel.findById(orderId).populate('userId', 'email fullName')
+
+  if (!order) {
+    throw new HttpError(404, 'Order not found')
+  }
+
+  // Idempotency guard: a second attempt on an already-refunded order is a no-op
+  // error, not a second Stripe refund.
+  if (order.status === 'REFUNDED') {
+    throw new HttpError(409, 'Order is already refunded')
+  }
+
+  if (!REFUNDABLE_STATUSES.has(order.status)) {
+    throw new HttpError(400, 'Only paid, shipped or delivered orders can be refunded')
+  }
+
+  if (!order.stripePaymentIntentId) {
+    throw new HttpError(400, 'Order has no Stripe payment to refund')
+  }
+
+  const stripe = getStripeClient()
+
+  let refund: Stripe.Refund
+  try {
+    refund = await stripe.refunds.create(
+      { payment_intent: order.stripePaymentIntentId },
+      // Idempotency key scoped to the order: Stripe returns the SAME refund if
+      // this is retried, so a network retry or double click never double-refunds.
+      { idempotencyKey: `refund_order_${orderId}` },
+    )
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('[refund] Stripe refund failed', { orderId, error })
+    // Atomicity: the order is left untouched so it never shows REFUNDED without
+    // an actual Stripe refund behind it.
+    throw new HttpError(502, `Stripe refund failed: ${message}`)
+  }
+
+  order.status = 'REFUNDED'
+  order.refundedAt = new Date()
+  order.stripeRefundId = refund.id
+  await order.save()
+
+  await recordRefundHistory(order, refund.id, options)
+  notifyCustomerRefund(order, order.totalAmount, options.reason)
+
+  return order
+}
+
+// Best-effort history write: the money is already back with the customer, so a
+// history-log failure must not turn the request into an error. It's logged loudly
+// instead. Runs on the same connection right after order.save(), so this is rare.
+async function recordRefundHistory(
+  order: InstanceType<typeof OrderModel>,
+  stripeRefundId: string,
+  options: RefundOrderOptions,
+) {
+  try {
+    await OrderEventModel.create({
+      orderId: order._id,
+      type: 'REFUNDED',
+      actorClerkId: options.actorClerkId ?? undefined,
+      reason: options.reason,
+      metadata: { stripeRefundId, amount: order.totalAmount },
+    })
+  } catch (error) {
+    console.error('[refund] failed to write order history event', {
+      orderId: order._id.toString(),
+      error,
+    })
+  }
+}
+
+function notifyCustomerRefund(
+  order: InstanceType<typeof OrderModel>,
+  amount: number,
+  reason?: string,
+) {
+  const customer = order.userId as unknown as PopulatedOrderCustomer | null
+  const email = typeof order.userId === 'string' ? undefined : customer?.email
+
+  if (!email) {
+    console.warn('[refund] cannot notify: order has no customer email', {
+      orderId: order._id.toString(),
+    })
+    return
+  }
+
+  const orderId = order._id.toString()
+
+  dispatchNotification({
+    type: 'ORDER_REFUNDED',
+    to: email,
+    orderId,
+    subject: `Reembolso procesado — Orden #${orderId.slice(-6).toUpperCase()}`,
+    html: buildRefundEmailHtml({
+      name: customer?.fullName,
+      orderId,
+      amount,
+      refundedAt: order.refundedAt ?? new Date(),
+      reason,
+    }),
+  })
+}
+
+function buildRefundEmailHtml(params: {
+  name?: string
+  orderId: string
+  amount: number
+  refundedAt: Date
+  reason?: string
+}): string {
+  const greeting = params.name ? `Hola ${params.name},` : 'Hola,'
+  const orderNumber = params.orderId.slice(-6).toUpperCase()
+  const ordersUrl = `${env.frontendUrl}/orders/${params.orderId}`
+  const refundDate = params.refundedAt.toLocaleDateString('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+
+  const reasonBlock = params.reason
+    ? `<p style="color:#475569;"><em>Motivo: ${params.reason}</em></p>`
+    : ''
+
+  return `
+  <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #0f172a;">
+    <h2 style="color: #4d7c0f;">Tu reembolso fue procesado</h2>
+    <p>${greeting}</p>
+    <p>Hemos procesado el reembolso de tu orden <strong>#${orderNumber}</strong>.</p>
+    <p style="background:#f0fdf4; border-radius:8px; padding:12px 16px; color:#166534;">
+      💳 <strong>Monto reembolsado:</strong> $${params.amount.toFixed(2)}<br/>
+      📅 <strong>Fecha:</strong> ${refundDate}
+    </p>
+    ${reasonBlock}
+    <p style="color:#475569;">El importe puede tardar unos días hábiles en reflejarse en tu método de pago,
+      según tu banco.</p>
+    <p style="margin: 24px 0;">
+      <a href="${ordersUrl}"
+         style="background:#84cc16; color:#0f172a; padding:12px 24px; border-radius:9999px;
+                text-decoration:none; font-weight:bold;">Ver mi orden</a>
+    </p>
+    <p style="color:#94a3b8; font-size:12px;">Si tienes dudas, responde a este correo. — Equipo FITGEAR</p>
+  </div>`
 }
 
 export async function constructWebhookEvent(payload: string, signature: string | undefined) {

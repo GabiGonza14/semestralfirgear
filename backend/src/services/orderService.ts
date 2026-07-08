@@ -1,5 +1,6 @@
 import mongoose, { Types, type ClientSession } from 'mongoose'
 import { env } from '../config/env'
+import { OrderEventModel } from '../models/OrderEvent'
 import { OrderItemModel } from '../models/OrderItem'
 import { OrderModel } from '../models/Order'
 import { ProductModel } from '../models/Product'
@@ -130,6 +131,17 @@ interface PopulatedOrderCustomer {
  * forget so it never blocks the response; it inherits the notificationService
  * retry/backoff and is audited (with its send timestamp) in NotificationLog.
  */
+// Returns an order's event history, newest first (HU-29). Verifies the order
+// exists so a bad id is a clean 404 rather than an empty list.
+export async function listOrderEvents(id: string) {
+  const orderExists = await OrderModel.exists({ _id: id })
+  if (!orderExists) {
+    throw new HttpError(404, 'Order not found')
+  }
+
+  return OrderEventModel.find({ orderId: id }).sort({ createdAt: -1 })
+}
+
 export async function markOrderAsShipped(id: string, trackingNumber?: string) {
   const order = await OrderModel.findById(id).populate('userId', 'fullName email role')
 

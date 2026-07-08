@@ -4,15 +4,22 @@ import {
   cancelOrderController,
   createOrderController,
   getOrder,
+  getOrderHistoryController,
   getOrders,
   getOrdersByUser,
+  refundOrderController,
   shipOrderController,
 } from '../controllers/orderController'
 import { requireAdminMiddleware } from '../middlewares/requireAdmin'
 import { requireAuthMiddleware } from '../middlewares/requireAuth'
 import { validateBody, validateParams } from '../middlewares/validate'
 import { idParamSchema } from '../validations/commonValidation'
-import { createOrderSchema, shipOrderSchema, userIdParamSchema } from '../validations/orderValidation'
+import {
+  createOrderSchema,
+  refundOrderSchema,
+  shipOrderSchema,
+  userIdParamSchema,
+} from '../validations/orderValidation'
 
 export const orderRouter = new Hono<AppEnv>()
 
@@ -33,4 +40,23 @@ orderRouter.patch(
   validateParams(idParamSchema),
   validateBody(shipOrderSchema),
   shipOrderController,
+)
+
+// Refunding is an admin action (-> REFUNDED via Stripe) and emails the customer
+// (HU-29). The base router already requires a valid JWT; add the ADMIN check.
+orderRouter.post(
+  '/:id/refund',
+  requireAdminMiddleware(),
+  validateParams(idParamSchema),
+  validateBody(refundOrderSchema),
+  refundOrderController,
+)
+
+// Order event history (refunds, etc.) — admin-only: it exposes the acting admin,
+// which must not leak to customers (HU-29).
+orderRouter.get(
+  '/:id/history',
+  requireAdminMiddleware(),
+  validateParams(idParamSchema),
+  getOrderHistoryController,
 )

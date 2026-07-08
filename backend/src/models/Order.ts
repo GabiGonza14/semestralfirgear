@@ -23,6 +23,10 @@ const orderSchema = new Schema(
     // optional — carriers are not integrated, so it's filled in by hand (HU-31).
     shippedAt: { type: Date, required: false },
     trackingNumber: { type: String, required: false },
+    // Set when an admin refunds the order via Stripe (-> REFUNDED). stripeRefundId
+    // is the id returned by the Stripe Refunds API, for traceability (HU-29).
+    refundedAt: { type: Date, required: false },
+    stripeRefundId: { type: String, required: false },
   },
   { timestamps: true },
 )

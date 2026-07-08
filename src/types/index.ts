@@ -64,14 +64,34 @@ export interface BackendOrderItem {
   subtotal: number
 }
 
+export type OrderStatus =
+  | 'PENDING'
+  | 'PAID'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'CANCELLED'
+  | 'FAILED'
+  | 'REFUNDED'
+
 export interface BackendOrder {
   id: string
   userId: string
   customerName?: string
   totalAmount: number
-  status: 'PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
+  status: OrderStatus
   createdAt: string
   items: BackendOrderItem[]
+}
+
+// An entry in an order's audit history (HU-29), e.g. a refund.
+export interface OrderEvent {
+  id: string
+  orderId: string
+  type: string
+  actorClerkId?: string
+  reason?: string
+  metadata?: Record<string, unknown>
+  createdAt: string
 }
 
 export interface CartItemModel {
