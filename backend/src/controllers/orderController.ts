@@ -4,10 +4,12 @@ import {
   cancelOrder,
   createOrder,
   getOrderById,
+  listOrderEvents,
   listOrders,
   listOrdersByUserId,
   markOrderAsShipped,
 } from '../services/orderService'
+import { refundOrder } from '../services/paymentService'
 
 export const getOrders = async (c: Context<AppEnv>) => {
   const orders = await listOrders()
@@ -45,5 +47,21 @@ export const shipOrderController = async (c: Context<AppEnv>) => {
   const { id } = c.get('validatedParams') as { id: string }
   const { trackingNumber } = c.get('validatedBody') as { trackingNumber?: string }
   const order = await markOrderAsShipped(id, trackingNumber)
+  return c.json(order, 200)
+}
+
+export const getOrderHistoryController = async (c: Context<AppEnv>) => {
+  const { id } = c.get('validatedParams') as { id: string }
+  const events = await listOrderEvents(id)
+  return c.json(events, 200)
+}
+
+export const refundOrderController = async (c: Context<AppEnv>) => {
+  const { id } = c.get('validatedParams') as { id: string }
+  const { reason } = c.get('validatedBody') as { reason?: string }
+  const actorClerkId = c.get('userId')
+  await refundOrder(id, { reason, actorClerkId })
+  // Return the refreshed order with items so the admin UI reflects REFUNDED.
+  const order = await getOrderById(id)
   return c.json(order, 200)
 }

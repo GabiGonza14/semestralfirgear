@@ -20,6 +20,17 @@ export const userIdParamSchema = z.object({
   userId: objectIdSchema,
 })
 
+// Refunding an order (HU-29). reason is optional — recorded in the order history
+// and shown in the customer email when present. Blank collapses to undefined.
+export const refundOrderSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .max(500, 'reason must be at most 500 characters')
+    .optional()
+    .transform((value) => (value ? value : undefined)),
+})
+
 // Shipping an order (HU-31). trackingNumber is optional — included in the
 // customer email only "if available". Empty/whitespace collapses to undefined so
 // a blank field never renders an empty tracking line in the email.

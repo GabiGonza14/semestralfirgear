@@ -4,6 +4,7 @@ import { getAdminMetrics, getOrders, getProducts, getUsers, type AdminMetrics } 
 import { AdminSidebar } from '../components/AdminSidebar'
 import { AdminCategoriesSection } from '../components/admin/AdminCategoriesSection'
 import { AdminInventorySection } from '../components/admin/AdminInventorySection'
+import { AdminOrderDetailModal } from '../components/admin/AdminOrderDetailModal'
 import { SummaryCard } from '../components/SummaryCard'
 import { useAuth } from '../context/AuthContext'
 import type { BackendOrder, BackendUser, Product } from '../types'
@@ -17,6 +18,7 @@ type OrderStatusFilter = (typeof ORDER_STATUS_FILTERS)[number]
 export function AdminDashboardPage() {
   const [section, setSection] = useState<AdminSection>('overview')
   const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatusFilter>('ALL')
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const { isAdmin } = useAuth()
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null)
   const [products, setProducts] = useState<Product[]>([])
@@ -70,6 +72,21 @@ export function AdminDashboardPage() {
         : orders.filter((order) => order.status === orderStatusFilter),
     [orders, orderStatusFilter],
   )
+
+  // Derive the open order from the live list so it reflects status changes (e.g.
+  // a refund flipping it to REFUNDED) without a second source of truth.
+  const selectedOrder = useMemo(
+    () => orders.find((order) => order.id === selectedOrderId) ?? null,
+    [orders, selectedOrderId],
+  )
+
+  // Reload orders and metrics after a refund (a refund removes the order from
+  // revenue, so the totals change too).
+  const refreshOrdersAndMetrics = async () => {
+    const [ordersData, metricsData] = await Promise.all([getOrders(), getAdminMetrics()])
+    setOrders(ordersData)
+    setMetrics(metricsData)
+  }
 
   const refreshProducts = async () => {
     // Refresh metrics too: editing inventory/stock changes activeProductsCount.
@@ -186,7 +203,11 @@ export function AdminDashboardPage() {
                 </thead>
                 <tbody>
                   {filteredOrders.map((order) => (
-                    <tr key={order.id} className="border-t border-white/10">
+                    <tr
+                      key={order.id}
+                      onClick={() => setSelectedOrderId(order.id)}
+                      className="cursor-pointer border-t border-white/10 transition hover:bg-white/5"
+                    >
                       <td className="py-2">{order.id}</td>
                       <td>{formatDate(order.createdAt)}</td>
                       <td>{order.customerName ?? order.userId}</td>
@@ -235,6 +256,14 @@ export function AdminDashboardPage() {
           </section>
         )}
       </div>
+
+      {selectedOrder ? (
+        <AdminOrderDetailModal
+          order={selectedOrder}
+          onClose={() => setSelectedOrderId(null)}
+          onRefunded={refreshOrdersAndMetrics}
+        />
+      ) : null}
     </div>
   )
 }
