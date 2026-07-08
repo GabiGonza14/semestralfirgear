@@ -9,6 +9,7 @@ import {
   getOrdersByUser,
   refundOrderController,
   shipOrderController,
+  updateOrderStatusController,
 } from '../controllers/orderController'
 import { requireAdminMiddleware } from '../middlewares/requireAdmin'
 import { requireAuthMiddleware } from '../middlewares/requireAuth'
@@ -18,6 +19,7 @@ import {
   createOrderSchema,
   refundOrderSchema,
   shipOrderSchema,
+  updateOrderStatusSchema,
   userIdParamSchema,
 } from '../validations/orderValidation'
 
@@ -40,6 +42,16 @@ orderRouter.patch(
   validateParams(idParamSchema),
   validateBody(shipOrderSchema),
   shipOrderController,
+)
+
+// Manual admin order status change (HU-42): validates the transition, audits it
+// and (on SHIPPED) emails the customer. Admin-only.
+orderRouter.patch(
+  '/:id/status',
+  requireAdminMiddleware(),
+  validateParams(idParamSchema),
+  validateBody(updateOrderStatusSchema),
+  updateOrderStatusController,
 )
 
 // Refunding is an admin action (-> REFUNDED via Stripe) and emails the customer

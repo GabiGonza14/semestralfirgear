@@ -1,18 +1,30 @@
 import { useEffect, useState } from 'react'
-import { getOrderHistory, refundOrder } from '../../api/fitgearApi'
+import { getOrderHistory, refundOrder, updateOrderStatus } from '../../api/fitgearApi'
 import type { BackendOrder, OrderEvent, OrderStatus } from '../../types'
 import { formatCurrency, formatDate } from '../../utils/format'
 
 interface AdminOrderDetailModalProps {
   order: BackendOrder
   onClose: () => void
-  /** Called after a successful refund so the parent can reload the orders list. */
-  onRefunded: () => void | Promise<void>
+  /** Called after a refund or status change so the parent can reload the orders. */
+  onUpdated: () => void | Promise<void>
 }
 
 // Only orders where money actually changed hands can be refunded (matches the
 // backend guard in refundOrder).
 const REFUNDABLE_STATUSES: OrderStatus[] = ['PAID', 'SHIPPED', 'DELIVERED']
+
+// Valid manual status transitions — MUST mirror the backend state machine in
+// backend/src/utils/orderStatus.ts (HU-42). PAID is never a manual target.
+const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  PENDING: ['CANCELLED'],
+  PAID: ['SHIPPED', 'CANCELLED'],
+  SHIPPED: ['DELIVERED'],
+  DELIVERED: [],
+  CANCELLED: [],
+  FAILED: [],
+  REFUNDED: [],
+}
 
 const STATUS_BADGE: Record<OrderStatus, string> = {
   PENDING: 'bg-amber-400/15 text-amber-300',
@@ -24,15 +36,19 @@ const STATUS_BADGE: Record<OrderStatus, string> = {
   REFUNDED: 'bg-fuchsia-400/15 text-fuchsia-300',
 }
 
-export function AdminOrderDetailModal({ order, onClose, onRefunded }: AdminOrderDetailModalProps) {
+export function AdminOrderDetailModal({ order, onClose, onUpdated }: AdminOrderDetailModalProps) {
   const [history, setHistory] = useState<OrderEvent[]>([])
   const [loadingHistory, setLoadingHistory] = useState(true)
   const [confirming, setConfirming] = useState(false)
   const [reason, setReason] = useState('')
   const [refunding, setRefunding] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [targetStatus, setTargetStatus] = useState<OrderStatus | ''>('')
+  const [statusTracking, setStatusTracking] = useState('')
+  const [updatingStatus, setUpdatingStatus] = useState(false)
 
   const isRefundable = REFUNDABLE_STATUSES.includes(order.status)
+  const nextStatuses = STATUS_TRANSITIONS[order.status]
 
   const loadHistory = async () => {
     setLoadingHistory(true)
@@ -59,12 +75,32 @@ export function AdminOrderDetailModal({ order, onClose, onRefunded }: AdminOrder
       await refundOrder(order.id, reason.trim() || undefined)
       setConfirming(false)
       setReason('')
-      await onRefunded() // parent reloads orders -> this order flips to REFUNDED
+      await onUpdated() // parent reloads orders -> this order flips to REFUNDED
       await loadHistory() // reflect the new refund event in the history panel
     } catch (refundError) {
       setError(refundError instanceof Error ? refundError.message : 'No se pudo procesar el reembolso.')
     } finally {
       setRefunding(false)
+    }
+  }
+
+  const handleStatusChange = async () => {
+    if (!targetStatus) return
+    setUpdatingStatus(true)
+    setError(null)
+
+    try {
+      // trackingNumber only matters when shipping.
+      const tracking = targetStatus === 'SHIPPED' ? statusTracking.trim() || undefined : undefined
+      await updateOrderStatus(order.id, targetStatus, tracking)
+      setTargetStatus('')
+      setStatusTracking('')
+      await onUpdated() // parent reloads orders -> this order reflects the new status
+      await loadHistory() // reflect the STATUS_CHANGED event in the history panel
+    } catch (statusError) {
+      setError(statusError instanceof Error ? statusError.message : 'No se pudo cambiar el estado.')
+    } finally {
+      setUpdatingStatus(false)
     }
   }
 
@@ -138,6 +174,52 @@ export function AdminOrderDetailModal({ order, onClose, onRefunded }: AdminOrder
           </div>
         </div>
 
+        {/* Status change (HU-42) */}
+        <div className="mt-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+          <h4 className="text-sm font-semibold text-white">Cambiar estado</h4>
+          {nextStatuses.length > 0 ? (
+            <div className="mt-3 space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <select
+                  value={targetStatus}
+                  onChange={(event) => setTargetStatus(event.target.value as OrderStatus | '')}
+                  className="rounded-2xl border border-white/12 bg-slate-950/60 px-4 py-2.5 text-sm text-slate-100 focus:border-lime-400/50 focus:outline-none"
+                >
+                  <option value="">Selecciona un estado…</option>
+                  {nextStatuses.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleStatusChange}
+                  disabled={!targetStatus || updatingStatus}
+                  className="rounded-full bg-lime-400 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {updatingStatus ? 'Actualizando…' : 'Actualizar estado'}
+                </button>
+              </div>
+              {targetStatus === 'SHIPPED' ? (
+                <>
+                  <input
+                    type="text"
+                    value={statusTracking}
+                    onChange={(event) => setStatusTracking(event.target.value)}
+                    placeholder="Nº de rastreo (opcional)"
+                    maxLength={64}
+                    className="w-full rounded-2xl border border-white/12 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-lime-400/50 focus:outline-none"
+                  />
+                  <p className="text-xs text-slate-500">Se enviará un email de notificación al cliente.</p>
+                </>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-slate-400">Esta orden no admite más cambios de estado.</p>
+          )}
+        </div>
+
         {/* Refund action */}
         <div className="mt-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
           <h4 className="text-sm font-semibold text-white">Reembolso</h4>
@@ -202,13 +284,14 @@ export function AdminOrderDetailModal({ order, onClose, onRefunded }: AdminOrder
                 : 'Solo se pueden reembolsar órdenes pagadas, enviadas o entregadas.'}
             </p>
           )}
-
-          {error ? (
-            <p className="mt-3 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
-              {error}
-            </p>
-          ) : null}
         </div>
+
+        {/* Shared error for status-change and refund actions */}
+        {error ? (
+          <p className="mt-4 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+            {error}
+          </p>
+        ) : null}
 
         {/* Order history */}
         <div className="mt-5">

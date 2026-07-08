@@ -34,6 +34,7 @@ mismas del backend.
 | `update_stock` | HU-17 | admin |
 | `list_orders` | HU-18 | admin |
 | `manage_categories` | HU-20 | admin |
+| `update_order_status` | HU-42 | admin |
 
 Detalle de cada una en [`../docs/mcp/registry.md`](../docs/mcp/registry.md).
 

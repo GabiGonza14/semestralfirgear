@@ -376,12 +376,29 @@ export async function refundOrder(orderId: string, reason?: string) {
   return mapOrder(order)
 }
 
-/** Admin-only order event history (refunds, etc.), newest first. */
+/** Admin-only order event history (refunds, status changes), newest first. */
 export async function getOrderHistory(orderId: string) {
   const events = await apiRequest<MongoOrderEvent[]>(`/orders/${orderId}/history`, {
     method: 'GET',
   })
   return events.map(mapOrderEvent)
+}
+
+/**
+ * Change an order's lifecycle status (admin-only). The backend validates the
+ * transition, audits the change, and — when moving to SHIPPED — emails the
+ * customer (with the optional tracking number).
+ */
+export async function updateOrderStatus(
+  orderId: string,
+  status: OrderStatus,
+  trackingNumber?: string,
+) {
+  const order = await apiRequest<MongoOrder>(`/orders/${orderId}/status`, {
+    method: 'PATCH',
+    body: { status, trackingNumber },
+  })
+  return mapOrder(order)
 }
 
 interface CheckoutSessionResponse {

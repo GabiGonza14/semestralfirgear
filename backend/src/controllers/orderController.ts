@@ -8,8 +8,10 @@ import {
   listOrders,
   listOrdersByUserId,
   markOrderAsShipped,
+  updateOrderStatus,
 } from '../services/orderService'
 import { refundOrder } from '../services/paymentService'
+import type { OrderLifecycleStatus } from '../utils/orderStatus'
 
 export const getOrders = async (c: Context<AppEnv>) => {
   const orders = await listOrders()
@@ -46,7 +48,19 @@ export const cancelOrderController = async (c: Context<AppEnv>) => {
 export const shipOrderController = async (c: Context<AppEnv>) => {
   const { id } = c.get('validatedParams') as { id: string }
   const { trackingNumber } = c.get('validatedBody') as { trackingNumber?: string }
-  const order = await markOrderAsShipped(id, trackingNumber)
+  const actorClerkId = c.get('userId')
+  const order = await markOrderAsShipped(id, trackingNumber, actorClerkId)
+  return c.json(order, 200)
+}
+
+export const updateOrderStatusController = async (c: Context<AppEnv>) => {
+  const { id } = c.get('validatedParams') as { id: string }
+  const { status, trackingNumber } = c.get('validatedBody') as {
+    status: OrderLifecycleStatus
+    trackingNumber?: string
+  }
+  const actorClerkId = c.get('userId')
+  const order = await updateOrderStatus(id, status, { actorClerkId, trackingNumber })
   return c.json(order, 200)
 }
 

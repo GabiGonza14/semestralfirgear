@@ -8,6 +8,7 @@ import { getSalesMetricsTool } from './tools/getSalesMetrics'
 import { listOrdersTool } from './tools/listOrders'
 import { manageCategoriesTool } from './tools/manageCategories'
 import { searchProductsTool } from './tools/searchProducts'
+import { updateOrderStatusTool } from './tools/updateOrderStatus'
 import { updateStockTool } from './tools/updateStock'
 
 const server = new McpServer({
@@ -150,6 +151,31 @@ server.registerTool(
   },
   async (args) => {
     const result = await listOrdersTool(args)
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    }
+  },
+)
+
+server.registerTool(
+  'update_order_status',
+  {
+    description:
+      'Update an order\'s lifecycle status (PENDING -> PAID -> SHIPPED -> DELIVERED, or CANCELLED) as part of logistics automation. Only valid forward transitions are allowed (e.g. never DELIVERED -> PENDING; PAID is set by the payment flow, not manually). Moving to SHIPPED emails the customer and accepts an optional trackingNumber. Every change is written to the order audit history with the acting admin. Admin-only — requires a valid Clerk JWT whose user has the ADMIN role.',
+    inputSchema: {
+      orderId: z.string().describe('Mongo ObjectId of the order'),
+      token: z.string().describe('Clerk JWT bearer token of the requesting admin (required)'),
+      status: z
+        .enum(['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED'])
+        .describe('Target lifecycle status'),
+      trackingNumber: z
+        .string()
+        .optional()
+        .describe('Optional tracking number, used only when status is SHIPPED'),
+    },
+  },
+  async (args) => {
+    const result = await updateOrderStatusTool(args)
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     }

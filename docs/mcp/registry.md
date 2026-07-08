@@ -262,3 +262,36 @@ MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run start
 ```
 
 ---
+
+## 8. `update_order_status`
+
+- **HU envuelta:** HU-42 — Cambio de estado de órdenes desde el admin
+- **Rol:** **admin** (strict-auth + rol ADMIN)
+
+Herramienta MCP **solo para administradores** para mover una orden por su ciclo de
+vida (`PENDING → PAID → SHIPPED → DELIVERED`, o `CANCELLED`) como parte de un flujo
+de automatización logística. Inputs: `orderId` (requerido), `token` (requerido),
+`status` (uno de los 5 estados del ciclo) y `trackingNumber` (opcional, solo se usa
+al pasar a `SHIPPED`). Devuelve `{ ok: true, orderId, status }` o, para errores de
+transición inválida / orden inexistente, `{ ok: false, orderId, message }`.
+
+**Reuso de código:** llama a `updateOrderStatus()` de
+`backend/src/services/orderService.ts` **tal cual** — el mismo punto de entrada que
+usa el endpoint REST del panel. La máquina de estados
+(`backend/src/utils/orderStatus.ts`) sólo permite transiciones válidas hacia
+adelante (`PAID` nunca es un destino manual: el pago viene de Stripe). Cada cambio
+se audita en `OrderEvent` con el admin que lo hizo, y pasar a `SHIPPED` dispara el
+email de notificación al cliente (HU-31).
+
+**Autenticación:** usa `requireAuthStrict` de `requireAuth.ts` (lanza sin JWT
+válido). Resuelve `clerkUserId → User` vía `UserModel` y **rechaza con 403** si
+`role !== 'ADMIN'`.
+
+**Cómo levantar el servidor MCP local:**
+
+```bash
+cd mcp-server
+MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run start
+```
+
+---

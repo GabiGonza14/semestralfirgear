@@ -21,6 +21,9 @@ mock.module('../../models/OrderItem', () => ({
   OrderItemModel: { find: mock(() => ({ populate: mock(async () => []) })) },
 }))
 
+// markOrderAsShipped now delegates to updateOrderStatus, which audits the change.
+mock.module('../../models/OrderEvent', () => ({ OrderEventModel: { create: mock(async () => ({})) } }))
+
 // Unused by the ship path but imported at module load — stub so the import works.
 mock.module('../../models/Product', () => ({ ProductModel: {} }))
 mock.module('../../models/User', () => ({ UserModel: {} }))
@@ -87,10 +90,12 @@ describe('markOrderAsShipped (HU-31)', () => {
     expect(fakeOrder.trackingNumber).toBeUndefined()
   })
 
-  it('rejects shipping an order that is not PAID', async () => {
+  it('rejects shipping an order that is not PAID (invalid transition)', async () => {
     fakeOrder.status = 'PENDING'
 
-    await expect(markOrderAsShipped('order_abcdef')).rejects.toThrow('Only paid orders can be shipped')
+    await expect(markOrderAsShipped('order_abcdef')).rejects.toThrow(
+      'Invalid status transition: PENDING -> SHIPPED',
+    )
     expect(mockSave).not.toHaveBeenCalled()
     expect(mockDispatch).not.toHaveBeenCalled()
   })

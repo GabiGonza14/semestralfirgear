@@ -6,6 +6,7 @@ import { OrderModel } from '../models/Order'
 import { ProductModel } from '../models/Product'
 import { UserModel } from '../models/User'
 import { HttpError } from '../utils/httpError'
+import { canTransition, type OrderLifecycleStatus } from '../utils/orderStatus'
 import { dispatchNotification } from './notificationService'
 
 interface CreateOrderItemInput {
@@ -124,13 +125,6 @@ interface PopulatedOrderCustomer {
   fullName?: string
 }
 
-/**
- * HU-31: transitions a PAID order to SHIPPED and emails the customer that their
- * order is on its way. Only PAID orders can be shipped. The confirmation email
- * (order number, ship date, optional tracking number) is dispatched fire-and-
- * forget so it never blocks the response; it inherits the notificationService
- * retry/backoff and is audited (with its send timestamp) in NotificationLog.
- */
 // Returns an order's event history, newest first (HU-29). Verifies the order
 // exists so a bad id is a clean 404 rather than an empty list.
 export async function listOrderEvents(id: string) {
@@ -142,28 +136,95 @@ export async function listOrderEvents(id: string) {
   return OrderEventModel.find({ orderId: id }).sort({ createdAt: -1 })
 }
 
-export async function markOrderAsShipped(id: string, trackingNumber?: string) {
+interface UpdateOrderStatusOptions {
+  actorClerkId?: string | null
+  trackingNumber?: string
+  reason?: string
+}
+
+/**
+ * HU-42: the single entry point for manual admin order-status changes, shared by
+ * the REST endpoint and the MCP tool. Enforces the lifecycle state machine (only
+ * valid forward transitions), records the change in the order audit history
+ * (OrderEvent, with the acting admin), and applies status side effects — moving
+ * to SHIPPED stamps shippedAt and emails the customer (HU-31 notification).
+ */
+export async function updateOrderStatus(
+  id: string,
+  targetStatus: OrderLifecycleStatus,
+  options: UpdateOrderStatusOptions = {},
+) {
   const order = await OrderModel.findById(id).populate('userId', 'fullName email role')
 
   if (!order) {
     throw new HttpError(404, 'Order not found')
   }
 
-  // Only a paid order can ship — guard against PENDING/SHIPPED/DELIVERED/etc.
-  if (order.status !== 'PAID') {
-    throw new HttpError(400, 'Only paid orders can be shipped')
+  const currentStatus = order.status
+
+  if (currentStatus === targetStatus) {
+    throw new HttpError(400, `Order is already ${targetStatus}`)
   }
 
-  order.status = 'SHIPPED'
-  order.shippedAt = new Date()
-  if (trackingNumber) {
-    order.trackingNumber = trackingNumber
+  if (!canTransition(currentStatus, targetStatus)) {
+    throw new HttpError(400, `Invalid status transition: ${currentStatus} -> ${targetStatus}`)
+  }
+
+  order.status = targetStatus
+  if (targetStatus === 'SHIPPED') {
+    order.shippedAt = new Date()
+    if (options.trackingNumber) {
+      order.trackingNumber = options.trackingNumber
+    }
   }
   await order.save()
 
-  notifyCustomerOrderShipped(order, trackingNumber)
+  await recordStatusChange(order, currentStatus, targetStatus, options)
+
+  // Side effect: notify the customer their order shipped (HU-31 reused here).
+  if (targetStatus === 'SHIPPED') {
+    notifyCustomerOrderShipped(order, options.trackingNumber)
+  }
 
   return loadOrderWithItems(id)
+}
+
+/**
+ * HU-31 shipping action, now a thin wrapper over updateOrderStatus so every path
+ * to SHIPPED goes through the same transition validation, audit trail and email.
+ */
+export async function markOrderAsShipped(
+  id: string,
+  trackingNumber?: string,
+  actorClerkId?: string | null,
+) {
+  return updateOrderStatus(id, 'SHIPPED', { trackingNumber, actorClerkId })
+}
+
+// Best-effort audit write: a history-log failure must not fail the status change
+// itself (it's already persisted). Logged loudly instead.
+async function recordStatusChange(
+  order: InstanceType<typeof OrderModel>,
+  from: string,
+  to: string,
+  options: UpdateOrderStatusOptions,
+) {
+  try {
+    await OrderEventModel.create({
+      orderId: order._id,
+      type: 'STATUS_CHANGED',
+      actorClerkId: options.actorClerkId ?? undefined,
+      reason: options.reason,
+      metadata: { from, to },
+    })
+  } catch (error) {
+    console.error('[order-status] failed to write order history event', {
+      orderId: order._id.toString(),
+      from,
+      to,
+      error,
+    })
+  }
 }
 
 function notifyCustomerOrderShipped(

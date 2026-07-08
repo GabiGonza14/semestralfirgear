@@ -18,6 +18,7 @@ Backend for FITGEAR using Hono + Bun + MongoDB.
 - Purchase-confirmation email on successful payment: sent once on the `PENDING`->`PAID` transition, with the order number, purchased items, total and estimated delivery date (HU-30)
 - Order-shipped email: admin-only `PATCH /api/orders/:id/ship` moves a `PAID` order to `SHIPPED`, stamps `shippedAt`, and emails the customer the order number, ship date and optional tracking number (HU-31)
 - Refunds: admin-only `POST /api/orders/:id/refund` issues a full Stripe refund (idempotent, atomic — the order only becomes `REFUNDED` once Stripe confirms), emails the customer the refund detail, and writes a traceable `OrderEvent` (admin, timestamp, `stripeRefundId`, reason). `GET /api/orders/:id/history` (admin) returns the order event history (HU-29)
+- Manual order status changes: admin-only `PATCH /api/orders/:id/status` enforces the lifecycle state machine (only valid forward transitions; `PAID` is never manual), audits every change to `OrderEvent` with the acting admin, and emails the customer on `SHIPPED`. Also exposed as the `update_order_status` MCP tool (admin JWT) for logistics automation (HU-42)
 - Transactional email via SendGrid with async delivery + up to 3 retries (exponential backoff, transient failures only); every send is audited in `NotificationLog`
 
 ## Requirements
