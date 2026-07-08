@@ -5,6 +5,7 @@ import { AdminSidebar } from '../components/AdminSidebar'
 import { AdminCategoriesSection } from '../components/admin/AdminCategoriesSection'
 import { AdminInventorySection } from '../components/admin/AdminInventorySection'
 import { AdminOrderDetailModal } from '../components/admin/AdminOrderDetailModal'
+import { AdminOrdersSection } from '../components/admin/AdminOrdersSection'
 import { SummaryCard } from '../components/SummaryCard'
 import { useAuth } from '../context/AuthContext'
 import type { BackendOrder, BackendUser, Product } from '../types'
@@ -12,12 +13,8 @@ import { formatCurrency, formatDate } from '../utils/format'
 
 type AdminSection = 'overview' | 'inventory' | 'categories' | 'orders' | 'users'
 
-const ORDER_STATUS_FILTERS = ['ALL', 'PENDING', 'PAID', 'SHIPPED'] as const
-type OrderStatusFilter = (typeof ORDER_STATUS_FILTERS)[number]
-
 export function AdminDashboardPage() {
   const [section, setSection] = useState<AdminSection>('overview')
-  const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatusFilter>('ALL')
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const { isAdmin } = useAuth()
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null)
@@ -64,14 +61,6 @@ export function AdminDashboardPage() {
       active = false
     }
   }, [isAdmin])
-
-  const filteredOrders = useMemo(
-    () =>
-      orderStatusFilter === 'ALL'
-        ? orders
-        : orders.filter((order) => order.status === orderStatusFilter),
-    [orders, orderStatusFilter],
-  )
 
   // Derive the open order from the live list so it reflects status changes (e.g.
   // a refund flipping it to REFUNDED) without a second source of truth.
@@ -170,62 +159,13 @@ export function AdminDashboardPage() {
         {section === 'categories' ? <AdminCategoriesSection /> : null}
 
         {(section === 'overview' || section === 'orders') && (
-          <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-lg font-semibold text-white">Órdenes recientes</h3>
-              <div className="flex flex-wrap gap-2">
-                {ORDER_STATUS_FILTERS.map((statusFilter) => (
-                  <button
-                    key={statusFilter}
-                    type="button"
-                    onClick={() => setOrderStatusFilter(statusFilter)}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                      orderStatusFilter === statusFilter
-                        ? 'bg-lime-400 text-slate-950'
-                        : 'border border-white/12 text-slate-300 hover:border-white/30 hover:bg-white/5'
-                    }`}
-                  >
-                    {statusFilter === 'ALL' ? 'Todos' : statusFilter}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-140 text-left text-sm text-slate-300">
-                <thead className="text-slate-400">
-                  <tr>
-                    <th className="pb-2">ID</th>
-                    <th className="pb-2">Fecha</th>
-                    <th className="pb-2">Cliente</th>
-                    <th className="pb-2">Estado</th>
-                    <th className="pb-2">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredOrders.map((order) => (
-                    <tr
-                      key={order.id}
-                      onClick={() => setSelectedOrderId(order.id)}
-                      className="cursor-pointer border-t border-white/10 transition hover:bg-white/5"
-                    >
-                      <td className="py-2">{order.id}</td>
-                      <td>{formatDate(order.createdAt)}</td>
-                      <td>{order.customerName ?? order.userId}</td>
-                      <td className="capitalize">{order.status.toLowerCase()}</td>
-                      <td>{formatCurrency(order.totalAmount)}</td>
-                    </tr>
-                  ))}
-                  {filteredOrders.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-4 text-center text-slate-400">
-                        No hay órdenes con este estado.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          </section>
+          <AdminOrdersSection
+            orders={orders}
+            loading={loading}
+            onSelectOrder={setSelectedOrderId}
+            variant={section === 'orders' ? 'full' : 'overview'}
+            onViewAll={() => setSection('orders')}
+          />
         )}
 
         {(section === 'overview' || section === 'users') && (
