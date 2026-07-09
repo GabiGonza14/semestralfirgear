@@ -7,6 +7,7 @@ import type {
   OrderStatus,
   Product,
   SizeLabel,
+  UserRole,
 } from '../types'
 import { resolveMediaUrl } from '../utils/media'
 
@@ -79,6 +80,7 @@ interface MongoUser {
   fullName: string
   email: string
   role: 'ADMIN' | 'CUSTOMER'
+  isActive?: boolean
   createdAt?: string
   updatedAt?: string
 }
@@ -177,6 +179,8 @@ function mapUser(user: MongoUser): BackendUser {
     fullName: user.fullName,
     email: user.email,
     role: user.role,
+    // Legacy users synced before HU-44 have no isActive field — treat as active.
+    isActive: user.isActive ?? true,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   }
@@ -307,6 +311,22 @@ export async function syncClerkUser(payload: {
 export async function getUsers() {
   const users = await apiRequest<MongoUser[]>('/users', { method: 'GET' })
   return users.map(mapUser)
+}
+
+export async function updateUserRole(id: string, role: UserRole) {
+  const user = await apiRequest<MongoUser>(`/users/${id}/role`, {
+    method: 'PATCH',
+    body: { role },
+  })
+  return mapUser(user)
+}
+
+export async function updateUserStatus(id: string, isActive: boolean) {
+  const user = await apiRequest<MongoUser>(`/users/${id}/status`, {
+    method: 'PATCH',
+    body: { isActive },
+  })
+  return mapUser(user)
 }
 
 export interface AdminMetrics {

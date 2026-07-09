@@ -6,6 +6,7 @@ import { AdminCategoriesSection } from '../components/admin/AdminCategoriesSecti
 import { AdminInventorySection } from '../components/admin/AdminInventorySection'
 import { AdminOrderDetailModal } from '../components/admin/AdminOrderDetailModal'
 import { AdminOrdersSection } from '../components/admin/AdminOrdersSection'
+import { AdminUsersSection } from '../components/admin/AdminUsersSection'
 import { SummaryCard } from '../components/SummaryCard'
 import { useAuth } from '../context/AuthContext'
 import type { BackendOrder, BackendUser, Product } from '../types'
@@ -16,7 +17,7 @@ type AdminSection = 'overview' | 'inventory' | 'categories' | 'orders' | 'users'
 export function AdminDashboardPage() {
   const [section, setSection] = useState<AdminSection>('overview')
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
-  const { isAdmin } = useAuth()
+  const { isAdmin, backendUser } = useAuth()
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<BackendOrder[]>([])
@@ -168,7 +169,7 @@ export function AdminDashboardPage() {
           />
         )}
 
-        {(section === 'overview' || section === 'users') && (
+        {section === 'overview' ? (
           <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
             <h3 className="mb-4 text-lg font-semibold text-white">Usuarios registrados</h3>
             <div className="overflow-x-auto">
@@ -178,6 +179,7 @@ export function AdminDashboardPage() {
                     <th className="pb-2">Nombre</th>
                     <th className="pb-2">Email</th>
                     <th className="pb-2">Rol</th>
+                    <th className="pb-2">Estado</th>
                     <th className="pb-2">Fecha de registro</th>
                   </tr>
                 </thead>
@@ -187,6 +189,7 @@ export function AdminDashboardPage() {
                       <td className="py-2">{user.fullName}</td>
                       <td>{user.email}</td>
                       <td className="capitalize">{user.role.toLowerCase()}</td>
+                      <td>{user.isActive ? 'Activo' : 'Inactivo'}</td>
                       <td>{formatDate(user.createdAt)}</td>
                     </tr>
                   ))}
@@ -194,7 +197,15 @@ export function AdminDashboardPage() {
               </table>
             </div>
           </section>
-        )}
+        ) : null}
+
+        {section === 'users' ? (
+          <AdminUsersSection
+            users={users}
+            currentUserId={backendUser?.id}
+            onRefresh={refreshProducts}
+          />
+        ) : null}
       </div>
 
       {selectedOrder ? (
