@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'bun:test'
-import { syncClerkUserSchema, emailParamSchema } from '../../validations/userValidation'
+import {
+  syncClerkUserSchema,
+  emailParamSchema,
+  updateUserRoleSchema,
+  updateUserStatusSchema,
+} from '../../validations/userValidation'
 
 describe('syncClerkUserSchema', () => {
   it('accepts valid user data', () => {
@@ -125,5 +130,43 @@ describe('emailParamSchema', () => {
   it('rejects XSS attempt in email param', () => {
     const result = emailParamSchema.safeParse({ email: '"><script>alert(1)</script>' })
     expect(result.success).toBe(false)
+  })
+})
+
+describe('updateUserRoleSchema', () => {
+  it('accepts ADMIN and CUSTOMER', () => {
+    expect(updateUserRoleSchema.safeParse({ role: 'ADMIN' }).success).toBe(true)
+    expect(updateUserRoleSchema.safeParse({ role: 'CUSTOMER' }).success).toBe(true)
+  })
+
+  it('rejects an unknown role', () => {
+    const result = updateUserRoleSchema.safeParse({ role: 'SUPERADMIN' })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].path).toContain('role')
+    }
+  })
+
+  it('rejects a missing role', () => {
+    expect(updateUserRoleSchema.safeParse({}).success).toBe(false)
+  })
+})
+
+describe('updateUserStatusSchema', () => {
+  it('accepts a boolean isActive', () => {
+    expect(updateUserStatusSchema.safeParse({ isActive: true }).success).toBe(true)
+    expect(updateUserStatusSchema.safeParse({ isActive: false }).success).toBe(true)
+  })
+
+  it('rejects a non-boolean isActive', () => {
+    const result = updateUserStatusSchema.safeParse({ isActive: 'yes' })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].path).toContain('isActive')
+    }
+  })
+
+  it('rejects a missing isActive', () => {
+    expect(updateUserStatusSchema.safeParse({}).success).toBe(false)
   })
 })
