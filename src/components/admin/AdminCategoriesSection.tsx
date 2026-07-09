@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   createCategory,
   deleteCategory,
@@ -52,43 +52,43 @@ export function AdminCategoriesSection() {
 
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
 
+  // Guards every setState below against firing after unmount — loadCategories
+  // is called both from the initial effect and after edit/create/delete, so a
+  // single ref covers all call sites instead of duplicating the fetch per site.
+  const isMountedRef = useRef(true)
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
   const loadCategories = async () => {
     const [categoryResult, products] = await Promise.all([
       getCategories(),
       getProducts({ includeInactive: true }),
     ])
 
+    if (!isMountedRef.current) {
+      return
+    }
     setCategories(mapCategories(categoryResult))
     setProductCountByCategory(countProductsByCategory(products))
     setError(null)
   }
 
   useEffect(() => {
-    let active = true
-
-    Promise.all([getCategories(), getProducts({ includeInactive: true })])
-      .then(([categoryResult, products]) => {
-        if (!active) {
-          return
-        }
-        setCategories(mapCategories(categoryResult))
-        setProductCountByCategory(countProductsByCategory(products))
-        setError(null)
-      })
+    loadCategories()
       .catch((err: unknown) => {
-        if (active) {
+        if (isMountedRef.current) {
           setError(err instanceof Error ? err.message : 'No se pudieron cargar las categorias.')
         }
       })
       .finally(() => {
-        if (active) {
+        if (isMountedRef.current) {
           setLoading(false)
         }
       })
-
-    return () => {
-      active = false
-    }
   }, [])
 
   const handleToggle = async (category: Category) => {
