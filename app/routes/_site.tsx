@@ -7,12 +7,16 @@ import { Navbar } from '../../src/components/Navbar'
 import { Footer } from '../../src/components/Footer'
 import { CartDrawer } from '../../src/components/cart/CartDrawer'
 import { queryClient } from '../../src/lib/queryClient'
-import { CustomerGuard } from '../lib/CustomerGuard'
 
-// Pathless layout route (migrated from src/layouts/SiteLayout.tsx): wraps the
-// public routes in the site chrome (Navbar / Footer / cart drawer) plus the
-// Auth + Cart providers the shared components rely on. The Clerk provider itself
-// lives higher up, in __root.tsx.
+// Pathless layout route (migrated from src/layouts/SiteLayout.tsx): wraps every
+// child route in the site chrome (Navbar / Footer / cart drawer) plus the Auth +
+// Cart providers the shared components rely on. The Clerk provider itself lives
+// higher up, in __root.tsx.
+//
+// This layout is purely chrome — it does NOT apply CustomerGuard/ProtectedGuard.
+// The original SPA nests /sso-callback (and /admin) under SiteLayout without
+// CustomerRoute, so guards are composed per leaf route instead (see
+// _site.index.tsx, _site.orders.tsx, etc.), matching AppRouter.tsx exactly.
 export const Route = createFileRoute('/_site')({
   component: SiteLayoutRoute,
 })
@@ -52,17 +56,13 @@ function SiteChrome() {
       {isLanding ? (
         // Landing owns its full-bleed dark sections end to end.
         <main className="flex-1">
-          <CustomerGuard>
-            <Outlet />
-          </CustomerGuard>
+          <Outlet />
         </main>
       ) : (
         // Every other page: contained, dark surface.
         <main className="flex-1">
           <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-            <CustomerGuard>
-              <Outlet />
-            </CustomerGuard>
+            <Outlet />
           </div>
         </main>
       )}

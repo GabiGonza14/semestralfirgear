@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ShopPage } from '../../src/pages/ShopPage'
+import { CustomerGuard } from '../lib/CustomerGuard'
 
 // `/shop` — migrated from src/pages/ShopPage.tsx (Phase 2). Category filtering
 // happens inside Shop via the `category`/`search` query params (there is no
@@ -10,5 +11,9 @@ export const Route = createFileRoute('/_site/shop')({
     category: typeof search.category === 'string' ? search.category : undefined,
     search: typeof search.search === 'string' ? search.search : undefined,
   }),
-  component: ShopPage,
+  component: () => (
+    <CustomerGuard>
+      <ShopPage />
+    </CustomerGuard>
+  ),
 })
