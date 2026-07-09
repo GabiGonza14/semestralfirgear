@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
@@ -23,6 +24,24 @@ export default defineConfig({
   // `vite build`s never clobber each other (the SPA build empties `dist/`).
   build: {
     outDir: 'dist-start',
+  },
+  // Phase 2 coexistence shims: the shared SPA components (src/**) import from
+  // 'react-router-dom' and '@clerk/clerk-react'. For the Start (SSR) build ONLY,
+  // resolve those package names to TanStack-backed adapters so the same source
+  // renders under TanStack Router + the TanStack Start Clerk SDK. The SPA build
+  // (vite.config.ts) is untouched and keeps the real packages. Exact-match
+  // regexes so deep imports (e.g. 'react-router-dom/server') are never caught.
+  resolve: {
+    alias: [
+      {
+        find: /^react-router-dom$/,
+        replacement: fileURLToPath(new URL('./app/compat/react-router-shim.tsx', import.meta.url)),
+      },
+      {
+        find: /^@clerk\/clerk-react$/,
+        replacement: fileURLToPath(new URL('./app/compat/clerk-react-shim.tsx', import.meta.url)),
+      },
+    ],
   },
   plugins: [
     tanstackStart({
