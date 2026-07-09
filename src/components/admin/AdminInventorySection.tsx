@@ -231,7 +231,7 @@ export function AdminInventorySection({ products, onRefreshProducts }: AdminInve
 
       <DeleteConfirmModal
         isOpen={Boolean(deletingProduct)}
-        productName={deletingProduct?.name ?? ''}
+        itemName={deletingProduct?.name ?? ''}
         onClose={closeDelete}
         onConfirm={confirmDelete}
       />

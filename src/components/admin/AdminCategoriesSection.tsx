@@ -8,7 +8,7 @@ import {
 } from '../../api/fitgearApi'
 import type { Category, Product } from '../../types'
 import type { MongoCategory } from '../../api/fitgearApi'
-import { CategoryDeleteModal } from './CategoryDeleteModal'
+import { DeleteConfirmModal } from './DeleteConfirmModal'
 
 const fieldClass =
   'rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-slate-100 outline-none transition focus:border-lime-400/60 focus:ring-2 focus:ring-lime-400/30 placeholder:text-slate-500'
@@ -180,10 +180,16 @@ export function AdminCategoriesSection() {
     }
   }
 
-  const deletingProductCount = useMemo(
-    () => (deletingCategory ? (productCountByCategory[deletingCategory.id] ?? 0) : 0),
-    [deletingCategory, productCountByCategory],
-  )
+  const deleteBlockedMessage = useMemo(() => {
+    if (!deletingCategory) {
+      return undefined
+    }
+    const count = productCountByCategory[deletingCategory.id] ?? 0
+    if (count === 0) {
+      return undefined
+    }
+    return `${deletingCategory.name} tiene ${count} ${count === 1 ? 'producto asociado' : 'productos asociados'}. Reasigna o elimina esos productos antes de borrar la categoria.`
+  }, [deletingCategory, productCountByCategory])
 
   return (
     <div className="space-y-5">
@@ -358,10 +364,11 @@ export function AdminCategoriesSection() {
         </form>
       </section>
 
-      <CategoryDeleteModal
+      <DeleteConfirmModal
         isOpen={Boolean(deletingCategory)}
-        categoryName={deletingCategory?.name ?? ''}
-        productCount={deletingProductCount}
+        itemName={deletingCategory?.name ?? ''}
+        entityLabel="categoria"
+        blockedMessage={deleteBlockedMessage}
         onClose={() => setDeletingCategory(null)}
         onConfirm={confirmDelete}
       />
