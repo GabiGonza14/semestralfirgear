@@ -7,6 +7,7 @@ export const users: BackendUser[] = [
     fullName: 'Camila Torres',
     email: 'camila@fitgear.demo',
     role: 'CUSTOMER',
+    isActive: true,
   },
   {
     id: 'u2',
@@ -14,5 +15,6 @@ export const users: BackendUser[] = [
     fullName: 'Admin FITGEAR',
     email: 'admin@fitgear.demo',
     role: 'ADMIN',
+    isActive: true,
   },
 ]

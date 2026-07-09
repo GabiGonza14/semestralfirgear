@@ -49,6 +49,7 @@ export interface BackendUser {
   email: string
   role: UserRole
   clerkUserId: string
+  isActive: boolean
   createdAt?: string
   updatedAt?: string
 }
