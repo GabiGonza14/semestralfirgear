@@ -76,7 +76,10 @@ export function deserializeCart(raw: string | null): StoredCartLine[] {
 // Compares the restored cart against the live catalog, dropping any line whose
 // product is no longer purchasable (missing from the catalog, deactivated, or out
 // of stock) and refreshing the surviving lines with the latest product data so
-// prices/stock/images reflect the catalog rather than a stale snapshot.
+// prices/stock/images reflect the catalog rather than a stale snapshot. The
+// stored quantity is also clamped to the current stock — otherwise a cart
+// saved when stock was high would keep showing more units than are actually
+// left (checkout still enforces stock server-side, but the cart UI would lie).
 export function reconcileCart(
   stored: StoredCartLine[],
   available: Product[],
@@ -91,7 +94,8 @@ export function reconcileCart(
       removed.push({ id: line.product.id, name: line.product.name })
       continue
     }
-    items.push({ ...line, product: fresh })
+    const quantity = Math.min(line.quantity, fresh.stock)
+    items.push({ ...line, product: fresh, quantity })
   }
 
   return { items, removed }

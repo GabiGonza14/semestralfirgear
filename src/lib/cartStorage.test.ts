@@ -89,6 +89,18 @@ describe('reconcileCart', () => {
     expect(result.items[0].product).toEqual(fresh)
   })
 
+  test('clamps quantity down to the current stock', () => {
+    const fresh = makeProduct({ id: 'p1', stock: 2 })
+    const result = reconcileCart([{ product: fresh, quantity: 5 }], [fresh])
+    expect(result.items).toEqual([{ product: fresh, quantity: 2 }])
+  })
+
+  test('leaves quantity untouched when stock still covers it', () => {
+    const fresh = makeProduct({ id: 'p1', stock: 10 })
+    const result = reconcileCart([{ product: fresh, quantity: 3 }], [fresh])
+    expect(result.items).toEqual([{ product: fresh, quantity: 3 }])
+  })
+
   test('drops a line whose product is no longer in the catalog', () => {
     const gone = makeProduct({ id: 'p1', name: 'Descontinuado' })
     const result = reconcileCart([{ product: gone, quantity: 1 }], [])
