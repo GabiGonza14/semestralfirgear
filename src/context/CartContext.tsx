@@ -2,12 +2,46 @@ import {
   useCallback,
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useReducer,
   useState,
   type ReactNode,
 } from 'react'
+import { getProducts } from '../api/fitgearApi'
+import {
+  deserializeCart,
+  reconcileCart,
+  serializeCart,
+  type RemovedCartLine,
+} from '../lib/cartStorage'
 import type { CartItemModel, Product, SizeLabel } from '../types'
+
+const STORAGE_KEY = 'fitgear.cart.v1'
+
+// Reads persisted cart JSON, tolerating server rendering (no window) and a
+// storage access that can throw (private mode, quota, disabled cookies).
+function readStoredCart(): CartItemModel[] {
+  if (typeof window === 'undefined') {
+    return []
+  }
+  try {
+    return deserializeCart(window.localStorage.getItem(STORAGE_KEY))
+  } catch {
+    return []
+  }
+}
+
+function writeStoredCart(items: CartItemModel[]): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+  try {
+    window.localStorage.setItem(STORAGE_KEY, serializeCart(items))
+  } catch {
+    // Best-effort: if storage is unavailable the cart still works in-memory.
+  }
+}
 
 interface CartLine {
   product: Product
@@ -29,6 +63,9 @@ interface CartContextValue {
   increase: (productId: string, size?: SizeLabel) => void
   decrease: (productId: string, size?: SizeLabel) => void
   clearCart: () => void
+  /** Lines dropped while restoring because their product is no longer available. */
+  removedOnRestore: RemovedCartLine[]
+  dismissRemovedNotice: () => void
 }
 
 const TAX_RATE = 0.07
@@ -43,6 +80,7 @@ type CartAction =
   | { type: 'remove'; productId: string; size?: SizeLabel }
   | { type: 'increase'; productId: string; size?: SizeLabel }
   | { type: 'decrease'; productId: string; size?: SizeLabel }
+  | { type: 'restore'; items: CartItemModel[] }
   | { type: 'clear' }
 
 // Two lines are the same cart line only if they're the same product AND the
@@ -80,6 +118,8 @@ function cartReducer(state: CartItemModel[], action: CartAction): CartItemModel[
             : item,
         )
         .filter((item) => item.quantity > 0)
+    case 'restore':
+      return action.items
     case 'clear':
       return state.length > 0 ? [] : state
     default:
@@ -92,6 +132,58 @@ const CartContext = createContext<CartContextValue | undefined>(undefined)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, [])
   const [isCartOpen, setIsCartOpen] = useState(false)
+  // Starts false so the persist effect below skips its first run: on mount the
+  // reducer is still the empty SSR state, and writing that would clobber the
+  // stored cart before the restore effect has loaded it. Flipping to true after
+  // restore re-runs the persist effect with the real cart.
+  const [hydrated, setHydrated] = useState(false)
+  const [removedOnRestore, setRemovedOnRestore] = useState<RemovedCartLine[]>([])
+
+  // Restore the persisted cart on the client only (never during SSR, which would
+  // desync server/client HTML and warn about a hydration mismatch). The stored
+  // cart shows immediately; then the live catalog is fetched to drop any line
+  // whose product is gone/inactive/out-of-stock, surfacing a notice about it.
+  useEffect(() => {
+    const stored = readStoredCart()
+    if (stored.length > 0) {
+      dispatch({ type: 'restore', items: stored })
+    }
+    setHydrated(true)
+
+    if (stored.length === 0) {
+      return
+    }
+
+    let active = true
+    void getProducts()
+      .then((catalog) => {
+        if (!active) {
+          return
+        }
+        const { items: reconciled, removed } = reconcileCart(stored, catalog)
+        dispatch({ type: 'restore', items: reconciled })
+        if (removed.length > 0) {
+          setRemovedOnRestore(removed)
+        }
+      })
+      .catch(() => {
+        // Catalog fetch failed — keep the optimistic cart rather than wiping it.
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  // Persist on every change, but only after the restore effect has run.
+  useEffect(() => {
+    if (!hydrated) {
+      return
+    }
+    writeStoredCart(state)
+  }, [state, hydrated])
+
+  const dismissRemovedNotice = useCallback(() => setRemovedOnRestore([]), [])
 
   const items = useMemo(() => state as CartLine[], [state])
 
@@ -153,6 +245,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       increase,
       decrease,
       clearCart,
+      removedOnRestore,
+      dismissRemovedNotice,
     }),
     [
       items,
@@ -168,6 +262,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       increase,
       decrease,
       clearCart,
+      removedOnRestore,
+      dismissRemovedNotice,
     ],
   )
 

@@ -21,6 +21,8 @@ export function CartDrawer() {
     increase,
     decrease,
     removeItem,
+    removedOnRestore,
+    dismissRemovedNotice,
   } = useCart()
   const { backendUser } = useAuth()
   const queryClient = useQueryClient()
@@ -156,6 +158,29 @@ export function CartDrawer() {
                 </svg>
               </button>
             </div>
+
+            {removedOnRestore.length > 0 ? (
+              <div className="shrink-0 border-b border-amber-400/20 bg-amber-400/10 px-5 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="text-sm text-amber-200">
+                    <p className="font-semibold">Algunos productos ya no estan disponibles</p>
+                    <p className="mt-1 text-amber-200/80">
+                      Quitamos de tu carrito: {removedOnRestore.map((line) => line.name).join(', ')}.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={dismissRemovedNotice}
+                    aria-label="Descartar aviso"
+                    className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-amber-400/30 text-amber-200 transition hover:bg-amber-400/15"
+                  >
+                    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
             {items.length === 0 ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">

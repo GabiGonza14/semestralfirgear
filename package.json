@@ -8,6 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "start": "vite preview",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint .",
     "audit:contrast": "node scripts/check-contrast.mjs"
   },
@@ -37,6 +39,7 @@
     "globals": "^17.5.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
-    "vite": "^8.0.9"
+    "vite": "^8.0.9",
+    "vitest": "^4.1.10"
   }
 }
