@@ -58,6 +58,10 @@ interface MongoProduct {
   price: number
   stock: number
   images: string[]
+  // Legacy field from before the `images` array existed. Some products in the
+  // shared Atlas DB predate that migration and still carry this instead of a
+  // populated `images` array.
+  imageUrl?: string
   sizes?: MongoProductSize[]
   isActive: boolean
   categoryId: string | MongoProductCategory | null
@@ -126,7 +130,12 @@ function mapProduct(product: MongoProduct): Product {
       ? 'Sin categoria'
       : product.categoryId?.name ?? 'Sin categoria'
 
-  const images = (product.images ?? []).map(resolveMediaUrl)
+  const images =
+    product.images && product.images.length > 0
+      ? product.images.map(resolveMediaUrl)
+      : product.imageUrl
+        ? [resolveMediaUrl(product.imageUrl)]
+        : []
 
   return {
     id: product._id,
