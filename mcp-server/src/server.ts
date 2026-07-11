@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 import { connectDatabase } from '../../backend/src/config/db'
+import { generateInventoryReportTool } from './tools/generateInventoryReport'
 import { getAuditLogTool } from './tools/getAuditLog'
 import { getLowStockAlertsTool } from './tools/getLowStockAlerts'
 import { getOrderStatusTool } from './tools/getOrderStatus'
@@ -288,6 +289,27 @@ server.registerTool(
   },
   async (args) => {
     const result = await getAuditLogTool(args)
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    }
+  },
+)
+
+server.registerTool(
+  'generate_inventory_report',
+  {
+    description:
+      'Generate a point-in-time FITGEAR inventory report (HU-53) for automated analysis or for sending to suppliers. Returns generatedAt, a summary (productCount, totalUnits, totalInventoryValue, lowStockCount) and one row per product (name, category, stock, unitPrice, totalValue, lowStock flag, threshold, isActive). Pass includeCsv:true to also get a ready-to-save CSV string. Admin-only — requires a valid Clerk JWT whose user has the ADMIN role.',
+    inputSchema: {
+      token: z.string().describe('Clerk JWT bearer token of the requesting admin (required)'),
+      includeCsv: z
+        .boolean()
+        .optional()
+        .describe('When true, also include the report serialized as a CSV string (default false)'),
+    },
+  },
+  async (args) => {
+    const result = await generateInventoryReportTool(args)
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     }

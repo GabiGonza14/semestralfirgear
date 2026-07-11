@@ -1,4 +1,4 @@
-import { apiRequest } from './apiClient'
+import { apiDownload, apiRequest } from './apiClient'
 import type {
   AdminReview,
   AuditEntityType,
@@ -6,6 +6,7 @@ import type {
   BackendOrder,
   BackendOrderItem,
   BackendUser,
+  InventoryReport,
   OrderEvent,
   OrderStatus,
   Product,
@@ -443,6 +444,52 @@ export interface AdminMetrics {
  */
 export async function getAdminMetrics() {
   return apiRequest<AdminMetrics>('/admin/metrics', { method: 'GET' })
+}
+
+/**
+ * HU-53: point-in-time inventory report as structured JSON (GET
+ * /api/admin/inventory-report). Admin-only. Used to render the PDF/print view;
+ * the CSV export uses the same endpoint with ?format=csv.
+ */
+export async function getInventoryReport() {
+  return apiRequest<InventoryReport>('/admin/inventory-report', { method: 'GET' })
+}
+
+/**
+ * HU-53: downloads the inventory report as a CSV file. Fetches the CSV variant
+ * of the endpoint (server-generated, single source of truth) and triggers a
+ * browser download using the server-suggested filename.
+ */
+export async function downloadInventoryReportCsv() {
+  const { blob, filename } = await apiDownload('/admin/inventory-report', {
+    query: { format: 'csv' },
+  })
+  triggerBrowserDownload(blob, filename ?? 'inventario.csv')
+}
+
+/**
+ * HU-53: downloads the inventory report as a PDF file. The PDF is generated
+ * server-side (pdf-lib) and downloaded directly — no browser print dialog.
+ */
+export async function downloadInventoryReportPdf() {
+  const { blob, filename } = await apiDownload('/admin/inventory-report', {
+    query: { format: 'pdf' },
+  })
+  triggerBrowserDownload(blob, filename ?? 'inventario.pdf')
+}
+
+// Creates a temporary object URL and clicks a hidden anchor to save `blob` as
+// `filename`, then revokes the URL. Guarded for SSR (no document).
+function triggerBrowserDownload(blob: Blob, filename: string) {
+  if (typeof document === 'undefined') return
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
 }
 
 function mapAuditLog(entry: MongoAuditLog): AuditLogEntry {

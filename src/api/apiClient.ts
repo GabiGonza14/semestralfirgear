@@ -65,3 +65,44 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   return (await response.json()) as T
 }
+
+// Reads the filename the server suggests in Content-Disposition, if any.
+function parseContentDispositionFilename(header: string | null): string | null {
+  if (!header) return null
+  const match = /filename="?([^"]+)"?/i.exec(header)
+  return match ? match[1] : null
+}
+
+/**
+ * Authenticated fetch for binary/file responses (e.g. a CSV export). Unlike
+ * apiRequest it returns the raw Blob plus the server-suggested filename, so the
+ * caller can trigger a browser download. The Authorization header is why this
+ * can't be a plain <a href> link.
+ */
+export async function apiDownload(
+  path: string,
+  options: { query?: RequestOptions['query'] } = {},
+): Promise<{ blob: Blob; filename: string | null }> {
+  const token = await getAuthToken()
+
+  const response = await fetch(buildUrl(path, options.query), {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
+
+  if (!response.ok) {
+    let payload: ApiErrorPayload | undefined
+    try {
+      payload = (await response.json()) as ApiErrorPayload
+    } catch {
+      payload = undefined
+    }
+
+    throw new ApiError(response.status, payload?.message ?? 'Request failed', payload)
+  }
+
+  const filename = parseContentDispositionFilename(response.headers.get('Content-Disposition'))
+  const blob = await response.blob()
+  return { blob, filename }
+}

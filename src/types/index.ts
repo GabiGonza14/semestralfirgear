@@ -97,6 +97,33 @@ export interface OrderEvent {
   createdAt: string
 }
 
+// HU-53: one product line in an exportable inventory report.
+export interface InventoryReportRow {
+  productId: string
+  name: string
+  category: string
+  stock: number
+  unitPrice: number
+  totalValue: number
+  lowStock: boolean
+  lowStockThreshold: number
+  isActive: boolean
+}
+
+export interface InventoryReportSummary {
+  productCount: number
+  totalUnits: number
+  totalInventoryValue: number
+  lowStockCount: number
+}
+
+// HU-53: a point-in-time inventory report (stock, valuation, low-stock flags).
+export interface InventoryReport {
+  generatedAt: string
+  summary: InventoryReportSummary
+  rows: InventoryReportRow[]
+}
+
 // HU-52: the kind of entity an admin action targeted.
 export type AuditEntityType = 'ORDER' | 'USER' | 'PRODUCT' | 'CATEGORY'
 

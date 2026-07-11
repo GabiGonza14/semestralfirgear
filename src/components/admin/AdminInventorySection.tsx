@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { createProduct, deleteProduct, getCategories, updateProduct } from '../../api/fitgearApi'
 import type { ProductUpsertInput } from '../../api/fitgearApi'
 import type { Product } from '../../types'
+import { InventoryExportControls } from './InventoryExportControls'
 import { InventoryFilters, type CategoryOption } from './InventoryFilters'
 import { ProductFormModal } from './ProductFormModal'
 import { DeleteConfirmModal } from './DeleteConfirmModal'
@@ -189,6 +190,8 @@ export function AdminInventorySection({ products, onRefreshProducts }: AdminInve
         onSortChange={setSortBy}
         onCreateClick={handleCreate}
       />
+
+      <InventoryExportControls />
 
       {categoriesLoading ? (
         <p className="text-sm text-slate-400">Cargando categorias para el inventario...</p>
