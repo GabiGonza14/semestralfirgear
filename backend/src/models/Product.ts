@@ -26,6 +26,11 @@ const productSchema = new Schema(
       },
     },
     sizes: { type: [productSizeSchema], default: [] },
+    // HU-46: per-product low-stock threshold. When stock drops to at-or-below
+    // this value the product is flagged as low on the admin dashboard and, on the
+    // downward crossing, admins are emailed. Defaults to 5 so pre-existing
+    // products (which never stored this field) behave sensibly without a migration.
+    lowStockThreshold: { type: Number, default: 5, min: 0, required: true },
     categoryId: { type: Types.ObjectId, ref: 'Category', required: true },
     isActive: { type: Boolean, default: true, required: true },
     hasDiscount: { type: Boolean, default: false, required: true },

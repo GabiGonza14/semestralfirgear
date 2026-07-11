@@ -62,6 +62,12 @@ export const createProductSchema = z.object({
     .number()
     .int('stock must be an integer')
     .min(0, 'stock must be greater than or equal to 0'),
+  lowStockThreshold: z.coerce
+    .number()
+    .int('lowStockThreshold must be an integer')
+    .min(0, 'lowStockThreshold must be greater than or equal to 0')
+    .optional()
+    .default(5),
   images: imagesFromFormSchema,
   sizes: sizesFromFormSchema.optional().default([]),
   categoryId: objectIdSchema,
@@ -96,6 +102,11 @@ export const updateProductSchema = z
       .number()
       .int('stock must be an integer')
       .min(0, 'stock must be greater than or equal to 0')
+      .optional(),
+    lowStockThreshold: z.coerce
+      .number()
+      .int('lowStockThreshold must be an integer')
+      .min(0, 'lowStockThreshold must be greater than or equal to 0')
       .optional(),
     images: imagesFromFormSchema.optional(),
     sizes: sizesFromFormSchema.optional(),

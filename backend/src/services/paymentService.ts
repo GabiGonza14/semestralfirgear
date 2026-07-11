@@ -7,6 +7,7 @@ import { OrderItemModel } from '../models/OrderItem'
 import { OrderModel } from '../models/Order'
 import { ProductModel } from '../models/Product'
 import { HttpError } from '../utils/httpError'
+import { notifyAdminsOfLowStockCrossing } from './lowStockService'
 import { dispatchNotification } from './notificationService'
 import {
   markWebhookFailed,
@@ -35,6 +36,18 @@ interface GroupedOrderItem {
   productId: string
   quantity: number
   size?: string
+}
+
+// HU-46: a product whose stock was just decremented by a paid order, carried out
+// of the transaction so admins can be emailed AFTER the PENDING->PAID commit
+// (never for a transaction that later aborts). `previousStock` is reconstructed
+// from the post-decrement doc: the decrement is exactly `quantity`.
+interface StockDecrementRecord {
+  id: string
+  name: string
+  stock: number
+  lowStockThreshold: number
+  previousStock: number
 }
 
 const TAX_RATE = 0.07
@@ -893,13 +906,45 @@ function restoreProductStock(item: GroupedOrderItem) {
 async function applyStockDecrement(
   groupedItems: GroupedOrderItem[],
   session?: ClientSession,
-) {
+): Promise<StockDecrementRecord[]> {
+  const decrements: StockDecrementRecord[] = []
+
   for (const item of groupedItems) {
     const updated = await decrementProductStock(item, session)
 
     if (!updated) {
       throw new HttpError(409, 'Stock update conflict. Try again with refreshed inventory.')
     }
+
+    decrements.push({
+      id: String(updated._id),
+      name: updated.name,
+      stock: updated.stock,
+      lowStockThreshold: updated.lowStockThreshold,
+      // findOneAndUpdate decremented `stock` by exactly item.quantity, so the
+      // pre-update value is the returned value plus what we just took.
+      previousStock: updated.stock + item.quantity,
+    })
+  }
+
+  return decrements
+}
+
+// Fires the low-stock admin alert for every product that just crossed its
+// threshold downward. Called only after the PENDING->PAID transition is durably
+// committed. Each notify call re-checks the crossing and no-ops otherwise, and is
+// fire-and-forget, so this never blocks or breaks the payment flow.
+function dispatchLowStockAlerts(decrements: StockDecrementRecord[]) {
+  for (const record of decrements) {
+    void notifyAdminsOfLowStockCrossing(
+      {
+        id: record.id,
+        name: record.name,
+        stock: record.stock,
+        lowStockThreshold: record.lowStockThreshold,
+      },
+      record.previousStock,
+    )
   }
 }
 
@@ -912,30 +957,41 @@ async function markOrderAsPaidAndDeductStock(
 
   const session = await mongoose.startSession()
   let didTransitionToPaid = false
+  let lowStockDecrements: StockDecrementRecord[] = []
 
   try {
     session.startTransaction()
-    didTransitionToPaid = await markOrderAsPaidAndDeductStockWithSession(
+    const result = await markOrderAsPaidAndDeductStockWithSession(
       orderId,
       stripeCheckoutSessionId,
       stripePaymentIntentId,
       session,
     )
+    didTransitionToPaid = result.transitioned
+    lowStockDecrements = result.decrements
     await session.commitTransaction()
   } catch (error) {
     await session.abortTransaction()
 
     if (isTransactionUnsupportedError(error)) {
-      didTransitionToPaid = await markOrderAsPaidAndDeductStockFallback(
+      const result = await markOrderAsPaidAndDeductStockFallback(
         orderId,
         stripeCheckoutSessionId,
         stripePaymentIntentId,
       )
+      didTransitionToPaid = result.transitioned
+      lowStockDecrements = result.decrements
     } else {
       throw error
     }
   } finally {
     await session.endSession()
+  }
+
+  // HU-46: only after the stock decrements are durably committed, email admins
+  // about any product that crossed its low-stock threshold on this order.
+  if (didTransitionToPaid) {
+    dispatchLowStockAlerts(lowStockDecrements)
   }
 
   // HU-30: send the purchase confirmation email only on the real PENDING->PAID
@@ -954,20 +1010,20 @@ async function markOrderAsPaidAndDeductStockWithSession(
   stripeCheckoutSessionId: string,
   stripePaymentIntentId: string | undefined,
   session: ClientSession,
-): Promise<boolean> {
+): Promise<{ transitioned: boolean; decrements: StockDecrementRecord[] }> {
   const orderQuery = OrderModel.findById(orderId)
   const order = await orderQuery.session(session)
 
   if (!order) {
-    return false
+    return { transitioned: false, decrements: [] }
   }
 
   if (order.status === 'PAID') {
-    return false
+    return { transitioned: false, decrements: [] }
   }
 
   const groupedItems = await ensureOrderHasAvailableStock(orderId, session)
-  await applyStockDecrement(groupedItems, session)
+  const decrements = await applyStockDecrement(groupedItems, session)
 
   order.status = 'PAID'
   order.paymentProvider = 'STRIPE'
@@ -976,7 +1032,7 @@ async function markOrderAsPaidAndDeductStockWithSession(
   order.paidAt = new Date()
   await order.save({ session })
 
-  return true
+  return { transitioned: true, decrements }
 }
 
 // Same PENDING->PAID contract as the transactional path: returns true only when
@@ -985,19 +1041,20 @@ async function markOrderAsPaidAndDeductStockFallback(
   orderId: string,
   stripeCheckoutSessionId: string,
   stripePaymentIntentId?: string,
-): Promise<boolean> {
+): Promise<{ transitioned: boolean; decrements: StockDecrementRecord[] }> {
   const order = await OrderModel.findById(orderId)
 
   if (!order) {
-    return false
+    return { transitioned: false, decrements: [] }
   }
 
   if (order.status === 'PAID') {
-    return false
+    return { transitioned: false, decrements: [] }
   }
 
   const groupedItems = await ensureOrderHasAvailableStock(orderId)
   const decremented: GroupedOrderItem[] = []
+  const decrements: StockDecrementRecord[] = []
 
   try {
     for (const item of groupedItems) {
@@ -1008,6 +1065,13 @@ async function markOrderAsPaidAndDeductStockFallback(
       }
 
       decremented.push(item)
+      decrements.push({
+        id: String(updated._id),
+        name: updated.name,
+        stock: updated.stock,
+        lowStockThreshold: updated.lowStockThreshold,
+        previousStock: updated.stock + item.quantity,
+      })
     }
 
     order.status = 'PAID'
@@ -1017,7 +1081,7 @@ async function markOrderAsPaidAndDeductStockFallback(
     order.paidAt = new Date()
     await order.save()
 
-    return true
+    return { transitioned: true, decrements }
   } catch (error) {
     for (const item of decremented) {
       await restoreProductStock(item)
