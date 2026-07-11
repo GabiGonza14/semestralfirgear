@@ -263,6 +263,41 @@ MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run start
 
 ---
 
+## 9. `get_low_stock_alerts`
+
+- **HU envuelta:** HU-46 — Alertas de stock bajo para el administrador
+- **Rol:** **admin** (strict-auth + rol ADMIN)
+- **Rama:** `feature/hu46-low-stock-alerts`
+- **Issue / PR:** #43 → PR (contra `test-infra`)
+
+Herramienta MCP **solo para administradores**, de **solo lectura**, para detección
+proactiva de reabastecimiento: devuelve todos los productos que están **en o por
+debajo** de su `lowStockThreshold` (umbral configurable por producto, default 5),
+ordenados de menor a mayor stock (los más críticos primero). Su único input es
+`token`. Devuelve `{ count, products: [...] }`, donde cada producto trae `id`,
+`name`, `stock`, `lowStockThreshold`, `isActive` y `category`.
+
+**Reuso de código:** llama a `getLowStockProducts()` de
+`backend/src/services/lowStockService.ts` — **la misma función** que respalda el
+endpoint REST `GET /api/admin/low-stock` que alimenta la UI del dashboard, así el
+tool y el panel nunca divergen. La lógica de "cuándo emailear al admin" (solo en el
+**cruce** descendente del umbral) vive en el mismo módulo (`crossedLowStockThreshold`),
+y la disparan `updateProduct` (edición admin / `update_stock`) y `decrementProductStock`
+(orden pagada) reutilizando `dispatchNotification` (HU-30/31).
+
+**Autenticación:** usa `requireAuthStrict` de `requireAuth.ts` (lanza sin JWT
+válido). Como Clerk entrega el `sub`, la tool resuelve `clerkUserId → User` vía
+`UserModel` y **rechaza con 403** si `role !== 'ADMIN'`. El único input es `token`.
+
+**Cómo levantar el servidor MCP local:**
+
+```bash
+cd mcp-server
+MONGODB_URI=mongodb://127.0.0.1:27017/fitgear bun run start
+```
+
+---
+
 ## 8. `update_order_status`
 
 - **HU envuelta:** HU-42 — Cambio de estado de órdenes desde el admin

@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 import { connectDatabase } from '../../backend/src/config/db'
+import { getLowStockAlertsTool } from './tools/getLowStockAlerts'
 import { getOrderStatusTool } from './tools/getOrderStatus'
 import { getProductDetailsTool } from './tools/getProductDetails'
 import { getSalesMetricsTool } from './tools/getSalesMetrics'
@@ -103,6 +104,26 @@ server.registerTool(
   },
   async (args) => {
     const result = await getSalesMetricsTool(args)
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    }
+  },
+)
+
+server.registerTool(
+  'get_low_stock_alerts',
+  {
+    description:
+      'Return every FITGEAR product currently at or below its configured low-stock threshold, most-critical (lowest stock) first — for proactive restocking. Read-only. Each entry has id, name, stock, lowStockThreshold, isActive, and category, plus a top-level count. Admin-only — requires a valid Clerk JWT whose user has the ADMIN role.',
+    inputSchema: {
+      token: z
+        .string()
+        .optional()
+        .describe('Clerk JWT bearer token of the requesting admin (required)'),
+    },
+  },
+  async (args) => {
+    const result = await getLowStockAlertsTool(args)
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     }
