@@ -1,6 +1,9 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../app'
-import { getDashboardMetricsController } from '../controllers/adminController'
+import {
+  getDashboardMetricsController,
+  getLowStockProductsController,
+} from '../controllers/adminController'
 import { requireAdminMiddleware } from '../middlewares/requireAdmin'
 import { requireAuthMiddleware } from '../middlewares/requireAuth'
 
@@ -12,3 +15,4 @@ export const adminRouter = new Hono<AppEnv>()
 adminRouter.use('*', requireAuthMiddleware(), requireAdminMiddleware())
 
 adminRouter.get('/metrics', getDashboardMetricsController)
+adminRouter.get('/low-stock', getLowStockProductsController)
