@@ -60,6 +60,36 @@ describe('sanitizeContext — redaction (acceptance criterion 4)', () => {
   })
 })
 
+// CWE-117 log injection: an attacker-controlled string (e.g. a request path) must
+// never be able to smuggle a raw newline (or other control character) into a log
+// line and forge what looks like a second, fabricated log entry.
+describe('sanitizeContext — control-character stripping (log injection)', () => {
+  it('strips a raw newline from a string value', () => {
+    const result = sanitizeContext({
+      path: '/api/products\n{"level":"error","message":"fake admin login"}',
+    })
+    expect(result.path).toBe('/api/products{"level":"error","message":"fake admin login"}')
+    expect(result.path as string).not.toContain('\n')
+  })
+
+  it('strips carriage returns and other C0/C1 control characters', () => {
+    const result = sanitizeContext({ value: 'a\r\nb\x00c\x1bd' })
+    expect(result.value).toBe('abcd')
+  })
+
+  it('strips control characters from an Error message and stack', () => {
+    const error = new Error('bad input: "\n{"level":"error"}')
+    const result = sanitizeContext({ error }) as { error: Record<string, unknown> }
+    expect(result.error.message as string).not.toContain('\n')
+    expect(result.error.stack as string).not.toContain('\n')
+  })
+
+  it('leaves ordinary printable strings untouched', () => {
+    const result = sanitizeContext({ orderId: 'order_abc-123', name: 'FITGEAR' })
+    expect(result).toEqual({ orderId: 'order_abc-123', name: 'FITGEAR' })
+  })
+})
+
 describe('formatLogLine — JSON shape (acceptance criteria 1 & 2)', () => {
   it('emits a valid JSON line with timestamp, level and message', () => {
     const line = formatLogLine('info', 'hello')

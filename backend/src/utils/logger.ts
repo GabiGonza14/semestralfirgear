@@ -28,14 +28,30 @@ function isSensitiveKey(key: string): boolean {
   return SENSITIVE_KEY_SUBSTRINGS.some((needle) => lower.includes(needle))
 }
 
+// Defense-in-depth against log injection (CWE-117): every log entry is a single
+// JSON.stringify'd line, so a raw newline in a value is already escaped to the
+// two literal characters `\n` inside that JSON string rather than becoming a real
+// line break — but that safety is implicit in "we always wrap the whole entry in
+// one JSON.stringify call" and easy to break by accident later (e.g. someone
+// interpolating a value into the message string, or a future sink that isn't
+// JSON-based). Stripping C0/C1 control characters here makes every value provably
+// safe to log on its own, independent of that invariant. request path/method and
+// error message/stack are the values most directly influenced by an attacker.
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARS = /[\x00-\x1f\x7f-\x9f]/g
+
+function sanitizeString(value: string): string {
+  return value.replace(CONTROL_CHARS, '')
+}
+
 // Errors are the whole point of criterion 2, but `JSON.stringify(new Error())` is
 // `{}` because name/message/stack are non-enumerable. Serialize them explicitly so
 // the full stack trace survives into the structured log.
 function serializeError(error: Error): Record<string, unknown> {
   return {
-    name: error.name,
-    message: error.message,
-    stack: error.stack,
+    name: sanitizeString(error.name),
+    message: sanitizeString(error.message),
+    stack: error.stack ? sanitizeString(error.stack) : error.stack,
   }
 }
 
@@ -64,7 +80,7 @@ function sanitizeValue(value: unknown, seen: WeakSet<object>): unknown {
     return result
   }
 
-  return value
+  return typeof value === 'string' ? sanitizeString(value) : value
 }
 
 /**
