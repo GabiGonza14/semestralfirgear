@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { useSearch } from '@tanstack/react-router'
+import { Link, useSearch } from '@tanstack/react-router'
 import { ApiError } from '../api/apiClient'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
+import { useOrderDetailQuery } from '../hooks/useOrdersQueries'
 import { useCheckoutPaymentConfirmationQuery } from '../hooks/usePaymentQueries'
 import { queryKeys } from '../lib/queryKeys'
 
@@ -21,6 +22,23 @@ export function CheckoutSuccessPage() {
   const isPaid = confirmationQuery.data?.status === 'PAID'
   const isPendingConfirmation =
     confirmationQuery.error instanceof ApiError && confirmationQuery.error.status === 409
+
+  // Fetched once paid, purely to offer "Reseñar" shortcuts for what was just
+  // bought — not needed for the payment-confirmation flow itself. Also gated on
+  // `isLoaded`: this page loads via a full-page Stripe redirect, so firing
+  // before Clerk's token getter is registered would 401 (see
+  // useCheckoutPaymentConfirmationQuery's authReady comment).
+  const orderDetailQuery = useOrderDetailQuery(orderId, isPaid && isLoaded)
+  const reviewableProducts = useMemo(() => {
+    const items = orderDetailQuery.data?.items ?? []
+    const byProduct = new Map<string, string>()
+    for (const item of items) {
+      if (item.productId) {
+        byProduct.set(item.productId, item.productName)
+      }
+    }
+    return Array.from(byProduct, ([id, name]) => ({ id, name }))
+  }, [orderDetailQuery.data])
 
   useEffect(() => {
     if (!isPaid) {
@@ -125,6 +143,27 @@ export function CheckoutSuccessPage() {
           Ver mis pedidos
         </button>
       </div>
+
+      {isPaid && reviewableProducts.length > 0 ? (
+        <div className="mt-8 border-t border-white/[0.06] pt-6">
+          <p className="text-sm text-slate-400">¿Qué te pareció tu compra?</p>
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            {reviewableProducts.map((product) => (
+              <Link
+                key={product.id}
+                to="/product/$id"
+                params={{ id: product.id }}
+                className="inline-flex items-center gap-2 rounded-full border border-lime-400/25 px-4 py-2 text-xs font-semibold text-lime-300 transition hover:border-lime-400/50 hover:bg-lime-400/10"
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M12 2.5l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 20.9l1.1-6.5-4.7-4.6 6.5-.9L12 2.5z" />
+                </svg>
+                Reseñar {product.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </motion.section>
   )
 }

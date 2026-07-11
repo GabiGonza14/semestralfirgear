@@ -128,10 +128,33 @@ export interface ProductReviewViewerState {
   purchased: boolean
   hasReviewed: boolean
   canReview: boolean
+  /** HU-50: moderation status of the viewer's own review, or null if they have none. */
+  ownReviewStatus: ReviewStatus | null
 }
 
 export interface ProductReviewsResponse {
   summary: ProductReviewSummary
   reviews: ProductReview[]
   viewer: ProductReviewViewerState
+}
+
+// HU-50: review moderation.
+export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'HIDDEN'
+
+export type ReviewModerationAction = 'approve' | 'reject' | 'hide'
+
+// A review as seen by an admin in the moderation queue (includes the product,
+// the reviewer's identity, moderation state and any rejection reason).
+export interface AdminReview {
+  id: string
+  productId: string
+  productName: string
+  reviewerName: string
+  reviewerEmail: string
+  rating: number
+  comment: string | null
+  status: ReviewStatus
+  rejectionReason: string | null
+  createdAt: string
+  moderatedAt: string | null
 }

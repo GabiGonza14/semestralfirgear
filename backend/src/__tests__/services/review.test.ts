@@ -27,18 +27,22 @@ mock.module('../../models/Order', () => ({ OrderModel: { find: mockOrderFind } }
 const mockOrderItemExists = mock(async () => ({ _id: 'oi1' }) as unknown)
 mock.module('../../models/OrderItem', () => ({ OrderItemModel: { exists: mockOrderItemExists } }))
 
-// Review: find(...).populate(...).sort(...), exists(...), create(...)
+// Review: find(...).populate(...).sort(...), exists(...), create(...),
+// findOne(...).select(...) (viewer's own review, for resolveViewerState).
 let reviewDocs: unknown[] = []
 const mockReviewSort = mock(async () => reviewDocs)
 const mockReviewPopulate = mock(() => ({ sort: mockReviewSort }))
 const mockReviewFind = mock(() => ({ populate: mockReviewPopulate }))
 const mockReviewExists = mock(async () => null as unknown)
 const mockReviewCreate = mock(async () => ({}) as unknown)
+const mockOwnReviewSelect = mock(async () => null as unknown)
+const mockReviewFindOne = mock(() => ({ select: mockOwnReviewSelect }))
 mock.module('../../models/Review', () => ({
   ReviewModel: {
     find: mockReviewFind,
     exists: mockReviewExists,
     create: mockReviewCreate,
+    findOne: mockReviewFindOne,
   },
 }))
 
@@ -62,6 +66,8 @@ function resetToHappyPath() {
     mockReviewFind,
     mockReviewExists,
     mockReviewCreate,
+    mockOwnReviewSelect,
+    mockReviewFindOne,
   ]) {
     m.mockClear()
   }
@@ -73,6 +79,7 @@ function resetToHappyPath() {
   mockOrderDistinct.mockImplementation(async () => ['order1'])
   mockOrderItemExists.mockImplementation(async () => ({ _id: 'oi1' }))
   mockReviewExists.mockImplementation(async () => null)
+  mockOwnReviewSelect.mockImplementation(async () => null)
   mockReviewCreate.mockImplementation(async () => ({}))
 }
 
@@ -89,6 +96,22 @@ describe('createReview (HU-49)', () => {
     expect(doc).toMatchObject({ rating: 5, comment: 'Great' })
     expect(doc.userId).toBe('user1')
     expect(doc.productId).toBe('prod1')
+  })
+
+  it('returns the AUTHOR\'s viewer state (hasReviewed: true) right away, not the anonymous default', async () => {
+    // Regression: createReview used to call listProductReviews without the
+    // author's clerkUserId, so the "gracias por tu reseña" note never showed
+    // immediately after submitting — only on a later, unrelated re-fetch.
+    mockOwnReviewSelect.mockImplementation(async () => ({ status: 'PENDING' }))
+
+    const result = await createReview({ clerkUserId: CLERK_ID, productId: PRODUCT_ID, rating: 5 })
+
+    expect(result.viewer).toMatchObject({
+      authenticated: true,
+      hasReviewed: true,
+      canReview: false,
+      ownReviewStatus: 'PENDING',
+    })
   })
 
   it('rejects with 403 when the customer never purchased the product', async () => {
@@ -199,7 +222,7 @@ describe('listProductReviews (HU-49)', () => {
 
   it('does not allow a second review: purchased but already reviewed -> canReview false', async () => {
     reviewDocs = []
-    mockReviewExists.mockImplementation(async () => ({ _id: 'existing' }))
+    mockOwnReviewSelect.mockImplementation(async () => ({ status: 'PENDING' }))
 
     const result = await listProductReviews(PRODUCT_ID, CLERK_ID)
 
@@ -207,6 +230,7 @@ describe('listProductReviews (HU-49)', () => {
       purchased: true,
       hasReviewed: true,
       canReview: false,
+      ownReviewStatus: 'PENDING',
     })
   })
 

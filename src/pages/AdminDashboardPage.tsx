@@ -6,6 +6,7 @@ import { AdminCategoriesSection } from '../components/admin/AdminCategoriesSecti
 import { AdminInventorySection } from '../components/admin/AdminInventorySection'
 import { AdminOrderDetailModal } from '../components/admin/AdminOrderDetailModal'
 import { AdminOrdersSection } from '../components/admin/AdminOrdersSection'
+import { AdminReviewsSection } from '../components/admin/AdminReviewsSection'
 import { AdminUsersSection } from '../components/admin/AdminUsersSection'
 import { SummaryCard } from '../components/SummaryCard'
 import { useAuth } from '../context/AuthContext'
@@ -13,7 +14,7 @@ import { isLowStock } from '../lib/inventory'
 import type { BackendOrder, BackendUser, Product } from '../types'
 import { formatCurrency, formatDate } from '../utils/format'
 
-type AdminSection = 'overview' | 'inventory' | 'categories' | 'orders' | 'users'
+type AdminSection = 'overview' | 'inventory' | 'categories' | 'orders' | 'users' | 'reviews'
 
 export function AdminDashboardPage() {
   const [section, setSection] = useState<AdminSection>('overview')
@@ -188,6 +189,8 @@ export function AdminDashboardPage() {
         ) : null}
 
         {section === 'categories' ? <AdminCategoriesSection /> : null}
+
+        {section === 'reviews' ? <AdminReviewsSection /> : null}
 
         {(section === 'overview' || section === 'orders') && (
           <AdminOrdersSection

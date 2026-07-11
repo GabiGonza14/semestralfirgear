@@ -198,9 +198,21 @@ export function ProductReviews({ productId }: { productId: string }) {
             {submitting ? 'Enviando...' : 'Publicar reseña'}
           </button>
         </form>
+      ) : viewer.hasReviewed && viewer.ownReviewStatus === 'REJECTED' ? (
+        <p className="rounded-2xl border border-rose-400/20 bg-rose-500/[0.06] px-4 py-3 text-sm text-rose-200">
+          Tu reseña sobre este producto no fue publicada. Revisa tu email para más detalles.
+        </p>
+      ) : viewer.hasReviewed && viewer.ownReviewStatus === 'PENDING' ? (
+        <p className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] px-4 py-3 text-sm text-amber-200">
+          Gracias por tu reseña. Nuestro equipo la está revisando antes de publicarla — te avisaremos por email si hay algún inconveniente.
+        </p>
+      ) : viewer.hasReviewed && viewer.ownReviewStatus === 'HIDDEN' ? (
+        <p className="rounded-2xl border border-white/[0.08] bg-slate-900/60 px-4 py-3 text-sm text-slate-400">
+          Tu reseña sobre este producto fue retirada de la tienda por nuestro equipo.
+        </p>
       ) : viewer.hasReviewed ? (
         <p className="rounded-2xl border border-lime-400/20 bg-lime-400/[0.06] px-4 py-3 text-sm text-lime-200">
-          Gracias por tu reseña. Ya dejaste tu opinión sobre este producto.
+          Gracias por tu reseña. Ya está publicada en la tienda.
         </p>
       ) : viewer.authenticated && !viewer.purchased ? (
         <p className="rounded-2xl border border-white/[0.08] bg-slate-900/60 px-4 py-3 text-sm text-slate-400">

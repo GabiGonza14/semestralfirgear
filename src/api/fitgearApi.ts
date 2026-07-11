@@ -1,5 +1,6 @@
 import { apiRequest } from './apiClient'
 import type {
+  AdminReview,
   BackendOrder,
   BackendOrderItem,
   BackendUser,
@@ -7,6 +8,8 @@ import type {
   OrderStatus,
   Product,
   ProductReviewsResponse,
+  ReviewModerationAction,
+  ReviewStatus,
   SizeLabel,
   UserRole,
 } from '../types'
@@ -334,6 +337,32 @@ export async function createProductReview(
   return apiRequest<ProductReviewsResponse>(`/reviews/product/${productId}`, {
     method: 'POST',
     body: payload,
+  })
+}
+
+/**
+ * HU-50: admin moderation queue. Lists reviews (optionally filtered by status),
+ * newest first. Admin-only — the backend returns 403 for a non-admin token.
+ */
+export async function getReviewsForModeration(status?: ReviewStatus) {
+  return apiRequest<AdminReview[]>('/reviews', {
+    method: 'GET',
+    query: status ? { status } : undefined,
+  })
+}
+
+/**
+ * Approve, reject, or hide a review (admin-only, HU-50). A rejection requires a
+ * reason, which is emailed to the customer. Returns the updated review.
+ */
+export async function moderateReview(
+  id: string,
+  action: ReviewModerationAction,
+  reason?: string,
+) {
+  return apiRequest<AdminReview>(`/reviews/${id}/moderate`, {
+    method: 'PATCH',
+    body: { action, reason },
   })
 }
 
