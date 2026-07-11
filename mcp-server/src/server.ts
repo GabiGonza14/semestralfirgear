@@ -5,6 +5,7 @@ import { connectDatabase } from '../../backend/src/config/db'
 import { getLowStockAlertsTool } from './tools/getLowStockAlerts'
 import { getOrderStatusTool } from './tools/getOrderStatus'
 import { getProductDetailsTool } from './tools/getProductDetails'
+import { getProductReviewsTool } from './tools/getProductReviews'
 import { getSalesMetricsTool } from './tools/getSalesMetrics'
 import { listOrdersTool } from './tools/listOrders'
 import { manageCategoriesTool } from './tools/manageCategories'
@@ -64,6 +65,27 @@ server.registerTool(
   },
   async (args) => {
     const result = await getProductDetailsTool(args)
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    }
+  },
+)
+
+server.registerTool(
+  'get_product_reviews',
+  {
+    description:
+      "Fetch a FITGEAR product's customer reviews and rating summary by product id. Public read — returns a summary (count, averageRating, per-star distribution) plus each review (rating, comment, reviewerName, createdAt), or a clear not-found result if the product does not exist. Useful for including satisfaction signals in recommendations or analysis.",
+    inputSchema: {
+      productId: z.string().describe('Mongo ObjectId of the product'),
+      token: z
+        .string()
+        .optional()
+        .describe('Optional Clerk JWT bearer token for authenticated requests'),
+    },
+  },
+  async (args) => {
+    const result = await getProductReviewsTool(args)
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     }

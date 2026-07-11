@@ -4,6 +4,7 @@ import { ApiError } from '../api/apiClient'
 import { getProductById, getProducts } from '../api/fitgearApi'
 import { ProductCard } from '../components/ProductCard'
 import { ProductGallery } from '../components/product/ProductGallery'
+import { ProductReviews } from '../components/product/ProductReviews'
 import { ProductSizeSelector } from '../components/product/ProductSizeSelector'
 import { useCart } from '../context/CartContext'
 import type { Product, SizeLabel } from '../types'
@@ -299,6 +300,8 @@ export function ProductDetailPage() {
           </ul>
         </div>
       </section>
+
+      <ProductReviews productId={product.id} />
 
       {related.length > 0 ? (
         <section className="space-y-8">

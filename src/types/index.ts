@@ -103,3 +103,35 @@ export interface CartItemModel {
   /** Only set for products whose category requires sizes. */
   size?: SizeLabel
 }
+
+// HU-49: product reviews by verified purchasers.
+export interface ProductReview {
+  id: string
+  rating: number
+  comment: string | null
+  reviewerName: string
+  createdAt: string
+}
+
+export interface ProductReviewSummary {
+  count: number
+  /** Mean rating rounded to one decimal; 0 when there are no reviews. */
+  averageRating: number
+  /** How many reviews gave each star value (1..5). */
+  distribution: Record<'1' | '2' | '3' | '4' | '5', number>
+}
+
+// The signed-in viewer's review eligibility for a product (soft-auth flags on
+// the public reviews response). All false for anonymous visitors.
+export interface ProductReviewViewerState {
+  authenticated: boolean
+  purchased: boolean
+  hasReviewed: boolean
+  canReview: boolean
+}
+
+export interface ProductReviewsResponse {
+  summary: ProductReviewSummary
+  reviews: ProductReview[]
+  viewer: ProductReviewViewerState
+}

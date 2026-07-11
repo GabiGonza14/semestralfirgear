@@ -6,6 +6,7 @@ import type {
   OrderEvent,
   OrderStatus,
   Product,
+  ProductReviewsResponse,
   SizeLabel,
   UserRole,
 } from '../types'
@@ -309,6 +310,31 @@ export async function deleteProduct(id: string) {
 export async function getProductById(id: string) {
   const product = await apiRequest<MongoProduct>(`/products/${id}`, { method: 'GET' })
   return mapProduct(product)
+}
+
+/**
+ * HU-49: a product's reviews + rating summary. Public, but when the caller is a
+ * signed-in customer the apiClient attaches their token and the response also
+ * carries `viewer` eligibility flags (purchased / hasReviewed / canReview). The
+ * backend already returns display-ready shapes, so no mapping is needed.
+ */
+export async function getProductReviews(productId: string) {
+  return apiRequest<ProductReviewsResponse>(`/reviews/product/${productId}`, { method: 'GET' })
+}
+
+/**
+ * Submit a review for a product (HU-49). Requires a signed-in customer who has
+ * purchased it; the backend enforces both rules and returns the refreshed
+ * reviews payload (including the viewer's updated flags).
+ */
+export async function createProductReview(
+  productId: string,
+  payload: { rating: number; comment?: string },
+) {
+  return apiRequest<ProductReviewsResponse>(`/reviews/product/${productId}`, {
+    method: 'POST',
+    body: payload,
+  })
 }
 
 export async function syncClerkUser(payload: {
