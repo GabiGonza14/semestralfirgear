@@ -1,4 +1,5 @@
 import { formatCurrency } from '../../utils/format'
+import { isLowStock } from '../../lib/inventory'
 import type { Product } from '../../types'
 
 interface ProductTableProps {
@@ -58,17 +59,27 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                     )}
                   </td>
                   <td className="px-5 py-4">
-                    <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                        product.stock === 0
-                          ? 'bg-rose-500/15 text-rose-300 ring-1 ring-rose-400/30'
-                          : product.stock <= 5
-                            ? 'bg-amber-400/15 text-amber-300 ring-1 ring-amber-400/30'
-                            : 'bg-lime-400/15 text-lime-300 ring-1 ring-lime-400/30'
-                      }`}
-                    >
-                      {product.stock} unidades
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span
+                        className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+                          product.stock === 0
+                            ? 'bg-rose-500/15 text-rose-300 ring-1 ring-rose-400/30'
+                            : isLowStock(product)
+                              ? 'bg-amber-400/15 text-amber-300 ring-1 ring-amber-400/30'
+                              : 'bg-lime-400/15 text-lime-300 ring-1 ring-lime-400/30'
+                        }`}
+                      >
+                        {product.stock} unidades
+                      </span>
+                      {isLowStock(product) ? (
+                        <span className="inline-flex w-fit items-center gap-1 text-[11px] font-semibold text-amber-400">
+                          <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" aria-hidden>
+                            <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          Stock bajo (umbral {product.lowStockThreshold})
+                        </span>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="px-5 py-4">
                     <span

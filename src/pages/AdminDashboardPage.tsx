@@ -9,6 +9,7 @@ import { AdminOrdersSection } from '../components/admin/AdminOrdersSection'
 import { AdminUsersSection } from '../components/admin/AdminUsersSection'
 import { SummaryCard } from '../components/SummaryCard'
 import { useAuth } from '../context/AuthContext'
+import { isLowStock } from '../lib/inventory'
 import type { BackendOrder, BackendUser, Product } from '../types'
 import { formatCurrency, formatDate } from '../utils/format'
 
@@ -68,6 +69,13 @@ export function AdminDashboardPage() {
   const selectedOrder = useMemo(
     () => orders.find((order) => order.id === selectedOrderId) ?? null,
     [orders, selectedOrderId],
+  )
+
+  // HU-46: low-stock count derived from the products already loaded above (no
+  // extra fetch), using the same rule as the backend getLowStockProducts query.
+  const lowStockCount = useMemo(
+    () => products.filter((product) => isLowStock(product)).length,
+    [products],
   )
 
   // Reload orders and metrics after a refund (a refund removes the order from
@@ -138,12 +146,26 @@ export function AdminDashboardPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <SummaryCard label="Productos" value={`${metrics?.activeProductsCount ?? 0}`} trend="Activos en el catálogo" />
           <SummaryCard label="Órdenes" value={`${metrics?.ordersCount ?? 0}`} trend="En procesamiento" />
           <SummaryCard label="Usuarios" value={`${metrics?.usersCount ?? 0}`} trend="Registrados" />
           <SummaryCard label="Ingresos" value={formatCurrency(metrics?.totalRevenue ?? 0)} trend="Total de ventas" />
+          <SummaryCard label="Stock bajo" value={`${lowStockCount}`} trend="Productos por reabastecer" />
         </div>
+
+        {section === 'overview' && lowStockCount > 0 ? (
+          <div className="flex items-center gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+            <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span>
+              {lowStockCount === 1
+                ? '1 producto está en o por debajo de su umbral de stock. Revísalo en Inventario.'
+                : `${lowStockCount} productos están en o por debajo de su umbral de stock. Revísalos en Inventario.`}
+            </span>
+          </div>
+        ) : null}
 
         {loading ? (
           <p className="text-sm text-slate-300">Cargando panel de administración...</p>

@@ -28,6 +28,8 @@ export interface ProductUpsertInput {
   description: string
   price: number
   stock: number
+  /** HU-46: stock at-or-below this flags the product as low (default 5). */
+  lowStockThreshold: number
   /** Existing image URLs to keep (edit flow only — empty when creating). */
   existingImages: string[]
   /** New photos to upload — combined with existingImages, max 4 total. */
@@ -57,6 +59,7 @@ interface MongoProduct {
   description: string
   price: number
   stock: number
+  lowStockThreshold?: number
   images: string[]
   // Legacy field from before the `images` array existed. Some products in the
   // shared Atlas DB predate that migration and still carry this instead of a
@@ -147,6 +150,9 @@ function mapProduct(product: MongoProduct): Product {
     category: categoryName,
     price: product.price,
     stock: product.stock,
+    // Legacy products predating HU-46 have no threshold — fall back to the same
+    // default (5) the backend schema applies.
+    lowStockThreshold: product.lowStockThreshold ?? 5,
     image: images[0] ?? '',
     images,
     sizes: product.sizes ?? [],
@@ -167,6 +173,7 @@ function toProductFormData(payload: ProductUpsertInput) {
   formData.set('description', payload.description)
   formData.set('price', String(payload.price))
   formData.set('stock', String(payload.stock))
+  formData.set('lowStockThreshold', String(payload.lowStockThreshold))
   formData.set('categoryId', payload.categoryId)
   formData.set('isActive', String(payload.isActive))
   formData.set('hasDiscount', String(payload.hasDiscount))

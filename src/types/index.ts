@@ -14,6 +14,8 @@ export interface Product {
   category: string
   price: number
   stock: number
+  /** HU-46: stock at-or-below this flags the product as low (default 5). */
+  lowStockThreshold: number
   /** Cover image — always `images[0]`, kept for consumers that only need one photo. */
   image: string
   images: string[]

@@ -3,6 +3,7 @@ import { CategoryModel } from '../models/Category'
 import { ProductModel } from '../models/Product'
 import { HttpError } from '../utils/httpError'
 import { isLocalProductUploadPath, removeLocalUploadFile } from '../utils/uploadPaths'
+import { notifyAdminsOfLowStockCrossing } from './lowStockService'
 
 interface ProductSizeInput {
   label: string
@@ -20,6 +21,7 @@ interface ProductPayload {
   isActive?: boolean
   hasDiscount?: boolean
   discountPercentage?: number
+  lowStockThreshold?: number
 }
 
 async function resolveCategoryOrThrow(categoryId: string) {
@@ -197,6 +199,10 @@ export async function createProduct(payload: ProductPayload) {
     description: payload.description,
     price: payload.price,
     stock,
+    // Omit when undefined so the schema default (5) applies.
+    ...(payload.lowStockThreshold !== undefined
+      ? { lowStockThreshold: payload.lowStockThreshold }
+      : {}),
     images: payload.images ?? [],
     sizes,
     categoryId: payload.categoryId,
@@ -269,6 +275,9 @@ export async function updateProduct(id: string, payload: ProductPayload) {
   if (payload.isActive !== undefined) {
     updateFields.isActive = payload.isActive
   }
+  if (payload.lowStockThreshold !== undefined) {
+    updateFields.lowStockThreshold = payload.lowStockThreshold
+  }
 
   const hasDiscount = payload.hasDiscount ?? product.hasDiscount
   const discountPercentage = payload.discountPercentage ?? product.discountPercentage
@@ -292,6 +301,20 @@ export async function updateProduct(id: string, payload: ProductPayload) {
   }
 
   await removeUploadedImages(removedImages)
+
+  // HU-46: an admin edit (including the update_stock MCP tool) can drop stock
+  // past the threshold. Compare the pre-update stock against the new stock/
+  // threshold and email admins only on the downward crossing. Fire-and-forget —
+  // never let alerting affect the update result.
+  void notifyAdminsOfLowStockCrossing(
+    {
+      id: String(updated._id),
+      name: updated.name,
+      stock: updated.stock,
+      lowStockThreshold: updated.lowStockThreshold,
+    },
+    product.stock,
+  )
 
   return updated
 }

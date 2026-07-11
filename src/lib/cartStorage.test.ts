@@ -10,6 +10,7 @@ function makeProduct(overrides: Partial<Product> = {}): Product {
     category: 'Cat',
     price: 10,
     stock: 5,
+    lowStockThreshold: 5,
     image: '/img.png',
     images: ['/img.png'],
     sizes: [],
