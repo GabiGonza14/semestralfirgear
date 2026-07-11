@@ -97,6 +97,21 @@ export interface OrderEvent {
   createdAt: string
 }
 
+// HU-52: the kind of entity an admin action targeted.
+export type AuditEntityType = 'ORDER' | 'USER' | 'PRODUCT' | 'CATEGORY'
+
+// HU-52: one record in the cross-entity admin-action audit trail.
+export interface AuditLogEntry {
+  id: string
+  actorClerkId?: string
+  actorEmail?: string
+  action: string
+  entityType: AuditEntityType
+  entityId?: string
+  changes?: Record<string, unknown>
+  createdAt: string
+}
+
 export interface CartItemModel {
   product: Product
   quantity: number

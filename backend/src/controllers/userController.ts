@@ -1,5 +1,6 @@
 import type { Context } from 'hono'
 import type { AppEnv } from '../app'
+import { recordAuditAction } from '../services/auditLogService'
 import { getUserByEmail, getUserById, listUsers, syncClerkUser } from '../services/userService'
 import { setUserActive, updateUserRole } from '../services/userAdminService'
 import { HttpError } from '../utils/httpError'
@@ -29,6 +30,13 @@ export const updateUserRoleController = async (c: Context<AppEnv>) => {
     throw new HttpError(401, 'No se proporcionó token de autenticación')
   }
   const user = await updateUserRole(actorClerkId, id, role)
+  await recordAuditAction({
+    actorClerkId,
+    action: 'USER_ROLE_CHANGED',
+    entityType: 'USER',
+    entityId: id,
+    changes: { role },
+  })
   return c.json(user, 200)
 }
 
@@ -40,6 +48,13 @@ export const updateUserStatusController = async (c: Context<AppEnv>) => {
     throw new HttpError(401, 'No se proporcionó token de autenticación')
   }
   const user = await setUserActive(actorClerkId, id, isActive)
+  await recordAuditAction({
+    actorClerkId,
+    action: 'USER_STATUS_CHANGED',
+    entityType: 'USER',
+    entityId: id,
+    changes: { isActive },
+  })
   return c.json(user, 200)
 }
 

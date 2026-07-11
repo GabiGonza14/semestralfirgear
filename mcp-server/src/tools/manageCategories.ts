@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { requireAuthStrict } from '../../../backend/src/middlewares/requireAuth'
 import { UserModel } from '../../../backend/src/models/User'
+import { recordAuditAction } from '../../../backend/src/services/auditLogService'
 import {
   createCategory,
   deleteCategory,
@@ -95,6 +96,13 @@ export async function manageCategoriesTool(raw: unknown): Promise<ManageCategori
           description: input.description,
           requiresSizes: input.requiresSizes,
         })) as unknown as RawCategory
+        await recordAuditAction({
+          actorClerkId: clerkUserId,
+          action: 'CATEGORY_CREATED',
+          entityType: 'CATEGORY',
+          entityId: String(category._id),
+          changes: { name: category.name, requiresSizes: category.requiresSizes, via: 'mcp:manage_categories' },
+        })
         return { action: 'create', ok: true, category: mapCategory(category) }
       }
       case 'update': {
@@ -110,10 +118,24 @@ export async function manageCategoriesTool(raw: unknown): Promise<ManageCategori
           description: input.description,
           requiresSizes: input.requiresSizes,
         })) as unknown as RawCategory
+        await recordAuditAction({
+          actorClerkId: clerkUserId,
+          action: 'CATEGORY_UPDATED',
+          entityType: 'CATEGORY',
+          entityId: input.id,
+          changes: { name: category.name, requiresSizes: category.requiresSizes, via: 'mcp:manage_categories' },
+        })
         return { action: 'update', ok: true, category: mapCategory(category) }
       }
       case 'delete': {
         await deleteCategory(input.id)
+        await recordAuditAction({
+          actorClerkId: clerkUserId,
+          action: 'CATEGORY_DELETED',
+          entityType: 'CATEGORY',
+          entityId: input.id,
+          changes: { via: 'mcp:manage_categories' },
+        })
         return { action: 'delete', ok: true, id: input.id }
       }
     }

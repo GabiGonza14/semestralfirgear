@@ -1,4 +1,11 @@
-type AdminSection = 'overview' | 'inventory' | 'categories' | 'orders' | 'users' | 'reviews'
+type AdminSection =
+  | 'overview'
+  | 'inventory'
+  | 'categories'
+  | 'orders'
+  | 'users'
+  | 'reviews'
+  | 'audit'
 
 interface AdminSidebarProps {
   active: AdminSection
@@ -12,6 +19,7 @@ const sections: AdminSection[] = [
   'orders',
   'users',
   'reviews',
+  'audit',
 ]
 
 const sectionLabels: Record<AdminSection, string> = {
@@ -21,6 +29,7 @@ const sectionLabels: Record<AdminSection, string> = {
   orders: 'Ordenes',
   users: 'Usuarios',
   reviews: 'Reseñas',
+  audit: 'Auditoria',
 }
 
 export function AdminSidebar({ active, onChange }: AdminSidebarProps) {

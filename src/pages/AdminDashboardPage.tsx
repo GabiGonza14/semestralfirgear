@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { getAdminMetrics, getOrders, getProducts, getUsers, type AdminMetrics } from '../api/fitgearApi'
 import { AdminSidebar } from '../components/AdminSidebar'
+import { AdminAuditSection } from '../components/admin/AdminAuditSection'
 import { AdminCategoriesSection } from '../components/admin/AdminCategoriesSection'
 import { AdminInventorySection } from '../components/admin/AdminInventorySection'
 import { AdminOrderDetailModal } from '../components/admin/AdminOrderDetailModal'
@@ -14,7 +15,14 @@ import { isLowStock } from '../lib/inventory'
 import type { BackendOrder, BackendUser, Product } from '../types'
 import { formatCurrency, formatDate } from '../utils/format'
 
-type AdminSection = 'overview' | 'inventory' | 'categories' | 'orders' | 'users' | 'reviews'
+type AdminSection =
+  | 'overview'
+  | 'inventory'
+  | 'categories'
+  | 'orders'
+  | 'users'
+  | 'reviews'
+  | 'audit'
 
 export function AdminDashboardPage() {
   const [section, setSection] = useState<AdminSection>('overview')
@@ -191,6 +199,8 @@ export function AdminDashboardPage() {
         {section === 'categories' ? <AdminCategoriesSection /> : null}
 
         {section === 'reviews' ? <AdminReviewsSection /> : null}
+
+        {section === 'audit' ? <AdminAuditSection /> : null}
 
         {(section === 'overview' || section === 'orders') && (
           <AdminOrdersSection

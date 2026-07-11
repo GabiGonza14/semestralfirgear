@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 import { connectDatabase } from '../../backend/src/config/db'
+import { getAuditLogTool } from './tools/getAuditLog'
 import { getLowStockAlertsTool } from './tools/getLowStockAlerts'
 import { getOrderStatusTool } from './tools/getOrderStatus'
 import { getProductDetailsTool } from './tools/getProductDetails'
@@ -255,6 +256,38 @@ server.registerTool(
   },
   async (args) => {
     const result = await manageCategoriesTool(args)
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    }
+  },
+)
+
+server.registerTool(
+  'get_audit_log',
+  {
+    description:
+      'Query the FITGEAR admin-action audit trail (HU-52) for compliance reporting and detecting suspicious activity. Returns records newest-first — each with the acting admin (actorClerkId, actorEmail), action, entityType, entityId, changes and createdAt. Admin-only — requires a valid Clerk JWT whose user has the ADMIN role. Optional filters: action, actor (Clerk id or email), entityType, dateFrom, dateTo (YYYY-MM-DD), and limit (1–200, default 100).',
+    inputSchema: {
+      token: z.string().describe('Clerk JWT bearer token of the requesting admin (required)'),
+      action: z
+        .string()
+        .optional()
+        .describe("Exact action type, e.g. 'ORDER_STATUS_CHANGED', 'PRODUCT_UPDATED'"),
+      actor: z
+        .string()
+        .optional()
+        .describe('Filter by acting admin: their Clerk id or email (case-insensitive match)'),
+      entityType: z
+        .enum(['ORDER', 'USER', 'PRODUCT', 'CATEGORY'])
+        .optional()
+        .describe('Filter by the kind of entity the action targeted'),
+      dateFrom: z.string().optional().describe('Inclusive start of the date range (YYYY-MM-DD)'),
+      dateTo: z.string().optional().describe('Inclusive end of the date range (YYYY-MM-DD)'),
+      limit: z.number().optional().describe('Max records to return (1–200, default 100)'),
+    },
+  },
+  async (args) => {
+    const result = await getAuditLogTool(args)
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     }

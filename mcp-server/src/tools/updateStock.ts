@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { requireAuthStrict } from '../../../backend/src/middlewares/requireAuth'
 import { UserModel } from '../../../backend/src/models/User'
+import { recordAuditAction } from '../../../backend/src/services/auditLogService'
 import { updateProduct } from '../../../backend/src/services/productService'
 import { HttpError } from '../../../backend/src/utils/httpError'
 
@@ -66,6 +67,15 @@ export async function updateStockTool(raw: unknown): Promise<UpdateStockResult> 
 
   try {
     const product = await updateProduct(input.productId, payload)
+    // HU-52: record the admin action in the audit trail (same trail the REST
+    // admin actions write to), so MCP-driven stock changes are traceable too.
+    await recordAuditAction({
+      actorClerkId: clerkUserId,
+      action: 'PRODUCT_STOCK_UPDATED',
+      entityType: 'PRODUCT',
+      entityId: input.productId,
+      changes: { stock: product.stock, sizes: product.sizes, via: 'mcp:update_stock' },
+    })
     return {
       found: true,
       id: String(product._id),

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { requireAuthStrict } from '../../../backend/src/middlewares/requireAuth'
 import { UserModel } from '../../../backend/src/models/User'
+import { recordAuditAction } from '../../../backend/src/services/auditLogService'
 import { updateOrderStatus } from '../../../backend/src/services/orderService'
 import { HttpError } from '../../../backend/src/utils/httpError'
 import { ORDER_LIFECYCLE_STATUSES } from '../../../backend/src/utils/orderStatus'
@@ -51,6 +52,15 @@ export async function updateOrderStatusTool(raw: unknown): Promise<UpdateOrderSt
     await updateOrderStatus(input.orderId, input.status, {
       actorClerkId: clerkUserId,
       trackingNumber: input.trackingNumber,
+    })
+    // HU-52: record the admin action in the audit trail so MCP-driven status
+    // changes are traceable alongside the ones made from the panel.
+    await recordAuditAction({
+      actorClerkId: clerkUserId,
+      action: 'ORDER_STATUS_CHANGED',
+      entityType: 'ORDER',
+      entityId: input.orderId,
+      changes: { status: input.status, trackingNumber: input.trackingNumber, via: 'mcp:update_order_status' },
     })
     // The transition succeeded, so the order is now in the requested status.
     return { ok: true, orderId: input.orderId, status: input.status }

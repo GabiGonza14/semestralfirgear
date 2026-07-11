@@ -1,5 +1,6 @@
 import type { Context } from 'hono'
 import type { AppEnv } from '../app'
+import { recordAuditAction } from '../services/auditLogService'
 import {
   cancelOrder,
   createOrder,
@@ -50,6 +51,13 @@ export const shipOrderController = async (c: Context<AppEnv>) => {
   const { trackingNumber } = c.get('validatedBody') as { trackingNumber?: string }
   const actorClerkId = c.get('userId')
   const order = await markOrderAsShipped(id, trackingNumber, actorClerkId)
+  await recordAuditAction({
+    actorClerkId,
+    action: 'ORDER_SHIPPED',
+    entityType: 'ORDER',
+    entityId: id,
+    changes: { status: 'SHIPPED', trackingNumber },
+  })
   return c.json(order, 200)
 }
 
@@ -61,6 +69,13 @@ export const updateOrderStatusController = async (c: Context<AppEnv>) => {
   }
   const actorClerkId = c.get('userId')
   const order = await updateOrderStatus(id, status, { actorClerkId, trackingNumber })
+  await recordAuditAction({
+    actorClerkId,
+    action: 'ORDER_STATUS_CHANGED',
+    entityType: 'ORDER',
+    entityId: id,
+    changes: { status, trackingNumber },
+  })
   return c.json(order, 200)
 }
 
@@ -75,6 +90,13 @@ export const refundOrderController = async (c: Context<AppEnv>) => {
   const { reason } = c.get('validatedBody') as { reason?: string }
   const actorClerkId = c.get('userId')
   await refundOrder(id, { reason, actorClerkId })
+  await recordAuditAction({
+    actorClerkId,
+    action: 'ORDER_REFUNDED',
+    entityType: 'ORDER',
+    entityId: id,
+    changes: { status: 'REFUNDED', reason },
+  })
   // Return the refreshed order with items so the admin UI reflects REFUNDED.
   const order = await getOrderById(id)
   return c.json(order, 200)

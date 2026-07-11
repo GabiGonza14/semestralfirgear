@@ -1,6 +1,8 @@
 import { apiRequest } from './apiClient'
 import type {
   AdminReview,
+  AuditEntityType,
+  AuditLogEntry,
   BackendOrder,
   BackendOrderItem,
   BackendUser,
@@ -129,6 +131,17 @@ interface MongoOrderEvent {
   actorClerkId?: string
   reason?: string
   metadata?: Record<string, unknown>
+  createdAt: string
+}
+
+interface MongoAuditLog {
+  _id: string
+  actorClerkId?: string
+  actorEmail?: string
+  action: string
+  entityType: AuditEntityType
+  entityId?: string
+  changes?: Record<string, unknown>
   createdAt: string
 }
 
@@ -430,6 +443,48 @@ export interface AdminMetrics {
  */
 export async function getAdminMetrics() {
   return apiRequest<AdminMetrics>('/admin/metrics', { method: 'GET' })
+}
+
+function mapAuditLog(entry: MongoAuditLog): AuditLogEntry {
+  return {
+    id: entry._id,
+    actorClerkId: entry.actorClerkId,
+    actorEmail: entry.actorEmail,
+    action: entry.action,
+    entityType: entry.entityType,
+    entityId: entry.entityId,
+    changes: entry.changes,
+    createdAt: entry.createdAt,
+  }
+}
+
+export interface AuditLogFilters {
+  action?: string
+  actor?: string
+  entityType?: AuditEntityType
+  dateFrom?: string
+  dateTo?: string
+  limit?: number
+}
+
+/**
+ * HU-52: read-only admin-action audit trail (GET /api/admin/audit), newest
+ * first. Admin-only: the backend returns 403 for a CUSTOMER token. Optional
+ * filters by action, actor (Clerk id or email) and createdAt date range.
+ */
+export async function getAuditLog(filters: AuditLogFilters = {}) {
+  const events = await apiRequest<MongoAuditLog[]>('/admin/audit', {
+    method: 'GET',
+    query: {
+      action: filters.action,
+      actor: filters.actor,
+      entityType: filters.entityType,
+      dateFrom: filters.dateFrom,
+      dateTo: filters.dateTo,
+      limit: filters.limit,
+    },
+  })
+  return events.map(mapAuditLog)
 }
 
 export async function getOrders() {
