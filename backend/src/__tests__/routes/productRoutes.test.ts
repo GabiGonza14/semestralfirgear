@@ -10,6 +10,10 @@ mock.module('../../services/productService', () => ({
   createProduct: async () => ({ _id: '1', name: 'Producto de prueba' }),
   updateProduct: async () => ({ _id: '1', name: 'Producto de prueba' }),
   deleteProduct: async () => undefined,
+  // HU-51: productController now imports suggestProducts — the mock must expose
+  // it (ESM would otherwise throw "export not found" for the whole run).
+  suggestProducts: async (search: string) =>
+    search.trim().length >= 2 ? [{ id: '1', name: 'Producto de prueba', imageUrl: '' }] : [],
 }))
 
 const { productRouter } = await import('../../routes/productRoutes')
@@ -35,6 +39,14 @@ describe('productRoutes — public catalog vs protected admin writes', () => {
   it('GET /products/:id (catalog) works without an Authorization header', async () => {
     const res = await testApp.request(`/products/${VALID_ID}`)
     expect(res.status).toBe(200)
+  })
+
+  it('GET /products/suggestions (HU-51) is public and returns suggestions (routed before /:id)', async () => {
+    const res = await testApp.request('/products/suggestions?search=pro')
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as Array<{ id: string; name: string; imageUrl: string }>
+    expect(Array.isArray(body)).toBe(true)
+    expect(body[0]).toMatchObject({ id: '1', name: 'Producto de prueba' })
   })
 
   it('POST /products (admin write) is rejected with 401 without a token', async () => {

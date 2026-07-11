@@ -12,6 +12,10 @@ mock.module('../../../backend/src/services/productService', () => ({
   getProductById: mockGetProductById,
   listProducts: mock(async () => []),
   updateProduct: mock(async () => ({})),
+  // Bun's mock.module is global across the run; searchProducts.ts imports
+  // suggestProducts, so every productService mock must expose it or that tool's
+  // import throws "export not found" whenever this mock wins the global race.
+  suggestProducts: mock(async () => []),
 }))
 
 // requireAuth is a soft-auth — always resolves for public tools.

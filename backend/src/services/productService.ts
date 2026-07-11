@@ -177,6 +177,48 @@ export async function getProductById(id: string) {
   return product
 }
 
+// HU-51: search autocomplete. Minimum query length before suggestions kick in.
+export const SUGGESTION_MIN_CHARS = 2
+// AC: at most 5 suggestions.
+export const SUGGESTION_LIMIT = 5
+
+export interface ProductSuggestion {
+  id: string
+  name: string
+  imageUrl: string
+}
+
+/**
+ * HU-51: fast type-ahead suggestions for the catalog search bar. Optimised for
+ * the "<200ms" acceptance criterion — a lean, projected query (only the fields
+ * the dropdown renders), capped at 5 rows, with no category populate. Only
+ * active products are suggested, and a query shorter than SUGGESTION_MIN_CHARS
+ * returns nothing (the dropdown only opens from 2 characters).
+ */
+export async function suggestProducts(search: string): Promise<ProductSuggestion[]> {
+  const trimmed = search.trim()
+  if (trimmed.length < SUGGESTION_MIN_CHARS) {
+    return []
+  }
+
+  const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+  const docs = await ProductModel.find({
+    isActive: true,
+    name: { $regex: escaped, $options: 'i' },
+  })
+    .select('name images')
+    .sort({ name: 1 })
+    .limit(SUGGESTION_LIMIT)
+    .lean()
+
+  return docs.map((product) => ({
+    id: String(product._id),
+    name: product.name,
+    imageUrl: product.images?.[0] ?? '',
+  }))
+}
+
 export async function createProduct(payload: ProductPayload) {
   if (!payload.categoryId) {
     throw new HttpError(400, 'Validation failed', [

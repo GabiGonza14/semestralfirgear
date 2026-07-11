@@ -20,6 +20,9 @@ mock.module('../../../backend/src/services/productService', () => ({
   listProducts: mockListProducts,
   getProductById: mock(async () => ({})),
   updateProduct: mock(async () => ({})),
+  // Global mock.module: searchProducts.ts imports suggestProducts, so keep it
+  // here too or that tool's import breaks when this mock wins the run.
+  suggestProducts: mock(async () => []),
 }))
 
 mock.module('../../../backend/src/services/userService', () => ({

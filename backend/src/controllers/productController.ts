@@ -6,6 +6,7 @@ import {
   getProductById,
   listProducts,
   type ProductQuery,
+  suggestProducts,
   updateProduct,
 } from '../services/productService'
 
@@ -13,6 +14,13 @@ export const getProducts = async (c: Context<AppEnv>) => {
   const query = (c.get('validatedQuery') ?? c.req.query()) as ProductQuery
   const products = await listProducts(query)
   return c.json(products, 200)
+}
+
+// HU-51: type-ahead suggestions for the catalog search bar.
+export const getProductSuggestions = async (c: Context<AppEnv>) => {
+  const { search } = c.get('validatedQuery') as { search?: string }
+  const suggestions = await suggestProducts(search ?? '')
+  return c.json(suggestions, 200)
 }
 
 export const getProduct = async (c: Context<AppEnv>) => {

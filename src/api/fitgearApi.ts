@@ -8,6 +8,7 @@ import type {
   OrderStatus,
   Product,
   ProductReviewsResponse,
+  ProductSuggestion,
   ReviewModerationAction,
   ReviewStatus,
   SizeLabel,
@@ -313,6 +314,21 @@ export async function deleteProduct(id: string) {
 export async function getProductById(id: string) {
   const product = await apiRequest<MongoProduct>(`/products/${id}`, { method: 'GET' })
   return mapProduct(product)
+}
+
+/**
+ * HU-51: type-ahead catalog suggestions (up to 5). The backend returns the
+ * stored image path; resolve it to a full URL here, same as mapProduct does.
+ */
+export async function getProductSuggestions(search: string) {
+  const suggestions = await apiRequest<ProductSuggestion[]>('/products/suggestions', {
+    method: 'GET',
+    query: { search },
+  })
+  return suggestions.map((suggestion) => ({
+    ...suggestion,
+    imageUrl: suggestion.imageUrl ? resolveMediaUrl(suggestion.imageUrl) : '',
+  }))
 }
 
 /**

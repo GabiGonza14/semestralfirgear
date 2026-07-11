@@ -4,8 +4,8 @@ import { gsap, useGSAP, prefersReducedMotion } from '../lib/gsap'
 import { ApiError } from '../api/apiClient'
 import { getCategories, getProducts } from '../api/fitgearApi'
 import { CategoryFilter } from '../components/CategoryFilter'
+import { ProductAutocomplete } from '../components/ProductAutocomplete'
 import { ProductCard } from '../components/ProductCard'
-import { SearchBar } from '../components/SearchBar'
 import { categories as fallbackCategoryNames } from '../data/categories'
 import { products as fallbackProducts } from '../data/products'
 import type { Product } from '../types'
@@ -349,7 +349,7 @@ export function ShopPage() {
 
       {/* Toolbar */}
       <div className="space-y-5 rounded-3xl border border-white/[0.08] bg-slate-900/60 p-5 sm:p-6">
-        <SearchBar value={query} onChange={setQuery} />
+        <ProductAutocomplete value={query} onChange={setQuery} />
 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <CategoryFilter

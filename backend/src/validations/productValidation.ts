@@ -139,3 +139,14 @@ export const productQuerySchema = z.object({
     .transform((value) => value === 'true')
     .optional(),
 })
+
+// HU-51: query for the autocomplete suggestions endpoint. Just the search text
+// (sanitized); the service enforces the 2-char minimum and the 5-item cap.
+export const productSuggestQuerySchema = z.object({
+  search: z
+    .string()
+    .trim()
+    .max(200, 'search cannot exceed 200 characters')
+    .transform(stripHtml)
+    .optional(),
+})

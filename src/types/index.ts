@@ -104,6 +104,13 @@ export interface CartItemModel {
   size?: SizeLabel
 }
 
+// HU-51: a lightweight catalog search suggestion (autocomplete dropdown).
+export interface ProductSuggestion {
+  id: string
+  name: string
+  imageUrl: string
+}
+
 // HU-49: product reviews by verified purchasers.
 export interface ProductReview {
   id: string

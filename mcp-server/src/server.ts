@@ -26,7 +26,7 @@ server.registerTool(
   'search_products',
   {
     description:
-      'Search the FITGEAR product catalog. Returns a compact list of active products filtered by text, category, and/or sort order. Mirrors the shop UI filters.',
+      'Search the FITGEAR product catalog. Returns a compact list of active products filtered by text, category, and/or sort order. Mirrors the shop UI filters. Pass autocomplete:true for fast type-ahead suggestions (up to 5 lightweight {id, name, imageUrl} entries) — for real-time search assistance.',
     inputSchema: {
       search: z.string().optional().describe('Free-text search on product name'),
       categoryId: z.string().optional().describe('Filter by category ObjectId'),
@@ -36,6 +36,12 @@ server.registerTool(
         .describe('Field to sort by (default: createdAt)'),
       sortOrder: z.enum(['asc', 'desc']).optional().describe('Sort direction (default: desc)'),
       limit: z.number().optional().describe('Max products to return (1–100, default 20)'),
+      autocomplete: z
+        .boolean()
+        .optional()
+        .describe(
+          'When true, return up to 5 lightweight type-ahead suggestions (id, name, imageUrl) instead of full product summaries. Requires at least 2 characters in `search`.',
+        ),
       token: z
         .string()
         .optional()
