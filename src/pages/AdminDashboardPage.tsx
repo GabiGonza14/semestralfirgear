@@ -18,7 +18,7 @@ type AdminSection = 'overview' | 'inventory' | 'categories' | 'orders' | 'users'
 export function AdminDashboardPage() {
   const [section, setSection] = useState<AdminSection>('overview')
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
-  const { isAdmin, backendUser } = useAuth()
+  const { isAdmin, backendUser, isLoaded: authLoaded } = useAuth()
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<BackendOrder[]>([])
@@ -99,6 +99,14 @@ export function AdminDashboardPage() {
     setProducts(productsData)
     setOrders(ordersData)
     setUsers(usersData)
+  }
+
+  if (!authLoaded) {
+    return (
+      <section className="space-y-6">
+        <p className="text-sm text-slate-300">Cargando panel de administración...</p>
+      </section>
+    )
   }
 
   if (!isAdmin) {

@@ -96,9 +96,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [isLoaded, user])
 
+  // Depends on `user`, not just `backendUser`: when `user` flips to null (sign
+  // out), `backendUser` isn't cleared until the effect above runs a render
+  // later — without this check, `role` would keep reporting the previous
+  // session's role for that one render. On a route like CustomerGuard's
+  // (isLoaded && isAdmin -> redirect to /admin), that stale true was enough
+  // to bounce a just-signed-out admin from "/" straight back to /admin.
   const role: UserRole | null = useMemo(() => {
+    if (!user) {
+      return null
+    }
     return backendUser?.role ?? null
-  }, [backendUser])
+  }, [backendUser, user])
 
   const value = useMemo(() => {
     return {

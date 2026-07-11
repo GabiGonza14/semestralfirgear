@@ -36,6 +36,7 @@ function SiteLayoutRoute() {
 function SiteChrome() {
   const location = useLocation()
   const isLanding = location.pathname === '/'
+  const isPostLogin = location.pathname === '/post-login'
   const { closeCart } = useCart()
 
   // Reset scroll on navigation (client-only; TanStack keeps the old position
@@ -51,7 +52,7 @@ function SiteChrome() {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
-      <Navbar />
+      {isPostLogin ? null : <Navbar />}
 
       {isLanding ? (
         // Landing owns its full-bleed dark sections end to end.
@@ -67,7 +68,7 @@ function SiteChrome() {
         </main>
       )}
 
-      <Footer />
+      {isPostLogin ? null : <Footer />}
       <CartDrawer />
     </div>
   )
