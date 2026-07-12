@@ -6,6 +6,7 @@ import { OrderEventModel } from '../models/OrderEvent'
 import { OrderItemModel } from '../models/OrderItem'
 import { OrderModel } from '../models/Order'
 import { ProductModel } from '../models/Product'
+import { UserModel } from '../models/User'
 import { HttpError } from '../utils/httpError'
 import { logger } from '../utils/logger'
 import { notifyAdminsOfLowStockCrossing } from './lowStockService'
@@ -288,6 +289,12 @@ export async function refundOrder(orderId: string, options: RefundOrderOptions =
     throw new HttpError(400, 'Only paid, shipped or delivered orders can be refunded')
   }
 
+  // A SHIPPED order is a real return (goods already left the warehouse), not
+  // a plain cancellation — require the admin to document why.
+  if (order.status === 'SHIPPED' && !options.reason?.trim()) {
+    throw new HttpError(400, 'A reason is required to refund an order that has already shipped')
+  }
+
   if (!order.stripePaymentIntentId) {
     throw new HttpError(400, 'Order has no Stripe payment to refund')
   }
@@ -313,12 +320,67 @@ export async function refundOrder(orderId: string, options: RefundOrderOptions =
   order.status = 'REFUNDED'
   order.refundedAt = new Date()
   order.stripeRefundId = refund.id
+  order.refundReason = options.reason
   await order.save()
 
+  await restoreOrderStock(orderId)
   await recordRefundHistory(order, refund.id, options)
   notifyCustomerRefund(order, order.totalAmount, options.reason)
 
   return order
+}
+
+// Mirrors the decrement applied at PENDING->PAID (applyStockDecrement) so a
+// refunded order's items become sellable again — otherwise stock taken by a
+// purchase never comes back once that purchase is cancelled/refunded.
+// Best-effort like recordRefundHistory: the money is already back with the
+// customer by this point, so a restore failure must not turn the request into
+// an error — it's logged loudly instead.
+async function restoreOrderStock(orderId: string) {
+  try {
+    const items = await OrderItemModel.find({ orderId }).select('productId quantity size')
+    for (const item of items) {
+      await restoreProductStock({
+        productId: item.productId.toString(),
+        quantity: item.quantity,
+        size: item.size ?? undefined,
+      })
+    }
+  } catch (error) {
+    logger.error('[refund] failed to restore stock', { orderId, error })
+  }
+}
+
+// Self-service window: a customer can cancel-and-refund WITHOUT admin
+// involvement only while the order is still PAID — nothing has shipped yet, so
+// there's no logistics to coordinate. Once SHIPPED, cancellation requires an
+// admin (via the admin refund flow).
+const SELF_REFUNDABLE_STATUS = 'PAID'
+
+/**
+ * Customer-facing self-cancel: verifies the caller owns the order, then runs
+ * the exact same Stripe refund as the admin path (refundOrder) — same
+ * atomicity, order-history entry and customer email — just restricted to
+ * PAID orders and gated by ownership instead of the ADMIN role.
+ */
+export async function selfRefundOrder(orderId: string, clerkUserId: string) {
+  const order = await OrderModel.findById(orderId).select('userId status')
+
+  if (!order) {
+    throw new HttpError(404, 'Order not found')
+  }
+
+  const user = await UserModel.findOne({ clerkUserId }).select('_id')
+
+  if (!user || order.userId.toString() !== user._id.toString()) {
+    throw new HttpError(403, 'You do not have access to this order')
+  }
+
+  if (order.status !== SELF_REFUNDABLE_STATUS) {
+    throw new HttpError(400, 'Only paid orders that have not shipped yet can be self-cancelled')
+  }
+
+  return refundOrder(orderId, { reason: 'Cancelado por el cliente', actorClerkId: clerkUserId })
 }
 
 // Best-effort history write: the money is already back with the customer, so a

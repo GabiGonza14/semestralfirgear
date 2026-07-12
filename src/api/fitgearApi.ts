@@ -123,6 +123,8 @@ interface MongoOrder {
   status: OrderStatus
   createdAt: string
   items: MongoOrderItem[]
+  shippedAt?: string
+  refundReason?: string
 }
 
 interface MongoOrderEvent {
@@ -255,6 +257,8 @@ function mapOrder(order: MongoOrder): BackendOrder {
     status: order.status,
     createdAt: order.createdAt,
     items: (order.items ?? []).map(mapOrderItem),
+    shippedAt: order.shippedAt,
+    refundReason: order.refundReason,
   }
 }
 
@@ -567,6 +571,15 @@ export async function cancelOrder(orderId: string) {
   return mapOrder(order)
 }
 
+// Customer self-service: cancel a PAID order, or approve a return on a
+// SHIPPED one — both auto-refund via Stripe without needing an admin.
+export async function selfRefundOrder(orderId: string) {
+  const order = await apiRequest<MongoOrder>(`/orders/${orderId}/self-refund`, {
+    method: 'POST',
+  })
+  return mapOrder(order)
+}
+
 function mapOrderEvent(event: MongoOrderEvent): OrderEvent {
   return {
     id: event._id,
@@ -608,10 +621,11 @@ export async function updateOrderStatus(
   orderId: string,
   status: OrderStatus,
   trackingNumber?: string,
+  reason?: string,
 ) {
   const order = await apiRequest<MongoOrder>(`/orders/${orderId}/status`, {
     method: 'PATCH',
-    body: { status, trackingNumber },
+    body: { status, trackingNumber, reason },
   })
   return mapOrder(order)
 }

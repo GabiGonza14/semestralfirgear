@@ -8,6 +8,7 @@ import {
   getOrders,
   getOrdersByUser,
   refundOrderController,
+  selfRefundOrderController,
   shipOrderController,
   updateOrderStatusController,
 } from '../controllers/orderController'
@@ -33,6 +34,11 @@ orderRouter.get('/user/:userId', validateParams(userIdParamSchema), getOrdersByU
 orderRouter.get('/:id', validateParams(idParamSchema), getOrder)
 orderRouter.post('/', validateBody(createOrderSchema), createOrderController)
 orderRouter.patch('/:id/cancel', validateParams(idParamSchema), cancelOrderController)
+
+// Customer self-service (ownership checked inside the controller/service, not
+// via requireAdminMiddleware): cancel a PAID order, or approve a return on a
+// SHIPPED one — both auto-refund via Stripe immediately.
+orderRouter.post('/:id/self-refund', validateParams(idParamSchema), selfRefundOrderController)
 
 // Shipping is an admin action (PAID -> SHIPPED) and emails the customer (HU-31).
 // The base router already requires a valid JWT; add the ADMIN role check here.

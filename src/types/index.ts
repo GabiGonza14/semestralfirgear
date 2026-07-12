@@ -84,6 +84,10 @@ export interface BackendOrder {
   status: OrderStatus
   createdAt: string
   items: BackendOrderItem[]
+  /** Set once an admin ships the order — absent means it never shipped. */
+  shippedAt?: string
+  /** Motivo del reembolso, si se escribió uno. Solo aplica a REFUNDED. */
+  refundReason?: string
 }
 
 // An entry in an order's audit history (HU-29), e.g. a refund.

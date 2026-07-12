@@ -45,10 +45,16 @@ export function AdminOrderDetailModal({ order, onClose, onUpdated }: AdminOrderD
   const [error, setError] = useState<string | null>(null)
   const [targetStatus, setTargetStatus] = useState<OrderStatus | ''>('')
   const [statusTracking, setStatusTracking] = useState('')
+  const [statusCancelReason, setStatusCancelReason] = useState('')
   const [updatingStatus, setUpdatingStatus] = useState(false)
 
   const isRefundable = REFUNDABLE_STATUSES.includes(order.status)
   const nextStatuses = STATUS_TRANSITIONS[order.status]
+  // A SHIPPED order is a real return (goods already left the warehouse), not a
+  // plain cancellation — the backend rejects the refund without a reason, so
+  // require it here too instead of letting the admin hit that error.
+  const reasonRequired = order.status === 'SHIPPED'
+  const canConfirmRefund = !refunding && (!reasonRequired || reason.trim().length > 0)
 
   const loadHistory = async () => {
     setLoadingHistory(true)
@@ -90,11 +96,17 @@ export function AdminOrderDetailModal({ order, onClose, onUpdated }: AdminOrderD
     setError(null)
 
     try {
-      // trackingNumber only matters when shipping.
+      // trackingNumber only matters when shipping; reason only matters when
+      // cancelling a still-PAID order (that path refunds instead of relabeling).
       const tracking = targetStatus === 'SHIPPED' ? statusTracking.trim() || undefined : undefined
-      await updateOrderStatus(order.id, targetStatus, tracking)
+      const cancelReason =
+        targetStatus === 'CANCELLED' && order.status === 'PAID'
+          ? statusCancelReason.trim() || undefined
+          : undefined
+      await updateOrderStatus(order.id, targetStatus, tracking, cancelReason)
       setTargetStatus('')
       setStatusTracking('')
+      setStatusCancelReason('')
       await onUpdated() // parent reloads orders -> this order reflects the new status
       await loadHistory() // reflect the STATUS_CHANGED event in the history panel
     } catch (statusError) {
@@ -214,6 +226,22 @@ export function AdminOrderDetailModal({ order, onClose, onUpdated }: AdminOrderD
                   <p className="text-xs text-slate-500">Se enviará un email de notificación al cliente.</p>
                 </>
               ) : null}
+              {targetStatus === 'CANCELLED' && order.status === 'PAID' ? (
+                <>
+                  <p className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
+                    Esta orden ya está pagada — cancelarla reembolsa el total al cliente por Stripe y
+                    repone el stock automáticamente. La orden quedará como "Devuelto", no "Cancelado".
+                  </p>
+                  <textarea
+                    value={statusCancelReason}
+                    onChange={(event) => setStatusCancelReason(event.target.value)}
+                    placeholder="Motivo de la cancelación (opcional)"
+                    rows={2}
+                    maxLength={500}
+                    className="w-full rounded-2xl border border-white/12 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-lime-400/50 focus:outline-none"
+                  />
+                </>
+              ) : null}
             </div>
           ) : (
             <p className="mt-2 text-sm text-slate-400">Esta orden no admite más cambios de estado.</p>
@@ -246,14 +274,25 @@ export function AdminOrderDetailModal({ order, onClose, onUpdated }: AdminOrderD
                   Vas a reembolsar <span className="font-semibold text-white">{formatCurrency(order.totalAmount)}</span> al
                   cliente. Esta acción no se puede deshacer.
                 </p>
-                <textarea
-                  value={reason}
-                  onChange={(event) => setReason(event.target.value)}
-                  placeholder="Motivo del reembolso (opcional)"
-                  rows={2}
-                  maxLength={500}
-                  className="w-full rounded-2xl border border-white/12 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-fuchsia-400/50 focus:outline-none"
-                />
+                <div>
+                  <textarea
+                    value={reason}
+                    onChange={(event) => setReason(event.target.value)}
+                    placeholder={
+                      reasonRequired
+                        ? 'Motivo del reembolso (obligatorio para órdenes enviadas)'
+                        : 'Motivo del reembolso (opcional)'
+                    }
+                    rows={2}
+                    maxLength={500}
+                    className="w-full rounded-2xl border border-white/12 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-fuchsia-400/50 focus:outline-none"
+                  />
+                  {reasonRequired ? (
+                    <p className="mt-1.5 text-xs text-amber-300">
+                      Esta orden ya fue enviada — es una devolución real, así que el motivo es obligatorio.
+                    </p>
+                  ) : null}
+                </div>
                 <div className="flex flex-wrap justify-end gap-3">
                   <button
                     type="button"
@@ -269,7 +308,7 @@ export function AdminOrderDetailModal({ order, onClose, onUpdated }: AdminOrderD
                   <button
                     type="button"
                     onClick={handleRefund}
-                    disabled={refunding}
+                    disabled={!canConfirmRefund}
                     className="rounded-full bg-fuchsia-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-fuchsia-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {refunding ? 'Procesando...' : 'Confirmar reembolso'}
