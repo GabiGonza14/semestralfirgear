@@ -6,6 +6,7 @@ import { CartProvider, useCart } from '../../src/context/CartContext'
 import { Navbar } from '../../src/components/Navbar'
 import { Footer } from '../../src/components/Footer'
 import { CartDrawer } from '../../src/components/cart/CartDrawer'
+import { ErrorBoundary } from '../../src/components/ErrorBoundary'
 import { queryClient } from '../../src/lib/queryClient'
 
 // Pathless layout route (migrated from src/layouts/SiteLayout.tsx): wraps every
@@ -77,8 +78,14 @@ function SiteChrome() {
         </main>
       ) : isLanding ? (
         // Landing owns its full-bleed dark sections end to end.
+        // HU-36: the ErrorBoundary wraps ONLY the routed page (<Outlet />), never
+        // Navbar/Footer (rendered as siblings below), so a page-level crash shows
+        // the fallback WITH the site chrome intact (criterion 3). resetKey lets it
+        // recover when the user navigates away via the still-mounted chrome.
         <main className="flex-1">
-          <Outlet />
+          <ErrorBoundary resetKey={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       ) : (
         // Every other page: contained, dark surface.
@@ -90,7 +97,9 @@ function SiteChrome() {
                 : 'mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10'
             }
           >
-            <Outlet />
+            <ErrorBoundary resetKey={location.pathname}>
+              <Outlet />
+            </ErrorBoundary>
           </div>
         </main>
       )}
