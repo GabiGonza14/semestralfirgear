@@ -52,8 +52,10 @@ describe('productRoutes — public catalog vs protected admin writes', () => {
   it('POST /products (admin write) is rejected with 401 without a token', async () => {
     const res = await testApp.request('/products', { method: 'POST' })
     expect(res.status).toBe(401)
-    const body = (await res.json()) as { message: string }
-    expect(body.message).toBe('No se proporcionó token de autenticación')
+    // HU-35: error envelope { error: { code, message, details } }.
+    const body = (await res.json()) as { error: { code: string; message: string } }
+    expect(body.error.code).toBe('UNAUTHORIZED')
+    expect(body.error.message).toBe('No se proporcionó token de autenticación')
   })
 
   it('PUT /products/:id (admin write) is rejected with 401 without a token', async () => {
@@ -80,8 +82,9 @@ describe('productRoutes — public catalog vs protected admin writes', () => {
         headers: { Authorization: 'Bearer not-a-real-jwt' },
       })
       expect(res.status).toBe(401)
-      const body = (await res.json()) as { message: string }
-      expect(body.message).toBe('Token de autenticación inválido o expirado')
+      const body = (await res.json()) as { error: { code: string; message: string } }
+      expect(body.error.code).toBe('UNAUTHORIZED')
+      expect(body.error.message).toBe('Token de autenticación inválido o expirado')
     } finally {
       env.clerkSecretKey = previousSecret
     }

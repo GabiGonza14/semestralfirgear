@@ -64,8 +64,10 @@ describe('RBAC integration — admin routes verified across roles', () => {
       currentRole = 'CUSTOMER'
       const res = await testApp.request('/admin/metrics', { headers: AUTH_HEADERS })
       expect(res.status).toBe(403)
-      const body = (await res.json()) as { message: string }
-      expect(body.message).toBe('Acceso denegado: se requiere rol de administrador')
+      // HU-35: error envelope { error: { code, message, details } }.
+      const body = (await res.json()) as { error: { code: string; message: string } }
+      expect(body.error.code).toBe('FORBIDDEN')
+      expect(body.error.message).toBe('Acceso denegado: se requiere rol de administrador')
     })
 
     it('returns 200 with dashboard metrics for an ADMIN', async () => {
