@@ -1,3 +1,4 @@
+import { useUser } from '@clerk/tanstack-react-start'
 import { Link } from '@tanstack/react-router'
 import { useCart } from '../context/CartContext'
 
@@ -15,6 +16,8 @@ const accountLinks = [
 
 export function Footer() {
   const { openCart } = useCart()
+  const { isSignedIn } = useUser()
+  const visibleAccountLinks = accountLinks.filter((link) => link.to !== '/orders' || isSignedIn)
 
   return (
     <footer className="bg-slate-950 border-t border-white/[0.06]">
@@ -31,36 +34,12 @@ export function Footer() {
               Accesorios fitness premium para quienes toman su entrenamiento en serio.
               Envios rapidos, calidad garantizada.
             </p>
-            <div className="mt-6 flex gap-3">
-              {/* TODO: reemplazar por <a href> al perfil social real. */}
-              <button
-                type="button"
-                aria-label="Instagram"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-slate-400 transition hover:border-lime-400/40 hover:text-lime-400"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="2" />
-                  <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
-                  <circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
-                </svg>
-              </button>
-              {/* TODO: reemplazar por <a href> al perfil social real. */}
-              <button
-                type="button"
-                aria-label="Twitter / X"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-slate-400 transition hover:border-lime-400/40 hover:text-lime-400"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
-              </button>
-            </div>
           </div>
 
           {/* Shop links */}
           <div>
             <h3 className="text-xs font-bold uppercase tracking-[0.18em] text-lime-400 mb-4">
-              Shop
+              Tienda
             </h3>
             <ul className="space-y-3">
               {shopLinks.map((link) => (
@@ -83,7 +62,7 @@ export function Footer() {
               Mi cuenta
             </h3>
             <ul className="space-y-3">
-              {accountLinks.map((link) => (
+              {visibleAccountLinks.map((link) => (
                 <li key={link.label}>
                   <Link
                     to={link.to}

@@ -202,7 +202,7 @@ export function CartDrawer() {
                   onClick={closeCart}
                   className="mt-1 inline-flex items-center gap-2 rounded-full bg-lime-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-lime-300"
                 >
-                  Ir al Shop
+                  Ir a la tienda
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
