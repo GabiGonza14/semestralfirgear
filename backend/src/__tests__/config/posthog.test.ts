@@ -44,6 +44,7 @@ const fakeEnv = {
 mock.module('../../config/env', () => ({ env: fakeEnv }))
 
 const { capturePostHogException } = await import('../../config/posthog')
+const { HttpError } = await import('../../utils/httpError')
 
 describe('capturePostHogException (HU-34)', () => {
   beforeEach(() => {
@@ -85,5 +86,41 @@ describe('capturePostHogException (HU-34)', () => {
     const error = new Error('kaboom')
     capturePostHogException(error, { method: 'GET', path: '/api/x', userId: null })
     expect(captureCalls[0]?.error).toBe(error)
+  })
+
+  // Acceptance criterion 1 says "excepciones no controladas" — a 4xx HttpError is
+  // the app working as designed (validation, not-found, conflict), not an
+  // unexpected failure, and must not flood Error Tracking with routine traffic.
+  it('does NOT capture a routine 400 HttpError (expected validation failure)', () => {
+    capturePostHogException(new HttpError(400, 'Validation failed'), {
+      method: 'POST',
+      path: '/api/products',
+      userId: 'user_123',
+    })
+    expect(captureCalls).toHaveLength(0)
+  })
+
+  it('does NOT capture a routine 404/409 HttpError (not-found, conflict)', () => {
+    capturePostHogException(new HttpError(404, 'Product not found'), { method: 'GET', path: '/api/x', userId: null })
+    capturePostHogException(new HttpError(409, 'Insufficient stock'), { method: 'POST', path: '/api/orders', userId: null })
+    expect(captureCalls).toHaveLength(0)
+  })
+
+  it('DOES capture a 5xx HttpError (a genuine backend failure, not routine)', () => {
+    capturePostHogException(new HttpError(500, 'Stripe webhook is not configured'), {
+      method: 'POST',
+      path: '/api/payments/webhook',
+      userId: null,
+    })
+    expect(captureCalls).toHaveLength(1)
+  })
+
+  it('DOES capture a plain (non-HttpError) exception', () => {
+    capturePostHogException(new TypeError('cannot read property of undefined'), {
+      method: 'GET',
+      path: '/api/x',
+      userId: null,
+    })
+    expect(captureCalls).toHaveLength(1)
   })
 })

@@ -1,6 +1,7 @@
 import { PostHog } from 'posthog-node'
 import { env } from './env'
 import { logger, sanitizeContext } from '../utils/logger'
+import { HttpError } from '../utils/httpError'
 
 // HU-34: backend PostHog client. Lazy singleton like getStripeClient(), but
 // GRACEFUL like the SendGrid handling: when POSTHOG_API_KEY is not configured this
@@ -35,6 +36,20 @@ export interface BackendExceptionContext {
   userId?: string | null
 }
 
+// Only genuinely unexpected failures are worth an Error Tracking entry
+// (acceptance criterion 1 says "excepciones no controladas"). A thrown
+// `HttpError` with a 4xx status is the app working as designed — validation
+// failures, not-found, conflicts, forbidden — already turned into a clean JSON
+// response by buildErrorResponse and already visible in the local structured
+// log. Sending every one of those to PostHog too would flood Error Tracking
+// with routine traffic (a customer overbuying stock, a typo in a form field)
+// and burn ingestion quota, defeating the point of criterion 4 (grouping real
+// errors so they're findable). A 5xx HttpError (rare, but possible) IS still a
+// genuine failure and gets captured.
+function isRoutineHttpError(error: unknown): boolean {
+  return error instanceof HttpError && error.statusCode < 500
+}
+
 // Sends an exception to PostHog Error Tracking with request context. Reuses the
 // structured logger's sanitizeContext (HU-32) so request-derived values (notably
 // `path`) are stripped of control chars and any sensitive keys are redacted before
@@ -42,6 +57,10 @@ export interface BackendExceptionContext {
 // what the local logs were already hardened against. Best-effort: never throws
 // back into the request path.
 export function capturePostHogException(error: unknown, context: BackendExceptionContext): void {
+  if (isRoutineHttpError(error)) {
+    return
+  }
+
   const client = getPostHogClient()
   if (!client) {
     return
