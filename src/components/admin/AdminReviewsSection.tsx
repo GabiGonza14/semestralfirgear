@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getReviewsForModeration, moderateReview } from '../../api/fitgearApi'
 import type { AdminReview, ReviewModerationAction, ReviewStatus } from '../../types'
 import { formatDate } from '../../utils/format'
 
 // Filter values: a concrete status, or ALL for the whole queue.
 type StatusFilter = ReviewStatus | 'ALL'
+
+const PAGE_SIZE = 20
 
 const FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'PENDING', label: 'Pendientes' },
@@ -45,6 +47,7 @@ export function AdminReviewsSection() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pendingId, setPendingId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
 
   // Reject flow: which review is being rejected, plus the reason text.
   const [rejectTarget, setRejectTarget] = useState<AdminReview | null>(null)
@@ -66,6 +69,18 @@ export function AdminReviewsSection() {
   useEffect(() => {
     void load()
   }, [load])
+
+  // Changing the status filter fetches a different queue — start back at page 1.
+  useEffect(() => {
+    setPage(1)
+  }, [filter])
+
+  const totalPages = Math.max(1, Math.ceil(reviews.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pagedReviews = useMemo(
+    () => reviews.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [reviews, currentPage],
+  )
 
   const runModeration = async (
     id: string,
@@ -133,7 +148,7 @@ export function AdminReviewsSection() {
         <p className="py-4 text-center text-sm text-slate-400">No hay reseñas en esta vista.</p>
       ) : (
         <ul className="space-y-3">
-          {reviews.map((review) => {
+          {pagedReviews.map((review) => {
             const isPending = pendingId === review.id
             const badge = STATUS_BADGE[review.status]
 
@@ -213,6 +228,32 @@ export function AdminReviewsSection() {
           })}
         </ul>
       )}
+
+      {totalPages > 1 ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
+          <span>
+            Página {currentPage} de {totalPages}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              disabled={currentPage === 1}
+              className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+              disabled={currentPage === totalPages}
+              className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Reject reason modal */}
       {rejectTarget ? (

@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Outlet, createFileRoute, useLocation } from '@tanstack/react-router'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { AuthProvider } from '../../src/context/AuthContext'
+import { AuthProvider, useAuth } from '../../src/context/AuthContext'
 import { CartProvider, useCart } from '../../src/context/CartContext'
 import { Navbar } from '../../src/components/Navbar'
 import { Footer } from '../../src/components/Footer'
@@ -37,6 +37,14 @@ function SiteChrome() {
   const location = useLocation()
   const isLanding = location.pathname === '/'
   const isPostLogin = location.pathname === '/post-login'
+  const isAdminPage = location.pathname.startsWith('/admin')
+  const { isLoaded: authLoaded, isAdmin } = useAuth()
+  // Admin role sync (backend) resolves after Clerk itself, so /admin briefly
+  // renders with no known role yet — and after a logout, isAdmin flips false
+  // a beat before ProtectedGuard's redirect actually navigates away. Both are
+  // transient: show just the logo instead of a full Navbar/Footer around an
+  // empty sidebar (or a flash of the "acceso denegado" card).
+  const isAdminBooting = isAdminPage && (!authLoaded || !isAdmin)
   const { closeCart } = useCart()
 
   // Reset scroll on navigation (client-only; TanStack keeps the old position
@@ -52,9 +60,22 @@ function SiteChrome() {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
-      {isPostLogin ? null : <Navbar />}
+      {isPostLogin || isAdminBooting ? null : <Navbar />}
 
-      {isLanding ? (
+      {isAdminBooting ? (
+        <main className="flex flex-1 items-center justify-center">
+          <span className="text-2xl font-black uppercase tracking-widest">
+            <span className="text-white">FIT</span>
+            <span className="text-lime-400">GEAR</span>
+          </span>
+          {/* Outlet stays mounted (just hidden) so ProtectedGuard's redirect
+              effect still runs — unmounting it here would strand the user on
+              this splash forever instead of bouncing them to /login or /shop. */}
+          <div className="hidden">
+            <Outlet />
+          </div>
+        </main>
+      ) : isLanding ? (
         // Landing owns its full-bleed dark sections end to end.
         <main className="flex-1">
           <Outlet />
@@ -62,13 +83,19 @@ function SiteChrome() {
       ) : (
         // Every other page: contained, dark surface.
         <main className="flex-1">
-          <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+          <div
+            className={
+              isAdminPage
+                ? 'w-full px-4 py-8 sm:px-6 lg:px-8 lg:py-10'
+                : 'mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10'
+            }
+          >
             <Outlet />
           </div>
         </main>
       )}
 
-      {isPostLogin ? null : <Footer />}
+      {isPostLogin || isAdminPage ? null : <Footer />}
       <CartDrawer />
     </div>
   )
