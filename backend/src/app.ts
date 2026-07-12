@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import path from 'node:path'
 import { env } from './config/env'
+import { capturePostHogException } from './config/posthog'
 import { stripeWebhookController } from './controllers/paymentController'
 import { accessLog } from './middlewares/accessLog'
 import { buildErrorResponse } from './middlewares/errorHandler'
@@ -75,6 +76,14 @@ app.onError((err, c) => {
     method: c.req.method,
     path: c.req.path,
     error: err,
+  })
+  // HU-34: also send to PostHog Error Tracking (cloud alerting), complementary to
+  // the local structured log above. userId is populated by the auth middleware on
+  // protected routes, null on public ones. Context is sanitized inside the helper.
+  capturePostHogException(err, {
+    method: c.req.method,
+    path: c.req.path,
+    userId: c.get('userId'),
   })
   return buildErrorResponse(err, c)
 })
