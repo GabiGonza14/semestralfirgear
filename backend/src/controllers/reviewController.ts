@@ -1,6 +1,7 @@
 import type { Context } from 'hono'
 import type { AppEnv } from '../app'
 import { requireAuth } from '../middlewares/requireAuth'
+import { recordAuditAction } from '../services/auditLogService'
 import {
   createReview,
   listProductReviews,
@@ -49,5 +50,12 @@ export const moderateReviewController = async (c: Context<AppEnv>) => {
   const { action, reason } = c.get('validatedBody') as { action: ModerationAction; reason?: string }
   const adminClerkId = c.get('userId')
   const result = await moderateReview(id, action, { adminClerkId, reason })
+  await recordAuditAction({
+    actorClerkId: adminClerkId,
+    action: 'REVIEW_STATUS_CHANGED',
+    entityType: 'REVIEW',
+    entityId: id,
+    changes: { status: result.status, reason: result.rejectionReason ?? undefined },
+  })
   return c.json(result, 200)
 }

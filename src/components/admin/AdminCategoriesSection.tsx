@@ -266,22 +266,30 @@ export function AdminCategoriesSection() {
                       </div>
 
                       <div className="flex shrink-0 items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleToggle(category)}
-                          disabled={togglingId === category.id}
-                          aria-pressed={category.requiresSizes}
-                          aria-label={`Requiere tallas: ${category.name}`}
-                          className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full transition disabled:opacity-50 ${
-                            category.requiresSizes ? 'bg-lime-400' : 'bg-white/15'
-                          }`}
+                        <div
+                          className="flex items-center gap-2"
+                          title="Si esta activo, el formulario de productos de esta categoria muestra el selector de tallas (XS - XXL) en vez del stock plano."
                         >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-slate-950 transition ${
-                              category.requiresSizes ? 'translate-x-6' : 'translate-x-1'
+                          <span className="hidden text-xs font-medium text-slate-400 sm:inline">
+                            Requiere talla
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggle(category)}
+                            disabled={togglingId === category.id}
+                            aria-pressed={category.requiresSizes}
+                            aria-label={`Requiere tallas: ${category.name}`}
+                            className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full transition disabled:opacity-50 ${
+                              category.requiresSizes ? 'bg-lime-400' : 'bg-white/15'
                             }`}
-                          />
-                        </button>
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-slate-950 transition ${
+                                category.requiresSizes ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </div>
 
                         <button
                           type="button"

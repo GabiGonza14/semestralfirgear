@@ -18,7 +18,7 @@ export const auditLogQuerySchema = z.object({
     .max(120)
     .optional()
     .transform((value) => (value ? value : undefined)),
-  entityType: z.enum(['ORDER', 'USER', 'PRODUCT', 'CATEGORY']).optional(),
+  entityType: z.enum(['ORDER', 'USER', 'PRODUCT', 'CATEGORY', 'REVIEW']).optional(),
   // Inclusive date range. Accepts any Date-parseable string (e.g. an <input
   // type="date"> "YYYY-MM-DD"); an unparseable value is rejected with 400.
   dateFrom: z

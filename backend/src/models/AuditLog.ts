@@ -28,7 +28,7 @@ const auditLogSchema = new Schema(
     // The kind of entity the action targeted.
     entityType: {
       type: String,
-      enum: ['ORDER', 'USER', 'PRODUCT', 'CATEGORY'],
+      enum: ['ORDER', 'USER', 'PRODUCT', 'CATEGORY', 'REVIEW'],
       required: true,
       index: true,
     },

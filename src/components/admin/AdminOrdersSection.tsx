@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { BackendOrder, OrderStatus } from '../../types'
 import { formatCurrency, formatDate } from '../../utils/format'
 import { ORDER_STATUS_META, ORDER_STATUS_ORDER } from '../../utils/orderStatusStyle'
@@ -15,6 +15,7 @@ interface AdminOrdersSectionProps {
 }
 
 const OVERVIEW_LIMIT = 5
+const PAGE_SIZE = 30
 
 type StatusFilter = OrderStatus | 'ALL'
 
@@ -34,6 +35,7 @@ export function AdminOrdersSection({
   onViewAll,
 }: AdminOrdersSectionProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
+  const [page, setPage] = useState(1)
   const isOverview = variant === 'overview'
 
   // Count per status, for the filter chips and their badges.
@@ -53,6 +55,20 @@ export function AdminOrdersSection({
       ? orders
       : orders.filter((order) => order.status === statusFilter)
   }, [orders, isOverview, statusFilter])
+
+  // Status filter changes can shrink the result set below the current page.
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter])
+
+  const totalPages = Math.max(1, Math.ceil(visibleOrders.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pagedOrders = useMemo(() => {
+    if (isOverview) {
+      return visibleOrders
+    }
+    return visibleOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  }, [visibleOrders, isOverview, currentPage])
 
   // In the full view, only offer chips for statuses that actually occur.
   const availableStatuses = ORDER_STATUS_ORDER.filter((status) => (counts.get(status) ?? 0) > 0)
@@ -137,7 +153,7 @@ export function AdminOrdersSection({
                 </td>
               </tr>
             ) : (
-              visibleOrders.map((order) => (
+              pagedOrders.map((order) => (
                 <tr
                   key={order.id}
                   onClick={() => onSelectOrder(order.id)}
@@ -175,6 +191,32 @@ export function AdminOrdersSection({
           </tbody>
         </table>
       </div>
+
+      {!isOverview && visibleOrders.length > 0 ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
+          <span>
+            Página {currentPage} de {totalPages}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              disabled={currentPage === 1}
+              className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+              disabled={currentPage === totalPages}
+              className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

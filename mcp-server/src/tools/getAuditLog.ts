@@ -11,7 +11,7 @@ export const getAuditLogInputSchema = z.object({
   token: z.string().min(1, 'token is required'),
   action: z.string().trim().max(64).optional(),
   actor: z.string().trim().max(120).optional(),
-  entityType: z.enum(['ORDER', 'USER', 'PRODUCT', 'CATEGORY']).optional(),
+  entityType: z.enum(['ORDER', 'USER', 'PRODUCT', 'CATEGORY', 'REVIEW']).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   limit: z.number().int().min(1).max(200).optional(),

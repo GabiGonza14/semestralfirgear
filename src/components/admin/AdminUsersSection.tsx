@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { updateUserRole, updateUserStatus } from '../../api/fitgearApi'
 import type { BackendUser, UserRole } from '../../types'
 import { formatDate } from '../../utils/format'
@@ -10,11 +10,21 @@ interface AdminUsersSectionProps {
   onRefresh: () => Promise<void>
 }
 
+const PAGE_SIZE = 20
+
 export function AdminUsersSection({ users, currentUserId, onRefresh }: AdminUsersSectionProps) {
   // Tracks which user row currently has an in-flight mutation, to disable its
   // controls and avoid double submits.
   const [pendingId, setPendingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+
+  const totalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pagedUsers = useMemo(
+    () => users.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [users, currentPage],
+  )
 
   const runMutation = async (userId: string, action: () => Promise<unknown>) => {
     setPendingId(userId)
@@ -68,7 +78,7 @@ export function AdminUsersSection({ users, currentUserId, onRefresh }: AdminUser
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => {
+            {pagedUsers.map((user) => {
               const isSelf = user.id === currentUserId
               const isPending = pendingId === user.id
 
@@ -130,6 +140,32 @@ export function AdminUsersSection({ users, currentUserId, onRefresh }: AdminUser
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
+          <span>
+            Página {currentPage} de {totalPages}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              disabled={currentPage === 1}
+              className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+              disabled={currentPage === totalPages}
+              className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

@@ -8,7 +8,7 @@ import { logger } from '../utils/logger'
 // get_audit_log MCP tool read through listAuditLog. Kept in its own service so
 // its dependency surface is exactly AuditLogModel + UserModel.
 
-export type AuditEntityType = 'ORDER' | 'USER' | 'PRODUCT' | 'CATEGORY'
+export type AuditEntityType = 'ORDER' | 'USER' | 'PRODUCT' | 'CATEGORY' | 'REVIEW'
 
 export interface RecordAuditInput {
   // Clerk userId of the acting admin (the JWT `sub`). Accepts null so callers

@@ -295,7 +295,7 @@ server.registerTool(
         .optional()
         .describe('Filter by acting admin: their Clerk id or email (case-insensitive match)'),
       entityType: z
-        .enum(['ORDER', 'USER', 'PRODUCT', 'CATEGORY'])
+        .enum(['ORDER', 'USER', 'PRODUCT', 'CATEGORY', 'REVIEW'])
         .optional()
         .describe('Filter by the kind of entity the action targeted'),
       dateFrom: z.string().optional().describe('Inclusive start of the date range (YYYY-MM-DD)'),

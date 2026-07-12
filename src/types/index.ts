@@ -125,7 +125,7 @@ export interface InventoryReport {
 }
 
 // HU-52: the kind of entity an admin action targeted.
-export type AuditEntityType = 'ORDER' | 'USER' | 'PRODUCT' | 'CATEGORY'
+export type AuditEntityType = 'ORDER' | 'USER' | 'PRODUCT' | 'CATEGORY' | 'REVIEW'
 
 // HU-52: one record in the cross-entity admin-action audit trail.
 export interface AuditLogEntry {
