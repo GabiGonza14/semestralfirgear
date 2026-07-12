@@ -84,8 +84,14 @@ export function buildErrorResponse(error: Error, c: Context<AppEnv>) {
     return c.json(envelope(409, 'Resource conflict'), 409)
   }
 
-  // Unexpected failure: 500 with a human-readable message but NEVER a stack trace
-  // (criterion 4). No NODE_ENV carve-out — developers get the full stack from the
-  // server-side log / PostHog, so the client body never needs to carry it.
-  return c.json(envelope(500, error.message), 500)
+  // Unexpected failure: NEVER a stack trace (criterion 4), and NEVER the raw
+  // error.message either — this is the one branch reached by genuinely
+  // uncaught exceptions (a driver/library error, a bug), so error.message is
+  // uncurated and can leak internals (a DB error string, an internal path, a
+  // dependency's own error text — CWE-209). A deliberately-thrown
+  // `HttpError(500, "...")` is unaffected: it goes through the branch above and
+  // keeps its author-chosen message, since that one was written for the client
+  // on purpose. Developers still get the full original message + stack from the
+  // server-side log (HU-32) and PostHog (HU-34) — the client body never needs it.
+  return c.json(envelope(500, 'Ocurrió un error interno inesperado.'), 500)
 }

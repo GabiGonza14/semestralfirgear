@@ -98,6 +98,25 @@ describe('buildErrorResponse — internal errors never leak a stack (HU-35 crite
     expect(JSON.stringify(body)).not.toContain(err.stack?.split('\n')[1]?.trim() ?? '###no-stack###')
   })
 
+  // CWE-209: an uncaught exception's own message is uncurated (could be a DB
+  // driver string, an internal path, a dependency's error text) and must not
+  // reach the client any more than the stack does.
+  it('does NOT leak the raw error.message of an unexpected exception', async () => {
+    const { body } = await run(new Error('ECONNREFUSED 10.0.4.2:27017 secret internals here'))
+    expect(body.error.message).not.toContain('secret internals here')
+    expect(body.error.message).not.toContain('ECONNREFUSED')
+    expect(body.error.message).toBe('Ocurrió un error interno inesperado.')
+  })
+
+  // A deliberately-thrown HttpError(500, "...") is an authored, client-safe
+  // message (e.g. "Stripe webhook is not configured") — unlike an uncaught
+  // exception, it must NOT be genericized.
+  it('DOES keep the authored message of a deliberate HttpError(500, ...)', async () => {
+    const { status, body } = await run(new HttpError(500, 'Stripe webhook is not configured'))
+    expect(status).toBe(500)
+    expect(body.error.message).toBe('Stripe webhook is not configured')
+  })
+
   it('does NOT leak a stack even when NODE_ENV is not production (no dev carve-out)', async () => {
     const prev = process.env.NODE_ENV
     process.env.NODE_ENV = 'development'
