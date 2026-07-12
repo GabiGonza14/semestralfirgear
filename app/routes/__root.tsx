@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { ClerkProvider } from '@clerk/tanstack-react-start'
+import { ErrorBoundary } from '../../src/components/ErrorBoundary'
+import { PostHogProvider } from '../../src/components/PostHogProvider'
 import appCss from '../../src/index.css?url'
 
 // Root route. `shellComponent` renders the full HTML document shell (per the
@@ -42,9 +44,15 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
         <HeadContent />
       </head>
       <body>
-        <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
-          {children}
-        </ClerkProvider>
+        {/* HU-34: PostHog initialized here (alongside ClerkProvider, before the
+            route tree) so analytics + session replay are live from first paint.
+            The ErrorBoundary wraps the route tree so React render errors reach
+            PostHog too. */}
+        <PostHogProvider>
+          <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
+            <ErrorBoundary>{children}</ErrorBoundary>
+          </ClerkProvider>
+        </PostHogProvider>
         <Scripts />
       </body>
     </html>

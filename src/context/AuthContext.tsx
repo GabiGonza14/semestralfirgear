@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { setAuthTokenGetter } from '../api/authToken'
 import { syncClerkUser } from '../api/fitgearApi'
+import { identifyUser, resetUser } from '../lib/posthog'
 import type { BackendUser, UserRole } from '../types'
 
 interface AuthContextValue {
@@ -102,6 +103,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // session's role for that one render. On a route like CustomerGuard's
   // (isLoaded && isAdmin -> redirect to /admin), that stale true was enough
   // to bounce a just-signed-out admin from "/" straight back to /admin.
+  // HU-34: tie PostHog analytics/errors/replays to the signed-in user. Identify
+  // once the backend user (with role) is synced; reset on sign-out. Keyed on the
+  // identifying fields so it fires per sign-in/out, not on every render.
+  useEffect(() => {
+    if (user && backendUser) {
+      identifyUser(user.id, { email: backendUser.email, role: backendUser.role })
+    } else if (!user) {
+      resetUser()
+    }
+  }, [user, backendUser])
+
   const role: UserRole | null = useMemo(() => {
     if (!user) {
       return null

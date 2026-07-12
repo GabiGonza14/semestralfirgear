@@ -27,4 +27,12 @@ export const env = {
   // EMAIL_FROM must be a SendGrid-verified sender (Single Sender Verification).
   sendgridApiKey: process.env.SENDGRID_API_KEY || undefined,
   emailFrom: process.env.EMAIL_FROM || 'FITGEAR <no-reply@example.com>',
+  // Error monitoring / analytics (PostHog, HU-34). Optional, same graceful style
+  // as SendGrid: when POSTHOG_API_KEY is absent/blank the PostHog client is not
+  // created and capture calls no-op, so the server never depends on it. The
+  // project API key is public by design (same key the frontend ships), so it's
+  // read here without being treated as a secret. `|| undefined` normalizes the
+  // empty string Docker Compose injects for an unset variable.
+  posthogApiKey: process.env.POSTHOG_API_KEY || undefined,
+  posthogHost: process.env.POSTHOG_HOST || 'https://us.i.posthog.com',
 }
