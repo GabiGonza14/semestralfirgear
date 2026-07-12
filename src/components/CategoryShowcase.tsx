@@ -21,7 +21,7 @@ const CATEGORY_IMAGES: Record<string, string> = {
   pesas:
     'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1400&q=80',
   bandas:
-    'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1400&q=80',
+    'https://images.unsplash.com/photo-1776710669928-e49471c63af5?auto=format&fit=crop&w=1400&h=933&q=80',
   colchonetas:
     'https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=1400&q=80',
   accesorios:

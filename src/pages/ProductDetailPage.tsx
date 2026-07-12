@@ -188,7 +188,7 @@ export function ProductDetailPage() {
       {/* Breadcrumb */}
       <nav className="flex flex-wrap items-center gap-2 text-sm text-slate-400">
         <Link to="/shop" className="transition hover:text-lime-400">
-          Shop
+          Tienda
         </Link>
         <span className="text-slate-600">/</span>
         <Link

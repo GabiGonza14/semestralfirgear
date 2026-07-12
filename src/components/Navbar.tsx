@@ -48,16 +48,18 @@ export function Navbar() {
                 activeProps={{ className: 'text-lime-400' }}
                 inactiveProps={{ className: 'text-slate-300 hover:text-white hover:bg-white/5' }}
               >
-                Shop
+                Tienda
               </Link>
-              <Link
-                to="/orders"
-                className="px-4 py-2 text-sm font-semibold transition rounded-full"
-                activeProps={{ className: 'text-lime-400' }}
-                inactiveProps={{ className: 'text-slate-300 hover:text-white hover:bg-white/5' }}
-              >
-                Mis pedidos
-              </Link>
+              {isSignedIn && (
+                <Link
+                  to="/orders"
+                  className="px-4 py-2 text-sm font-semibold transition rounded-full"
+                  activeProps={{ className: 'text-lime-400' }}
+                  inactiveProps={{ className: 'text-slate-300 hover:text-white hover:bg-white/5' }}
+                >
+                  Mis pedidos
+                </Link>
+              )}
             </>
           )}
           {isAdmin && (
@@ -80,7 +82,7 @@ export function Navbar() {
               to="/shop"
               className="hidden sm:inline-flex md:hidden items-center gap-1.5 rounded-full bg-lime-400 px-4 py-2 text-sm font-bold text-slate-900 transition hover:bg-lime-300"
             >
-              Shop
+              Tienda
             </Link>
           )}
 
@@ -172,15 +174,17 @@ export function Navbar() {
                 onClick={() => navigateTo('/shop')}
                 className="block w-full text-left rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
               >
-                Shop
+                Tienda
               </button>
-              <button
-                type="button"
-                onClick={() => navigateTo('/orders')}
-                className="block w-full text-left rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
-              >
-                Mis pedidos
-              </button>
+              {isSignedIn && (
+                <button
+                  type="button"
+                  onClick={() => navigateTo('/orders')}
+                  className="block w-full text-left rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
+                >
+                  Mis pedidos
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => navigateTo('/account')}

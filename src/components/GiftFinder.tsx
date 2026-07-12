@@ -183,8 +183,8 @@ export function GiftFinder() {
               <Link
                 key={product.id}
                 data-reveal
-                to="/shop"
-                search={{ category: product.category }}
+                to="/product/$id"
+                params={{ id: product.id }}
                 className="group flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900 transition duration-300 hover:-translate-y-1 hover:border-lime-400/30 hover:shadow-[0_24px_50px_-24px_rgba(163,230,53,0.25)]"
               >
                 <div className="flex aspect-square items-center justify-center bg-gradient-to-b from-white to-slate-100 p-4">

@@ -25,8 +25,11 @@ const orderSchema = new Schema(
     trackingNumber: { type: String, required: false },
     // Set when an admin refunds the order via Stripe (-> REFUNDED). stripeRefundId
     // is the id returned by the Stripe Refunds API, for traceability (HU-29).
+    // refundReason is denormalized from the OrderEvent history so customers can
+    // see it too — the OrderEvent history itself is admin-only.
     refundedAt: { type: Date, required: false },
     stripeRefundId: { type: String, required: false },
+    refundReason: { type: String, required: false },
   },
   { timestamps: true },
 )

@@ -95,13 +95,11 @@ export function ShopPage() {
           // No categories in database — keep empty categories (no automatic local fallback)
           setCategories([])
           setUseFallbackCatalog(false)
-          setLoading(false)
           return
         }
 
         setCategories(result.map((category) => ({ value: category._id, label: category.name })))
         setUseFallbackCatalog(false)
-        setLoading(false)
       })
       .catch((apiError: unknown) => {
         if (!active) {
@@ -124,8 +122,6 @@ export function ShopPage() {
           setCategories(fallbackCategories)
           setError(null)
         }
-
-        setLoading(false)
       })
 
     return () => {
@@ -171,7 +167,9 @@ export function ShopPage() {
     let active = true
 
     if (useFallbackCatalog) {
-      // If fallback is active we don't attempt product requests.
+      // Fallback catalog is local/static data (see activeProducts) — nothing to
+      // fetch, so there's no loading state to wait out.
+      setLoading(false)
       return () => {
         active = false
       }
@@ -329,7 +327,7 @@ export function ShopPage() {
       {/* Header */}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Shop</p>
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Tienda</p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">Catalogo FITGEAR</h1>
           <p className="mt-3 max-w-xl text-slate-400">
             Filtra por categoria, busca productos y ordena para encontrar el accesorio ideal.
@@ -384,7 +382,7 @@ export function ShopPage() {
                 }
                 className="cursor-pointer appearance-none rounded-full border border-white/10 bg-slate-950/60 py-2.5 pl-4 pr-10 text-sm font-medium text-slate-200 outline-none transition focus:border-lime-400/60 focus:ring-2 focus:ring-lime-400/30"
               >
-                <option value="featured">Destacados</option>
+                <option value="featured">Más nuevos</option>
                 <option value="priceAsc">Precio: menor a mayor</option>
                 <option value="priceDesc">Precio: mayor a menor</option>
               </select>

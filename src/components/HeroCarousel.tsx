@@ -23,27 +23,27 @@ const SLIDES: HeroCarouselSlide[] = [
     // Pesas
     image:
       'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=1920&q=80',
-    title: 'Equipo para tu mejor version',
-    subtitle: 'Entrena con accesorios resistentes y de alto rendimiento.',
+    title: 'Pesas para tu mejor version',
+    subtitle: 'Mancuernas y barras de alto rendimiento para ganar fuerza real.',
     // Categoria destino del slide — ajusta el nombre si usas otra categoria.
     category: 'Pesas',
   },
   {
     id: 'slide-2',
-    // Accesorios
+    // Botellas
     image:
-      'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&w=1920&q=80',
-    title: 'Fuerza, cardio y recuperacion',
-    subtitle: 'Todo lo que necesitas para entrenar en casa o en el gym.',
-    category: 'Accesorios',
+      'https://images.unsplash.com/photo-1764426445457-59169e244cce?auto=format&fit=crop&w=1920&q=80',
+    title: 'Hidratacion que no te frena',
+    subtitle: 'Botellas deportivas para acompañarte en cada entrenamiento.',
+    category: 'Botellas',
   },
   {
     id: 'slide-3',
     // Bandas
     image:
       'https://images.pexels.com/photos/863977/pexels-photo-863977.jpeg?auto=compress&cs=tinysrgb&w=1920',
-    title: 'Rendimiento real',
-    subtitle: 'Equipamiento probado para atletas exigentes.',
+    title: 'Resistencia que se adapta a vos',
+    subtitle: 'Bandas elasticas para fuerza, movilidad y recuperacion.',
     category: 'Bandas',
   },
 ]

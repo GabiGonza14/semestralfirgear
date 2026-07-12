@@ -46,13 +46,20 @@ export const shipOrderSchema = z.object({
 
 // Manual admin status change (HU-42). `status` must be a lifecycle status;
 // whether the transition is actually allowed is enforced by the state machine in
-// the service. trackingNumber is only meaningful when moving to SHIPPED.
+// the service. trackingNumber is only meaningful when moving to SHIPPED; reason
+// is only meaningful when cancelling a PAID order (triggers a real refund).
 export const updateOrderStatusSchema = z.object({
   status: z.enum(ORDER_LIFECYCLE_STATUSES),
   trackingNumber: z
     .string()
     .trim()
     .max(64, 'trackingNumber must be at most 64 characters')
+    .optional()
+    .transform((value) => (value ? value : undefined)),
+  reason: z
+    .string()
+    .trim()
+    .max(500, 'reason must be at most 500 characters')
     .optional()
     .transform((value) => (value ? value : undefined)),
 })

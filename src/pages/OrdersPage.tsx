@@ -1,10 +1,15 @@
+import { useEffect, useRef, useState } from 'react'
 import { OrderCard } from '../components/orders/OrderCard'
 import { useAuth } from '../context/AuthContext'
 import { useMyOrdersQuery } from '../hooks/useOrdersQueries'
 
+const PAGE_SIZE = 10
+
 export function OrdersPage() {
   const { backendUser, isLoaded, syncError } = useAuth()
   const ordersQuery = useMyOrdersQuery(backendUser?.id ?? null, isLoaded)
+  const [page, setPage] = useState(1)
+  const listRef = useRef<HTMLDivElement>(null)
 
   const loading = isLoaded ? ordersQuery.isLoading : true
 
@@ -19,7 +24,33 @@ export function OrdersPage() {
             ? 'No se pudieron cargar tus ordenes.'
             : null
 
-  const orders = ordersQuery.data ?? []
+  // Pendientes, pagadas, enviadas, entregadas, canceladas y devueltas se
+  // muestran en "Mis pedidos" — solo las de pago fallido quedan fuera de esta
+  // vista por decision de producto.
+  const VISIBLE_STATUSES = new Set([
+    'PENDING',
+    'PAID',
+    'SHIPPED',
+    'DELIVERED',
+    'CANCELLED',
+    'REFUNDED',
+  ])
+  const orders = (ordersQuery.data ?? []).filter((order) => VISIBLE_STATUSES.has(order.status))
+
+  const pageCount = Math.max(1, Math.ceil(orders.length / PAGE_SIZE))
+
+  // Keep the page in range if the result set shrinks below it (e.g. after a
+  // refund/cancel invalidates the list).
+  useEffect(() => {
+    setPage((current) => Math.min(current, pageCount))
+  }, [pageCount])
+
+  const paginatedOrders = orders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const goToPage = (nextPage: number) => {
+    setPage(nextPage)
+    listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
     <section className="space-y-8">
@@ -65,10 +96,54 @@ export function OrdersPage() {
       ) : null}
 
       {!loading && !error && orders.length > 0 ? (
-        <div className="space-y-4">
-          {orders.map((order) => (
+        <div ref={listRef} className="scroll-mt-24 space-y-4">
+          {paginatedOrders.map((order) => (
             <OrderCard key={order.id} order={order} />
           ))}
+        </div>
+      ) : null}
+
+      {!loading && !error && pageCount > 1 ? (
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <button
+            type="button"
+            onClick={() => goToPage(Math.max(1, page - 1))}
+            disabled={page === 1}
+            aria-label="Pagina anterior"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+
+          {Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => (
+            <button
+              key={pageNumber}
+              type="button"
+              onClick={() => goToPage(pageNumber)}
+              aria-current={pageNumber === page}
+              className={`inline-flex h-10 min-w-10 items-center justify-center rounded-full px-3 text-sm font-bold transition ${
+                pageNumber === page
+                  ? 'bg-lime-400 text-slate-900'
+                  : 'text-slate-300 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              {pageNumber}
+            </button>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => goToPage(Math.min(pageCount, page + 1))}
+            disabled={page === pageCount}
+            aria-label="Pagina siguiente"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
         </div>
       ) : null}
     </section>
