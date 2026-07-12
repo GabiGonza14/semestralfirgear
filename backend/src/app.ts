@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import path from 'node:path'
 import { env } from './config/env'
 import { capturePostHogException } from './config/posthog'
 import { stripeWebhookController } from './controllers/paymentController'
@@ -8,7 +7,6 @@ import { accessLog } from './middlewares/accessLog'
 import { buildErrorResponse } from './middlewares/errorHandler'
 import { apiRouter } from './routes'
 import { logger } from './utils/logger'
-import { ensureUploadDirectories, uploadsRootPath } from './utils/uploadPaths'
 
 export type AppVariables = {
   pendingBody?: Record<string, unknown>
@@ -43,23 +41,6 @@ app.use(
 
 // Stripe webhook needs raw body — must be registered before any body parsing
 app.post('/api/payments/webhook', stripeWebhookController)
-
-// Serve uploaded files
-ensureUploadDirectories()
-app.get('/uploads/*', async (c) => {
-  const filePath = path.resolve(process.cwd(), c.req.path.slice(1))
-
-  if (!filePath.startsWith(uploadsRootPath)) {
-    return c.notFound()
-  }
-
-  const file = Bun.file(filePath)
-  if (!(await file.exists())) {
-    return c.notFound()
-  }
-
-  return new Response(file)
-})
 
 app.route('/api', apiRouter)
 

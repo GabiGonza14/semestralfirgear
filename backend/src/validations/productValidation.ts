@@ -44,6 +44,12 @@ const imagesFromFormSchema = z
   .min(1, 'at least one image is required')
   .max(4, 'a product can have at most 4 images')
 
+// Cloudinary public IDs for the images the upload middleware just uploaded —
+// not client input, set internally by uploadProductImage.ts. Kept out of the
+// public API surface (no docs/examples reference it) but must survive schema
+// parsing so productService can persist it alongside `images`.
+const newImagePublicIdsSchema = z.array(z.string()).optional().default([])
+
 export const createProductSchema = z.object({
   name: z
     .string()
@@ -69,6 +75,7 @@ export const createProductSchema = z.object({
     .optional()
     .default(5),
   images: imagesFromFormSchema,
+  newImagePublicIds: newImagePublicIdsSchema,
   sizes: sizesFromFormSchema.optional().default([]),
   categoryId: objectIdSchema,
   isActive: booleanFromFormSchema.optional().default(true),
@@ -109,6 +116,10 @@ export const updateProductSchema = z
       .min(0, 'lowStockThreshold must be greater than or equal to 0')
       .optional(),
     images: imagesFromFormSchema.optional(),
+    // No .default() here, unlike newImagePublicIdsSchema above — a default
+    // would make this key always present in the parsed output, which would
+    // break the "at least one field" refine below for genuinely empty updates.
+    newImagePublicIds: z.array(z.string()).optional(),
     sizes: sizesFromFormSchema.optional(),
     categoryId: objectIdSchema.optional(),
     isActive: booleanFromFormSchema.optional(),

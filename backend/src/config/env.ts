@@ -35,4 +35,13 @@ export const env = {
   // empty string Docker Compose injects for an unset variable.
   posthogApiKey: process.env.POSTHOG_API_KEY || undefined,
   posthogHost: process.env.POSTHOG_HOST || 'https://us.i.posthog.com',
+  // Cloudinary (almacenamiento de imágenes de producto, reemplaza el disco
+  // local del backend). Leído de forma laxa (no requireEnv) a propósito: la
+  // migración es incremental (fases 1-4) y esto no debe tumbar el arranque del
+  // backend ni `bun test` para quien todavía no configuró una cuenta de
+  // Cloudinary — solo falla, con un error claro, si de verdad se intenta subir
+  // una imagen sin credenciales.
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || undefined,
+  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || undefined,
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || undefined,
 }

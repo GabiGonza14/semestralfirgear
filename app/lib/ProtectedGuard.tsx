@@ -41,13 +41,31 @@ export function ProtectedGuard({
     if (!clerkLoaded || typeof window === 'undefined') {
       return
     }
-    if (!isSignedIn) {
-      window.location.assign('/login')
+
+    const wantsLoginRedirect = !isSignedIn
+    const wantsShopRedirect = adminOnly && authLoaded && !isAdmin
+
+    if (!wantsLoginRedirect && !wantsShopRedirect) {
       return
     }
-    if (adminOnly && authLoaded && !isAdmin) {
-      window.location.assign('/shop')
-    }
+
+    // Don't navigate on the first bad read — isSignedIn/isAdmin can blip false
+    // for a beat (Clerk's background token refresh, or this app's own
+    // AuthContext resync) without the session actually being gone. Confirm the
+    // condition still holds after a short delay; the effect's cleanup cancels
+    // this if isSignedIn/authLoaded/isAdmin change before it fires (i.e. the
+    // blip already self-corrected), so only a redirect that's still true ~600ms
+    // later actually navigates. A genuine sign-out/non-admin still redirects,
+    // just delayed by that much.
+    const timeoutId = window.setTimeout(() => {
+      if (wantsLoginRedirect) {
+        window.location.assign('/login')
+      } else if (wantsShopRedirect) {
+        window.location.assign('/shop')
+      }
+    }, 600)
+
+    return () => window.clearTimeout(timeoutId)
   }, [clerkLoaded, isSignedIn, adminOnly, authLoaded, isAdmin])
 
   if (adminOnly && !isAdmin) {

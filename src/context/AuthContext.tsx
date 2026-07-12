@@ -95,7 +95,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false
     }
-  }, [isLoaded, user])
+    // Keyed on `user?.id`, not `user` itself: Clerk hands out a new `user`
+    // object reference on every background session-token refresh (roughly
+    // every 50-60s) even though the signed-in identity hasn't changed. Keying
+    // on the full object reran this sync (and flipped `isLoaded` false via
+    // `syncing`) on that same cadence — with nothing else changing on the
+    // page, ProtectedGuard's redirect effect had just enough of a window to
+    // catch a stale/transient read and bounce back to /login. `user.id` is
+    // stable across a token refresh, so this only reruns on an actual
+    // sign-in/sign-out/account switch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, user?.id])
 
   // Depends on `user`, not just `backendUser`: when `user` flips to null (sign
   // out), `backendUser` isn't cleared until the effect above runs a render
