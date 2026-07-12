@@ -1,4 +1,3 @@
-import { mkdirSync } from 'node:fs'
 import { unlink } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -7,10 +6,6 @@ const productsDirName = 'products'
 
 export const uploadsRootPath = path.resolve(process.cwd(), uploadsDirName)
 export const productUploadsPath = path.resolve(uploadsRootPath, productsDirName)
-
-export function ensureUploadDirectories() {
-  mkdirSync(productUploadsPath, { recursive: true })
-}
 
 export function isLocalProductUploadPath(imageUrl: string) {
   return imageUrl.startsWith('/uploads/products/')

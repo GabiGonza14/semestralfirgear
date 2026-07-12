@@ -1,7 +1,9 @@
 import { Types } from 'mongoose'
+import { cloudinary } from '../config/cloudinary'
 import { CategoryModel } from '../models/Category'
 import { ProductModel } from '../models/Product'
 import { HttpError } from '../utils/httpError'
+import { logger } from '../utils/logger'
 import { isLocalProductUploadPath, removeLocalUploadFile } from '../utils/uploadPaths'
 import { notifyAdminsOfLowStockCrossing } from './lowStockService'
 
@@ -16,6 +18,9 @@ interface ProductPayload {
   price?: number
   stock?: number
   images?: string[]
+  // Cloudinary public IDs for the just-uploaded files in `images`, in upload
+  // order — set by uploadProductImage.ts, not client-authored.
+  newImagePublicIds?: string[]
   sizes?: ProductSizeInput[]
   categoryId?: string
   isActive?: boolean
@@ -34,9 +39,24 @@ async function resolveCategoryOrThrow(categoryId: string) {
   return category
 }
 
-async function removeUploadedImages(urls: string[]) {
-  for (const url of urls) {
-    if (isLocalProductUploadPath(url)) {
+interface RemovableImage {
+  url: string
+  publicId: string
+}
+
+// Best-effort cleanup, run after the DB write that actually drops the image
+// reference has already succeeded — a failed delete here must never fail the
+// request or block deleting the rest. Cloudinary asset first (has a publicId);
+// falls back to the legacy local-disk path for pre-migration images.
+async function removeUploadedImages(images: RemovableImage[]) {
+  for (const { url, publicId } of images) {
+    if (publicId) {
+      try {
+        await cloudinary.uploader.destroy(publicId)
+      } catch (error) {
+        logger.error('Failed to delete Cloudinary asset', { publicId, error })
+      }
+    } else if (isLocalProductUploadPath(url)) {
       await removeLocalUploadFile(url)
     }
   }
@@ -246,6 +266,9 @@ export async function createProduct(payload: ProductPayload) {
       ? { lowStockThreshold: payload.lowStockThreshold }
       : {}),
     images: payload.images ?? [],
+    // On create every image is a fresh upload, so this lines up 1:1 with
+    // `images` in order — no existing images to correlate against.
+    imagePublicIds: payload.newImagePublicIds ?? [],
     sizes,
     categoryId: payload.categoryId,
     isActive: payload.isActive ?? true,
@@ -256,14 +279,18 @@ export async function createProduct(payload: ProductPayload) {
   })
 }
 
-// Images are stored as root-relative paths (/uploads/...), but the admin form
-// round-trips them as absolute URLs. Normalize before comparing/storing so we
-// never delete a file that's actually being kept (and self-heal any product
-// whose images were previously saved as absolute URLs).
+// Local uploads are stored as root-relative paths (/uploads/...), but the
+// admin form round-trips them as absolute URLs. Normalize before comparing/
+// storing so we never delete a file that's actually being kept (and self-heal
+// any product whose images were previously saved as absolute URLs). Only
+// applies to our OWN local-upload path — an external absolute URL (Cloudinary's
+// CDN host) must be kept as-is, since stripping it to a bare pathname would
+// discard the host that makes it resolvable at all.
 function toRelativeUploadPath(url: string): string {
   if (/^https?:\/\//i.test(url)) {
     try {
-      return new URL(url).pathname
+      const pathname = new URL(url).pathname
+      return pathname.startsWith('/uploads/products/') ? pathname : url
     } catch {
       return url
     }
@@ -278,6 +305,10 @@ export async function updateProduct(id: string, payload: ProductPayload) {
   }
 
   const previousImages = product.images ?? []
+  const previousImagePublicIds = product.imagePublicIds ?? []
+  const urlToPublicId = new Map(
+    previousImages.map((url, index) => [toRelativeUploadPath(url), previousImagePublicIds[index] ?? '']),
+  )
 
   if (payload.categoryId) {
     await resolveCategoryOrThrow(payload.categoryId)
@@ -302,13 +333,23 @@ export async function updateProduct(id: string, payload: ProductPayload) {
     updateFields.categoryId = new Types.ObjectId(payload.categoryId)
   }
 
-  let removedImages: string[] = []
+  let removedImages: RemovableImage[] = []
   if (payload.images !== undefined) {
     const nextImages = payload.images.map(toRelativeUploadPath)
-    removedImages = previousImages.filter(
-      (url) => !nextImages.includes(toRelativeUploadPath(url)),
-    )
+    removedImages = previousImages
+      .filter((url) => !nextImages.includes(toRelativeUploadPath(url)))
+      .map((url) => ({ url, publicId: urlToPublicId.get(toRelativeUploadPath(url)) ?? '' }))
     updateFields.images = nextImages
+
+    // The upload middleware always builds `images` as [...kept, ...newlyUploaded],
+    // in that order — so the last `newImagePublicIds.length` entries are the new
+    // uploads (their public IDs are already known), and everything before that
+    // is a kept image whose public ID we look up from the product's previous state.
+    const newImagePublicIds = payload.newImagePublicIds ?? []
+    const keptCount = nextImages.length - newImagePublicIds.length
+    const keptImages = nextImages.slice(0, keptCount)
+    const keptPublicIds = keptImages.map((url) => urlToPublicId.get(url) ?? '')
+    updateFields.imagePublicIds = [...keptPublicIds, ...newImagePublicIds]
   }
 
   const sizesOrStock = computeSizesOrStock(effectiveCategory.requiresSizes, payload, product.sizes.length)
@@ -368,6 +409,7 @@ export async function deleteProduct(id: string) {
   }
 
   const images = product.images ?? []
+  const imagePublicIds = product.imagePublicIds ?? []
   await product.deleteOne()
-  await removeUploadedImages(images)
+  await removeUploadedImages(images.map((url, index) => ({ url, publicId: imagePublicIds[index] ?? '' })))
 }

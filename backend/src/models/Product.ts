@@ -25,6 +25,11 @@ const productSchema = new Schema(
         message: 'A product must have between 1 and 4 images',
       },
     },
+    // Cloudinary public_id per entry in `images`, same index, kept in sync by
+    // productService. Needed to delete the right asset from Cloudinary later
+    // (a URL alone isn't enough). Empty string at an index means that image
+    // predates the Cloudinary migration (local file, nothing to delete there).
+    imagePublicIds: { type: [String], default: [] },
     sizes: { type: [productSizeSchema], default: [] },
     // HU-46: per-product low-stock threshold. When stock drops to at-or-below
     // this value the product is flagged as low on the admin dashboard and, on the
