@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useCart } from '../context/CartContext'
+import { hoverLift } from '../lib/motion'
 import type { Product } from '../types'
 import { formatCurrency } from '../utils/format'
 
@@ -9,7 +10,7 @@ export function ProductCard({ product }: { product: Product }) {
   const lowStock = !outOfStock && product.stock <= 5
 
   return (
-    <article className="group flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900 transition duration-300 hover:-translate-y-1 hover:border-lime-400/30 hover:shadow-[0_24px_50px_-24px_rgba(163,230,53,0.25)]">
+    <article className={`group flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900 ${hoverLift} hover:border-lime-400/30 hover:shadow-[0_24px_50px_-24px_rgba(163,230,53,0.25)]`}>
       <Link to="/product/$id" params={{ id: product.id }} className="relative block">
         {/* Light image stage so product photos pop on the dark card */}
         <div className="flex aspect-square items-center justify-center bg-gradient-to-b from-white to-slate-100 p-4">

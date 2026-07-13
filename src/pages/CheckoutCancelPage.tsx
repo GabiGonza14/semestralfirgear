@@ -8,6 +8,7 @@ import { useOrderDetailQuery } from '../hooks/useOrdersQueries'
 import { queryKeys } from '../lib/queryKeys'
 import { getButtonClassName } from '../components/ui/Button'
 import { CheckoutStatusHeader } from '../components/checkout/CheckoutStatusHeader'
+import { sectionEnter } from '../lib/motion'
 
 export function CheckoutCancelPage() {
   const search = useSearch({ strict: false }) as { orderId?: string }
@@ -119,9 +120,7 @@ export function CheckoutCancelPage() {
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: 'easeOut' }}
+      {...sectionEnter}
       className="mx-auto max-w-xl rounded-3xl border border-white/[0.08] bg-slate-900 p-10 text-center"
     >
       <div className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-300">

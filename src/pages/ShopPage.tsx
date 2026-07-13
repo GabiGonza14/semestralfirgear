@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { gsap, useGSAP, prefersReducedMotion } from '../lib/gsap'
+import { useStaggerIn } from '../hooks/useStaggerIn'
 import { ApiError } from '../api/apiClient'
 import { getCategories, getProducts } from '../api/fitgearApi'
 import { CategoryFilter } from '../components/CategoryFilter'
@@ -298,29 +298,9 @@ export function ShopPage() {
     gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  // Gentle stagger when the result set changes by filter/sort (not per keystroke).
-  // Plain `from` with no ScrollTrigger always settles to the visible state.
-  useGSAP(
-    () => {
-      if (prefersReducedMotion()) return
-      if (!gridRef.current) return
-      const cards = gridRef.current.children
-      if (cards.length === 0) return
-      gsap.from(cards, {
-        y: 18,
-        autoAlpha: 0,
-        duration: 0.45,
-        ease: 'power2.out',
-        stagger: 0.05,
-        overwrite: true,
-        // Drop the inline transform/opacity once settled — leaving it keeps
-        // each card (and its product photo) on a GPU-composited layer, which
-        // Windows renders at a blurry, non-native resolution on scaled displays.
-        clearProps: 'transform,opacity,visibility',
-      })
-    },
-    { scope: gridRef, dependencies: [resolvedCategory, sortBy, loading, page], revertOnUpdate: true },
-  )
+  // Gentle stagger when the result set changes by filter/sort/page (not per
+  // keystroke). Shared pattern — see src/hooks/useStaggerIn.ts.
+  useStaggerIn(gridRef, { deps: [resolvedCategory, sortBy, loading, page] })
 
   return (
     <div className="space-y-8">
