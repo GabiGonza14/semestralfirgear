@@ -111,7 +111,9 @@ export function HeroCarousel() {
 
               <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-6 pb-20 sm:px-10 sm:pb-24 lg:px-16 lg:pb-28">
                 <span className="mb-4 h-1 w-12 bg-lime-400" />
-                <h2 className="font-display max-w-3xl text-4xl font-black uppercase leading-[0.95] tracking-tight text-white sm:text-6xl lg:text-7xl">
+                {/* Display tier (Parte 1): fluid clamp 48→96px via text-display-lg.
+                    Line-height + tracking come from the token — see src/index.css. */}
+                <h2 className="font-display max-w-3xl text-display-lg font-black uppercase text-white">
                   {slide.title}
                 </h2>
                 {slide.subtitle && (
