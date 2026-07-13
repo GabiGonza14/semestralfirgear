@@ -328,9 +328,9 @@ export function ShopPage() {
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Tienda</p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">Catalogo FITGEAR</h1>
+          <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">Catálogo FITGEAR</h1>
           <p className="mt-3 max-w-xl text-slate-400">
-            Filtra por categoria, busca productos y ordena para encontrar el accesorio ideal.
+            Todo tu equipo de entrenamiento, en un solo lugar.
           </p>
         </div>
 
@@ -367,7 +367,7 @@ export function ShopPage() {
                 <option value="under20">Menos de $20</option>
                 <option value="20to50">$20 - $50</option>
                 <option value="50to100">$50 - $100</option>
-                <option value="over100">Mas de $100</option>
+                <option value="over100">Más de $100</option>
               </select>
               <svg className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -448,7 +448,7 @@ export function ShopPage() {
           <div>
             <p className="text-lg font-bold text-white">Sin resultados</p>
             <p className="mt-1 text-sm text-slate-400">
-              No se encontraron productos con esos filtros. Prueba ajustar la busqueda o la categoria.
+              No encontramos productos con esos filtros. Prueba con otra búsqueda o categoría, o limpia los filtros para ver todo.
             </p>
           </div>
           <button
@@ -481,7 +481,7 @@ export function ShopPage() {
             type="button"
             onClick={() => goToPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            aria-label="Pagina anterior"
+            aria-label="Página anterior"
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -509,7 +509,7 @@ export function ShopPage() {
             type="button"
             onClick={() => goToPage(Math.min(pageCount, page + 1))}
             disabled={page === pageCount}
-            aria-label="Pagina siguiente"
+            aria-label="Página siguiente"
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>

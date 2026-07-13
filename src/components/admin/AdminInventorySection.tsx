@@ -182,7 +182,7 @@ export function AdminInventorySection({ products, categories, onRefreshProducts 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
         <div className="flex flex-wrap items-center gap-3">
           <span>{filteredProducts.length} productos encontrados</span>
-          {categoryNameById.size > 0 ? <span>{categoryNameById.size} categorias disponibles</span> : null}
+          {categoryNameById.size > 0 ? <span>{categoryNameById.size} categorías disponibles</span> : null}
         </div>
 
         {lowStockCount > 0 ? (

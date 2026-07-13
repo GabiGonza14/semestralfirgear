@@ -46,7 +46,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
       await updateCategory(category.id, { requiresSizes: !category.requiresSizes })
       await onRefresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar la categoria.')
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar la categoría.')
     } finally {
       setTogglingId(null)
     }
@@ -85,7 +85,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
       cancelEdit()
       await onRefresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo renombrar la categoria.')
+      setError(err instanceof Error ? err.message : 'No se pudo renombrar la categoría.')
     } finally {
       setSavingEdit(false)
     }
@@ -101,7 +101,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
       setDeletingCategory(null)
       await onRefresh()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'No se pudo eliminar la categoria.'
+      const message = err instanceof Error ? err.message : 'No se pudo eliminar la categoría.'
       throw new Error(message)
     }
   }
@@ -123,7 +123,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
       setRequiresSizes(false)
       await onRefresh()
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'No se pudo crear la categoria.')
+      setFormError(err instanceof Error ? err.message : 'No se pudo crear la categoría.')
     } finally {
       setCreating(false)
     }
@@ -137,16 +137,16 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
     if (count === 0) {
       return undefined
     }
-    return `${deletingCategory.name} tiene ${count} ${count === 1 ? 'producto asociado' : 'productos asociados'}. Reasigna o elimina esos productos antes de borrar la categoria.`
+    return `${deletingCategory.name} tiene ${count} ${count === 1 ? 'producto asociado' : 'productos asociados'}. Reasigna o elimina esos productos antes de borrar la categoría.`
   }, [deletingCategory, productCountByCategory])
 
   return (
     <div className="space-y-5">
       <section className="rounded-3xl border border-white/[0.08] bg-slate-900 p-5 sm:p-6">
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-lime-400">Categorias</p>
-        <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">Gestion de categorias</h2>
+        <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">Gestion de categorías</h2>
         <p className="mt-1 text-sm text-slate-400">
-          Renombra, elimina o marca que categorias piden talla (Guantes, Ropa...) para que el
+          Renombra, elimina o marca qué categorías piden talla (Guantes, Ropa...) para que el
           formulario de productos muestre el selector de tallas en vez del stock plano.
         </p>
 
@@ -214,7 +214,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
                       <div className="flex shrink-0 items-center gap-2">
                         <div
                           className="flex items-center gap-2"
-                          title="Si esta activo, el formulario de productos de esta categoria muestra el selector de tallas (XS - XXL) en vez del stock plano."
+                          title="Si está activo, el formulario de productos de esta categoría muestra el selector de tallas (XS - XXL) en vez del stock plano."
                         >
                           <span className="hidden text-xs font-medium text-slate-400 sm:inline">
                             Requiere talla
@@ -260,13 +260,13 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
             })}
 
             {categories.length === 0 ? (
-              <li className="py-3 text-sm text-slate-400">Todavia no hay categorias.</li>
+              <li className="py-3 text-sm text-slate-400">Todavia no hay categorías.</li>
             ) : null}
         </ul>
       </section>
 
       <section className="rounded-3xl border border-white/[0.08] bg-slate-900 p-5 sm:p-6">
-        <h3 className="text-lg font-bold text-white">Nueva categoria</h3>
+        <h3 className="text-lg font-bold text-white">Nueva categoría</h3>
 
         {formError ? (
           <p className="mt-3 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
@@ -302,7 +302,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
               onChange={(event) => setRequiresSizes(event.target.checked)}
               className="h-4 w-4 rounded border-white/20 bg-slate-950 text-lime-500 accent-lime-400 focus:ring-lime-400"
             />
-            <span>Esta categoria requiere talla (XS - XXL)</span>
+            <span>Esta categoría requiere talla (XS - XXL)</span>
           </label>
 
           <div className="md:col-span-2">
@@ -311,7 +311,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
               disabled={creating}
               className="rounded-full bg-lime-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {creating ? 'Creando...' : 'Crear categoria'}
+              {creating ? 'Creando...' : 'Crear categoría'}
             </button>
           </div>
         </form>
@@ -320,7 +320,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
       <DeleteConfirmModal
         isOpen={Boolean(deletingCategory)}
         itemName={deletingCategory?.name ?? ''}
-        entityLabel="categoria"
+        entityLabel="categoría"
         blockedMessage={deleteBlockedMessage}
         onClose={() => setDeletingCategory(null)}
         onConfirm={confirmDelete}

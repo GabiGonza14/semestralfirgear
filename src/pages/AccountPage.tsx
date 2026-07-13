@@ -7,7 +7,7 @@ export function AccountPage() {
         <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Cuenta personal</p>
         <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">Perfil y seguridad</h1>
         <p className="mt-3 max-w-2xl text-slate-400">
-          Gestiona tu informacion personal, seguridad y preferencias de sesion en FITGEAR.
+          Gestiona tu información personal, seguridad y preferencias de sesión.
         </p>
       </div>
 

@@ -148,14 +148,14 @@ export function ProductFormModal({
 
     const remainingSlots = MAX_IMAGES - form.images.length
     if (remainingSlots <= 0) {
-      setError(`Ya tienes el maximo de ${MAX_IMAGES} imagenes. Elimina una para agregar otra.`)
+      setError(`Ya tienes el máximo de ${MAX_IMAGES} imágenes. Elimina una para agregar otra.`)
       return
     }
 
     const accepted: ImageSlot[] = []
     for (const file of selected.slice(0, remainingSlots)) {
       if (!allowedImageTypes.has(file.type)) {
-        setError('Solo se permiten imagenes JPG, PNG, WEBP o GIF.')
+        setError('Solo se permiten imágenes JPG, PNG, WEBP o GIF.')
         continue
       }
       if (file.size > maxImageSize) {
@@ -171,7 +171,7 @@ export function ProductFormModal({
     }
 
     if (selected.length > remainingSlots) {
-      setError(`Solo se agregaron ${remainingSlots} imagen(es) — el maximo es ${MAX_IMAGES}.`)
+      setError(`Solo se agregaron ${remainingSlots} imagen(es) — el máximo es ${MAX_IMAGES}.`)
     }
   }
 
@@ -244,19 +244,19 @@ export function ProductFormModal({
       }
 
       if (Number.isNaN(payload.lowStockThreshold) || payload.lowStockThreshold < 0) {
-        throw new Error('El umbral de stock bajo debe ser un numero valido (0 o mayor).')
+        throw new Error('El umbral de stock bajo debe ser un número válido (0 o mayor).')
       }
 
       if (form.images.length === 0) {
-        throw new Error('Agrega al menos 1 imagen (maximo 4).')
+        throw new Error('Agrega al menos 1 imagen (máximo 4).')
       }
 
       if (requiresSizes) {
         if (sizes.length === 0) {
-          throw new Error('Esta categoria requiere al menos una talla con stock.')
+          throw new Error('Esta categoría requiere al menos una talla con stock.')
         }
         if (sizes.some((size) => Number.isNaN(size.stock) || size.stock < 0)) {
-          throw new Error('El stock de cada talla debe ser un numero valido (0 o mayor).')
+          throw new Error('El stock de cada talla debe ser un número válido (0 o mayor).')
         }
       }
 
@@ -416,13 +416,13 @@ export function ProductFormModal({
               </div>
 
               <label className="grid gap-2 text-sm font-medium text-slate-300">
-                Categoria
+                Categoría
                 <select
                   value={form.categoryId}
                   onChange={(event) => handleChange('categoryId', event.target.value)}
                   className={fieldClass}
                 >
-                  <option value="">Selecciona una categoria</option>
+                  <option value="">Selecciona una categoría</option>
                   {categories.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
@@ -480,7 +480,7 @@ export function ProductFormModal({
                   onChange={(event) => handleChange('isActive', event.target.checked)}
                   className="h-4 w-4 rounded border-white/20 bg-slate-950 text-lime-500 accent-lime-400 focus:ring-lime-400"
                 />
-                Producto activo en el catalogo
+                Producto activo en el catálogo
               </label>
 
               <div className="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 md:col-span-2">

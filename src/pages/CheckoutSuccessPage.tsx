@@ -8,6 +8,8 @@ import { useCart } from '../context/CartContext'
 import { useOrderDetailQuery } from '../hooks/useOrdersQueries'
 import { useCheckoutPaymentConfirmationQuery } from '../hooks/usePaymentQueries'
 import { queryKeys } from '../lib/queryKeys'
+import { Button } from '../components/ui/Button'
+import { CheckoutStatusHeader } from '../components/checkout/CheckoutStatusHeader'
 
 export function CheckoutSuccessPage() {
   const search = useSearch({ strict: false }) as { orderId?: string; session_id?: string }
@@ -72,20 +74,20 @@ export function CheckoutSuccessPage() {
 
   const paymentError =
     !orderId
-      ? 'No se encontro la orden para confirmar el pago.'
+      ? 'No encontramos el pedido para confirmar el pago.'
       : isPendingConfirmation
-        ? 'El pago aun se esta confirmando en Stripe. Puedes recargar en unos segundos.'
+        ? 'El pago aún se está confirmando. Puedes recargar en unos segundos.'
         : confirmationQuery.error instanceof Error
         ? confirmationQuery.error.message
         : confirmationQuery.error
-          ? 'No se pudo confirmar el pago. Intenta recargar la pagina.'
+          ? 'No pudimos confirmar el pago. Intenta recargar la página.'
           : null
 
   const title = isPaid ? 'Gracias por tu compra' : 'Estamos validando tu pago'
   const badge = isPaid ? 'Pago confirmado' : 'Confirmando pago'
   const description = isPaid
-    ? 'Stripe confirmo el pago y la orden ya puede pasar al flujo logistico.'
-    : 'Estamos sincronizando el estado de pago con el backend para dejar la orden al dia.'
+    ? 'Confirmamos tu pago. Ya estamos preparando tu pedido para el envío.'
+    : 'Estamos confirmando tu pago. En un momento verás tu pedido actualizado.'
 
   return (
     <motion.section
@@ -108,18 +110,16 @@ export function CheckoutSuccessPage() {
         )}
       </div>
 
-      <p className="mt-6 text-xs font-bold uppercase tracking-[0.24em] text-lime-400">{badge}</p>
-      <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">{title}</h1>
-      <p className="mt-3 text-slate-400">{description}</p>
-      {orderId ? (
-        <p className="mt-3 inline-block rounded-full bg-white/[0.04] px-3 py-1 font-mono text-xs text-slate-400">
-          Orden: {orderId}
-        </p>
-      ) : null}
+      <CheckoutStatusHeader
+        badge={badge}
+        title={title}
+        description={description}
+        pillLabel={orderId ? `Pedido: ${orderId}` : undefined}
+      />
       {confirmationQuery.isLoading || confirmationQuery.isFetching ? (
         <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-slate-300">
           <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-lime-400" aria-hidden />
-          Confirmando pago y actualizando inventario...
+          Confirmando tu pago...
         </div>
       ) : null}
       {paymentError ? (
@@ -128,20 +128,10 @@ export function CheckoutSuccessPage() {
         </p>
       ) : null}
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={() => window.location.assign('/shop')}
-          className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-lime-300"
-        >
-          Seguir comprando
-        </button>
-        <button
-          type="button"
-          onClick={() => window.location.assign('/orders')}
-          className="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5"
-        >
+        <Button onClick={() => window.location.assign('/shop')}>Seguir comprando</Button>
+        <Button variant="ghost" onClick={() => window.location.assign('/orders')}>
           Ver mis pedidos
-        </button>
+        </Button>
       </div>
 
       {isPaid && reviewableProducts.length > 0 ? (

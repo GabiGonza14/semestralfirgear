@@ -82,8 +82,8 @@ export class ErrorBoundary extends Component<Props, State> {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Algo salió mal</h1>
           <p className="mt-2 max-w-md text-slate-400">
-            Ocurrió un error inesperado y ya lo registramos. Puedes recargar la página para
-            continuar.
+            Tuvimos un problema de nuestro lado y ya lo registramos. Recarga la página para
+            seguir donde estabas.
           </p>
         </div>
         <button

@@ -11,9 +11,9 @@ import type { Product, SizeLabel } from '../types'
 import { formatCurrency } from '../utils/format'
 
 const trustPoints = [
-  'Envio rapido a todo el pais',
+  'Envío rápido a todo el país',
   'Compra protegida con Stripe',
-  'Devoluciones faciles',
+  'Devoluciones fáciles',
 ]
 
 function getStockBadge(outOfStock: boolean, lowStock: boolean, stock: number): ReactNode {
@@ -157,13 +157,13 @@ export function ProductDetailPage() {
       <div className="flex flex-col items-center gap-4 rounded-3xl border border-white/[0.08] bg-slate-900/60 px-6 py-16 text-center">
         <h2 className="text-2xl font-bold text-white">{error ?? 'Producto no encontrado'}</h2>
         <p className="max-w-sm text-sm text-slate-400">
-          Es posible que el producto ya no este disponible en el catalogo.
+          Es posible que el producto ya no esté disponible en el catálogo.
         </p>
         <Link
           to="/shop"
           className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-lime-300"
         >
-          Volver al catalogo
+          Volver al catálogo
         </Link>
       </div>
     )
@@ -313,7 +313,7 @@ export function ProductDetailPage() {
               Completa tu equipo
             </h2>
             <p className="mt-2 text-slate-400">
-              Otros accesorios de la misma categoria.
+              Otros accesorios de la misma categoría.
             </p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

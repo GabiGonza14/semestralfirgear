@@ -24,9 +24,9 @@ const ACTION_LABELS: Record<string, string> = {
   PRODUCT_UPDATED: 'Producto actualizado',
   PRODUCT_STOCK_UPDATED: 'Stock actualizado',
   PRODUCT_DELETED: 'Producto eliminado',
-  CATEGORY_CREATED: 'Categoria creada',
-  CATEGORY_UPDATED: 'Categoria actualizada',
-  CATEGORY_DELETED: 'Categoria eliminada',
+  CATEGORY_CREATED: 'Categoría creada',
+  CATEGORY_UPDATED: 'Categoría actualizada',
+  CATEGORY_DELETED: 'Categoría eliminada',
   REVIEW_STATUS_CHANGED: 'Cambio de estado de reseña',
 }
 
@@ -34,7 +34,7 @@ const ENTITY_LABELS: Record<AuditEntityType, string> = {
   ORDER: 'Orden',
   USER: 'Usuario',
   PRODUCT: 'Producto',
-  CATEGORY: 'Categoria',
+  CATEGORY: 'Categoría',
   REVIEW: 'Reseña',
 }
 
@@ -246,10 +246,10 @@ export function AdminAuditSection({ active = true }: { active?: boolean }) {
             aria-label="Tipo de entidad"
           >
             <option value="">Todas las entidades</option>
-            <option value="ORDER">Ordenes</option>
+            <option value="ORDER">Órdenes</option>
             <option value="USER">Usuarios</option>
             <option value="PRODUCT">Productos</option>
-            <option value="CATEGORY">Categorias</option>
+            <option value="CATEGORY">Categorías</option>
             <option value="REVIEW">Reseñas</option>
           </select>
 

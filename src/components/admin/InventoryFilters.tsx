@@ -39,7 +39,7 @@ export function InventoryFilters({
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-lime-400">Inventario</p>
           <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">Gestion de productos</h2>
           <p className="mt-1 text-sm text-slate-400">
-            Busca, filtra y administra el catalogo desde un solo lugar.
+            Busca, filtra y administra el catálogo desde un solo lugar.
           </p>
         </div>
 
@@ -68,7 +68,7 @@ export function InventoryFilters({
           onChange={(event) => onCategoryChange(event.target.value)}
           className={fieldClass}
         >
-          <option value="all">Todas las categorias</option>
+          <option value="all">Todas las categorías</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}

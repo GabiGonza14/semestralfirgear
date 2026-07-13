@@ -26,7 +26,7 @@ const sectionLabels: Record<AdminSection, string> = {
   overview: 'Resumen',
   inventory: 'Inventario',
   categories: 'Categorias',
-  orders: 'Ordenes',
+  orders: 'Órdenes',
   users: 'Usuarios',
   reviews: 'Reseñas',
   audit: 'Auditoria',

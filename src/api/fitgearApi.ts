@@ -151,8 +151,8 @@ interface MongoAuditLog {
 function mapProduct(product: MongoProduct): Product {
   const categoryName =
     typeof product.categoryId === 'string'
-      ? 'Sin categoria'
-      : product.categoryId?.name ?? 'Sin categoria'
+      ? 'Sin categoría'
+      : product.categoryId?.name ?? 'Sin categoría'
 
   const images =
     product.images && product.images.length > 0

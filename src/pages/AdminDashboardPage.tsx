@@ -140,7 +140,7 @@ export function AdminDashboardPage() {
       })
       .catch((err: unknown) => {
         if (active) {
-          setError(err instanceof Error ? err.message : 'No se pudieron cargar las categorias.')
+          setError(err instanceof Error ? err.message : 'No se pudieron cargar las categorías.')
         }
       })
 
@@ -266,7 +266,7 @@ export function AdminDashboardPage() {
             Administracion de FITGEAR
           </h1>
           <p className="mt-3 max-w-2xl text-slate-400">
-            Gestiona catalogo, ordenes, usuarios y operaciones del e-commerce en tiempo real.
+            Gestiona catálogo, órdenes, usuarios y operaciones del e-commerce en tiempo real.
           </p>
         </div>
 

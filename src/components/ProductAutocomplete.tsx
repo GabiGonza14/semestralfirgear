@@ -129,7 +129,7 @@ export function ProductAutocomplete({ value, onChange }: ProductAutocompleteProp
             onChange('')
             setOpen(false)
           }}
-          aria-label="Limpiar busqueda"
+          aria-label="Limpiar búsqueda"
           className="absolute right-3 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/10 hover:text-white"
         >
           <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
