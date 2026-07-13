@@ -32,7 +32,7 @@ export function Navbar() {
         <button
           type="button"
           onClick={() => navigateTo(homePath)}
-          className="shrink-0 text-left text-xl font-black uppercase tracking-widest"
+          className="shrink-0 cursor-pointer text-left text-xl font-black uppercase tracking-widest"
         >
           <span className="text-white">FIT</span>
           <span className="text-lime-400">GEAR</span>
@@ -91,7 +91,7 @@ export function Navbar() {
               type="button"
               onClick={() => navigateTo('/login')}
               aria-label="Iniciar sesion"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:border-lime-400/40 hover:text-white hover:bg-white/5"
+              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:border-lime-400/40 hover:text-white hover:bg-white/5"
             >
               <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path
@@ -123,7 +123,7 @@ export function Navbar() {
                 openCart()
               }}
               aria-label="Ver carrito"
-              className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:border-lime-400/40 hover:text-white hover:bg-white/5"
+              className="relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:border-lime-400/40 hover:text-white hover:bg-white/5"
             >
               <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path
@@ -149,7 +149,7 @@ export function Navbar() {
             type="button"
             onClick={() => setMobileOpen((prev) => !prev)}
             aria-label={mobileOpen ? 'Cerrar menu' : 'Abrir menu'}
-            className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:bg-white/5"
+            className="md:hidden inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:bg-white/5"
           >
             {mobileOpen ? (
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -172,7 +172,7 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => navigateTo('/shop')}
-                className="block w-full text-left rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
+                className="block w-full cursor-pointer text-left rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
               >
                 Tienda
               </button>
@@ -180,7 +180,7 @@ export function Navbar() {
                 <button
                   type="button"
                   onClick={() => navigateTo('/orders')}
-                  className="block w-full text-left rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
+                  className="block w-full cursor-pointer text-left rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
                 >
                   Mis pedidos
                 </button>
@@ -188,7 +188,7 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => navigateTo('/account')}
-                className="block w-full text-left rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
+                className="block w-full cursor-pointer text-left rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
               >
                 Mi cuenta
               </button>
@@ -198,7 +198,7 @@ export function Navbar() {
             <button
               type="button"
               onClick={() => navigateTo('/admin')}
-              className="block w-full text-left rounded-xl px-4 py-3 text-sm font-semibold text-red-400 transition hover:bg-red-500/10"
+              className="block w-full cursor-pointer text-left rounded-xl px-4 py-3 text-sm font-semibold text-red-400 transition hover:bg-red-500/10"
             >
               Admin Panel
             </button>
