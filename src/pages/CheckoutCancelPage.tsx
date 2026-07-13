@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { useOrderDetailQuery } from '../hooks/useOrdersQueries'
 import { queryKeys } from '../lib/queryKeys'
+import { getButtonClassName } from '../components/ui/Button'
 
 export function CheckoutCancelPage() {
   const search = useSearch({ strict: false }) as { orderId?: string }
@@ -170,17 +171,10 @@ export function CheckoutCancelPage() {
         >
           {cancelOrderMutation.isPending ? 'Cancelando pedido...' : 'Cancelar pedido'}
         </button>
-        <button
-          type="button"
-          onClick={openCart}
-          className="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5"
-        >
+        <button type="button" onClick={openCart} className={getButtonClassName({ variant: 'ghost' })}>
           Volver al carrito
         </button>
-        <Link
-          to="/shop"
-          className="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5"
-        >
+        <Link to="/shop" className={getButtonClassName({ variant: 'ghost' })}>
           Ir al shop
         </Link>
       </div>

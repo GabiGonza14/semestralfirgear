@@ -8,6 +8,7 @@ import { useCart } from '../context/CartContext'
 import { useOrderDetailQuery } from '../hooks/useOrdersQueries'
 import { useCheckoutPaymentConfirmationQuery } from '../hooks/usePaymentQueries'
 import { queryKeys } from '../lib/queryKeys'
+import { Button } from '../components/ui/Button'
 
 export function CheckoutSuccessPage() {
   const search = useSearch({ strict: false }) as { orderId?: string; session_id?: string }
@@ -128,20 +129,10 @@ export function CheckoutSuccessPage() {
         </p>
       ) : null}
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={() => window.location.assign('/shop')}
-          className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-lime-300"
-        >
-          Seguir comprando
-        </button>
-        <button
-          type="button"
-          onClick={() => window.location.assign('/orders')}
-          className="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5"
-        >
+        <Button onClick={() => window.location.assign('/shop')}>Seguir comprando</Button>
+        <Button variant="ghost" onClick={() => window.location.assign('/orders')}>
           Ver mis pedidos
-        </button>
+        </Button>
       </div>
 
       {isPaid && reviewableProducts.length > 0 ? (
