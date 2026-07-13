@@ -6,6 +6,7 @@
 import mongoose from 'mongoose'
 import { connectDatabase } from '../config/db'
 import { ProductModel } from '../models/Product'
+import { logger } from '../utils/logger'
 
 try {
   await connectDatabase()
@@ -15,7 +16,7 @@ try {
     .find({ imageUrl: { $exists: true }, images: { $exists: false } })
     .toArray()
 
-  console.info(`Found ${legacyProducts.length} product(s) with a legacy imageUrl field.`)
+  logger.info('Found products with a legacy imageUrl field', { count: legacyProducts.length })
 
   for (const doc of legacyProducts) {
     const imageUrl = doc.imageUrl as string
@@ -26,12 +27,12 @@ try {
         $unset: { imageUrl: '' },
       },
     )
-    console.info(`Migrated product ${doc._id}`)
+    logger.info('Migrated product', { productId: String(doc._id) })
   }
 
-  console.info('Migration complete.')
+  logger.info('Migration complete')
   await mongoose.disconnect()
 } catch (error) {
-  console.error('Migration failed', error)
+  logger.error('Migration failed', { error })
   process.exit(1)
 }

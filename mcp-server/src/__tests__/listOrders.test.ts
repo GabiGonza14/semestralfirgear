@@ -1,10 +1,15 @@
 import { describe, it, expect, mock, beforeEach } from 'bun:test'
 
-// Mock the orderService before importing the tool.
+// Mock the orderService before importing the tool. Export every order-service fn
+// any suite may import so this mock coexists with the get_order_status /
+// get_sales_metrics / update_order_status suites — Bun's mock.module is global
+// across the run.
 const mockListOrders = mock(async () => [] as unknown[])
 
 mock.module('../../../backend/src/services/orderService', () => ({
   listOrders: mockListOrders,
+  listOrdersByUserId: mock(async () => []),
+  updateOrderStatus: mock(async () => ({})),
 }))
 
 // Mock the User model — the tool resolves clerkUserId -> role via findOne().select().

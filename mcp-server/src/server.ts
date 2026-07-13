@@ -2,12 +2,18 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 import { connectDatabase } from '../../backend/src/config/db'
+import { generateInventoryReportTool } from './tools/generateInventoryReport'
+import { getAuditLogTool } from './tools/getAuditLog'
+import { runHealthCheckTool } from './tools/runHealthCheck'
+import { getLowStockAlertsTool } from './tools/getLowStockAlerts'
 import { getOrderStatusTool } from './tools/getOrderStatus'
 import { getProductDetailsTool } from './tools/getProductDetails'
+import { getProductReviewsTool } from './tools/getProductReviews'
 import { getSalesMetricsTool } from './tools/getSalesMetrics'
 import { listOrdersTool } from './tools/listOrders'
 import { manageCategoriesTool } from './tools/manageCategories'
 import { searchProductsTool } from './tools/searchProducts'
+import { updateOrderStatusTool } from './tools/updateOrderStatus'
 import { updateStockTool } from './tools/updateStock'
 
 const server = new McpServer({
@@ -23,7 +29,7 @@ server.registerTool(
   'search_products',
   {
     description:
-      'Search the FITGEAR product catalog. Returns a compact list of active products filtered by text, category, and/or sort order. Mirrors the shop UI filters.',
+      'Search the FITGEAR product catalog. Returns a compact list of active products filtered by text, category, and/or sort order. Mirrors the shop UI filters. Pass autocomplete:true for fast type-ahead suggestions (up to 5 lightweight {id, name, imageUrl} entries) — for real-time search assistance.',
     inputSchema: {
       search: z.string().optional().describe('Free-text search on product name'),
       categoryId: z.string().optional().describe('Filter by category ObjectId'),
@@ -33,6 +39,12 @@ server.registerTool(
         .describe('Field to sort by (default: createdAt)'),
       sortOrder: z.enum(['asc', 'desc']).optional().describe('Sort direction (default: desc)'),
       limit: z.number().optional().describe('Max products to return (1–100, default 20)'),
+      autocomplete: z
+        .boolean()
+        .optional()
+        .describe(
+          'When true, return up to 5 lightweight type-ahead suggestions (id, name, imageUrl) instead of full product summaries. Requires at least 2 characters in `search`.',
+        ),
       token: z
         .string()
         .optional()
@@ -43,6 +55,21 @@ server.registerTool(
     const results = await searchProductsTool(args)
     return {
       content: [{ type: 'text', text: JSON.stringify(results, null, 2) }],
+    }
+  },
+)
+
+server.registerTool(
+  'run_health_check',
+  {
+    description:
+      "Check FITGEAR's operational health before running other tools. PUBLIC — the only tool with NO authentication and no token input; call it with no arguments. Returns overall readiness plus per-dependency status for MongoDB and Stripe, the process uptime (seconds) and the service version. status is 'ready' only when both dependencies are up, otherwise 'not_ready'.",
+    inputSchema: {},
+  },
+  async (args) => {
+    const result = await runHealthCheckTool(args)
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     }
   },
 )
@@ -62,6 +89,27 @@ server.registerTool(
   },
   async (args) => {
     const result = await getProductDetailsTool(args)
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    }
+  },
+)
+
+server.registerTool(
+  'get_product_reviews',
+  {
+    description:
+      "Fetch a FITGEAR product's customer reviews and rating summary by product id. Public read — returns a summary (count, averageRating, per-star distribution) plus each review (rating, comment, reviewerName, createdAt), or a clear not-found result if the product does not exist. Useful for including satisfaction signals in recommendations or analysis.",
+    inputSchema: {
+      productId: z.string().describe('Mongo ObjectId of the product'),
+      token: z
+        .string()
+        .optional()
+        .describe('Optional Clerk JWT bearer token for authenticated requests'),
+    },
+  },
+  async (args) => {
+    const result = await getProductReviewsTool(args)
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     }
@@ -102,6 +150,26 @@ server.registerTool(
   },
   async (args) => {
     const result = await getSalesMetricsTool(args)
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    }
+  },
+)
+
+server.registerTool(
+  'get_low_stock_alerts',
+  {
+    description:
+      'Return every FITGEAR product currently at or below its configured low-stock threshold, most-critical (lowest stock) first — for proactive restocking. Read-only. Each entry has id, name, stock, lowStockThreshold, isActive, and category, plus a top-level count. Admin-only — requires a valid Clerk JWT whose user has the ADMIN role.',
+    inputSchema: {
+      token: z
+        .string()
+        .optional()
+        .describe('Clerk JWT bearer token of the requesting admin (required)'),
+    },
+  },
+  async (args) => {
+    const result = await getLowStockAlertsTool(args)
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     }
@@ -157,6 +225,31 @@ server.registerTool(
 )
 
 server.registerTool(
+  'update_order_status',
+  {
+    description:
+      'Update an order\'s lifecycle status (PENDING -> PAID -> SHIPPED -> DELIVERED, or CANCELLED) as part of logistics automation. Only valid forward transitions are allowed (e.g. never DELIVERED -> PENDING; PAID is set by the payment flow, not manually). Moving to SHIPPED emails the customer and accepts an optional trackingNumber. Every change is written to the order audit history with the acting admin. Admin-only — requires a valid Clerk JWT whose user has the ADMIN role.',
+    inputSchema: {
+      orderId: z.string().describe('Mongo ObjectId of the order'),
+      token: z.string().describe('Clerk JWT bearer token of the requesting admin (required)'),
+      status: z
+        .enum(['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED'])
+        .describe('Target lifecycle status'),
+      trackingNumber: z
+        .string()
+        .optional()
+        .describe('Optional tracking number, used only when status is SHIPPED'),
+    },
+  },
+  async (args) => {
+    const result = await updateOrderStatusTool(args)
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    }
+  },
+)
+
+server.registerTool(
   'manage_categories',
   {
     description:
@@ -180,6 +273,59 @@ server.registerTool(
   },
   async (args) => {
     const result = await manageCategoriesTool(args)
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    }
+  },
+)
+
+server.registerTool(
+  'get_audit_log',
+  {
+    description:
+      'Query the FITGEAR admin-action audit trail (HU-52) for compliance reporting and detecting suspicious activity. Returns records newest-first — each with the acting admin (actorClerkId, actorEmail), action, entityType, entityId, changes and createdAt. Admin-only — requires a valid Clerk JWT whose user has the ADMIN role. Optional filters: action, actor (Clerk id or email), entityType, dateFrom, dateTo (YYYY-MM-DD), and limit (1–200, default 100).',
+    inputSchema: {
+      token: z.string().describe('Clerk JWT bearer token of the requesting admin (required)'),
+      action: z
+        .string()
+        .optional()
+        .describe("Exact action type, e.g. 'ORDER_STATUS_CHANGED', 'PRODUCT_UPDATED'"),
+      actor: z
+        .string()
+        .optional()
+        .describe('Filter by acting admin: their Clerk id or email (case-insensitive match)'),
+      entityType: z
+        .enum(['ORDER', 'USER', 'PRODUCT', 'CATEGORY', 'REVIEW'])
+        .optional()
+        .describe('Filter by the kind of entity the action targeted'),
+      dateFrom: z.string().optional().describe('Inclusive start of the date range (YYYY-MM-DD)'),
+      dateTo: z.string().optional().describe('Inclusive end of the date range (YYYY-MM-DD)'),
+      limit: z.number().optional().describe('Max records to return (1–200, default 100)'),
+    },
+  },
+  async (args) => {
+    const result = await getAuditLogTool(args)
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    }
+  },
+)
+
+server.registerTool(
+  'generate_inventory_report',
+  {
+    description:
+      'Generate a point-in-time FITGEAR inventory report (HU-53) for automated analysis or for sending to suppliers. Returns generatedAt, a summary (productCount, totalUnits, totalInventoryValue, lowStockCount) and one row per product (name, category, stock, unitPrice, totalValue, lowStock flag, threshold, isActive). Pass includeCsv:true to also get a ready-to-save CSV string. Admin-only — requires a valid Clerk JWT whose user has the ADMIN role.',
+    inputSchema: {
+      token: z.string().describe('Clerk JWT bearer token of the requesting admin (required)'),
+      includeCsv: z
+        .boolean()
+        .optional()
+        .describe('When true, also include the report serialized as a CSV string (default false)'),
+    },
+  },
+  async (args) => {
+    const result = await generateInventoryReportTool(args)
     return {
       content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     }

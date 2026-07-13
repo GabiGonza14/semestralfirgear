@@ -11,6 +11,10 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# TanStack Start (SSR) build artifacts + generated route tree
+.tanstack
+app/routeTree.gen.ts
 .env
 .env.*
 !.env.example

@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react'
-import { SignIn } from '@clerk/clerk-react'
+import { SignIn } from '@clerk/tanstack-react-start'
 
 type ClerkAppearance = ComponentProps<typeof SignIn>['appearance']
 
@@ -9,10 +9,10 @@ export const clerkDarkAppearance: ClerkAppearance = {
   variables: {
     colorPrimary: '#a3e635',
     colorBackground: '#0f172a',
-    colorText: '#e2e8f0',
-    colorTextSecondary: '#94a3b8',
-    colorInputBackground: '#0b1220',
-    colorInputText: '#e2e8f0',
+    colorForeground: '#e2e8f0',
+    colorMutedForeground: '#94a3b8',
+    colorInput: '#0b1220',
+    colorInputForeground: '#e2e8f0',
     colorDanger: '#fb7185',
     borderRadius: '0.9rem',
     fontFamily: 'Inter, "Segoe UI", sans-serif',

@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearch } from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { cancelOrder, createCheckoutSession } from '../api/fitgearApi'
@@ -8,13 +8,15 @@ import { useOrderDetailQuery } from '../hooks/useOrdersQueries'
 import { queryKeys } from '../lib/queryKeys'
 
 export function CheckoutCancelPage() {
-  const [searchParams] = useSearchParams()
-  const orderId = searchParams.get('orderId')
-  const { backendUser } = useAuth()
+  const search = useSearch({ strict: false }) as { orderId?: string }
+  const orderId = search.orderId ?? null
+  const { backendUser, isLoaded } = useAuth()
   const { openCart } = useCart()
   const queryClient = useQueryClient()
 
-  const orderQuery = useOrderDetailQuery(orderId, Boolean(orderId))
+  // Gate on isLoaded: the cancel page is also reached via a full-page Stripe
+  // redirect, so the order lookup must wait until the auth token is ready.
+  const orderQuery = useOrderDetailQuery(orderId, Boolean(orderId) && isLoaded)
 
   const canRetryPayment = orderQuery.data?.status === 'PENDING'
 

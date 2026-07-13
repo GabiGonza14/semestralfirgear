@@ -1,6 +1,6 @@
 # FITGEAR
 
-FITGEAR es una tienda de articulos fitness con frontend en React y Vite, backend en Hono sobre Bun, persistencia en MongoDB, autenticacion con Clerk y flujo de checkout con Stripe. El proyecto separa claramente la capa de presentacion, el consumo de API y la logica del backend para catalogo, carrito, pedidos, usuarios, pagos y administracion.
+FITGEAR es una tienda de articulos fitness con frontend en React y TanStack Start (SSR sobre Vite), backend en Hono sobre Bun, persistencia en MongoDB, autenticacion con Clerk y flujo de checkout con Stripe. El proyecto separa claramente la capa de presentacion, el consumo de API y la logica del backend para catalogo, carrito, pedidos, usuarios, pagos y administracion.
 
 ## Descripcion del proyecto
 
@@ -11,7 +11,7 @@ La aplicacion permite navegar un catalogo real de productos, filtrar por categor
 - React 19
 - Vite
 - TypeScript
-- React Router
+- TanStack Start (SSR) + TanStack Router
 - TanStack React Query
 - Clerk
 - Framer Motion
@@ -70,9 +70,11 @@ MONGODB_URI=mongodb://127.0.0.1:27017/fitgear
 CLERK_SECRET_KEY=sk_test_your_clerk_secret_key
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
 STRIPE_WEBHOOK_SECRET=whsec_your_stripe_webhook_secret
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:3000
 BACKEND_URL=http://localhost:4000
 ```
+
+> **Importante — `FRONTEND_URL` debe ser `http://localhost:3000`.** Tras la migracion a TanStack Start el frontend corre en el puerto **3000** (antes era `5173` con el SPA de Vite). El backend usa `FRONTEND_URL` para su politica de CORS: si esta linea quedo en `5173`, el navegador bloquea **todas** las llamadas del frontend por CORS y veras el catalogo vacio ("No hay productos") y la vista de cliente aunque tu cuenta sea ADMIN (la sincronizacion de rol tambien se bloquea). Si ya tenias un `backend/.env` viejo, actualiza esta linea a `3000`. El backend NO recarga el `.env` en caliente: reinicialo tras el cambio.
 
 ## Como ejecutar frontend y backend
 
@@ -87,7 +89,7 @@ npm run dev
 El frontend queda disponible en:
 
 ```bash
-http://localhost:5173/
+http://localhost:3000/
 ```
 
 ### Backend
@@ -115,6 +117,8 @@ docker compose up --build
 
 El backend queda en `http://localhost:4000` y MongoDB en el puerto `27017`. El frontend se ejecuta aparte con `npm run dev`.
 
+> **Ojo — Docker usa una MongoDB local, no la de Atlas.** `docker-compose.yml` sobrescribe `MONGODB_URI` para apuntar al contenedor de MongoDB local (vacio al inicio), asi que al levantar con Docker **no** veras el catalogo ni los usuarios de la base compartida de Atlas. Para trabajar contra Atlas (datos reales, tu cuenta ADMIN), corre el backend fuera de Docker con `cd backend && bun --watch src/server.ts`, que si lee `backend/.env` y su `MONGODB_URI` de Atlas.
+
 ## Estructura del proyecto
 
 ```text
@@ -132,18 +136,16 @@ El backend queda en `http://localhost:4000` y MongoDB en el puerto `27017`. El f
 │   │   ├── utils/
 │   │   └── validations/
 │   └── package.json
+├── app/                  # TanStack Start: routes (app/routes/**), guards (app/lib/**)
 ├── src/
 │   ├── api/
 │   ├── components/
 │   ├── context/
 │   ├── data/
 │   ├── hooks/
-│   ├── layouts/
 │   ├── pages/
-│   ├── routes/
 │   └── utils/
 ├── public/
-├── index.html
 ├── package.json
 ├── vite.config.ts
 └── README.md
@@ -151,15 +153,20 @@ El backend queda en `http://localhost:4000` y MongoDB en el puerto `27017`. El f
 
 ## Funcionalidades principales
 
-- Catalogo de productos con busqueda, filtros y ordenamiento.
+- Catalogo de productos con busqueda, filtros, ordenamiento y autocompletado.
 - Fallback local de respaldo solo ante errores criticos.
 - Detalle de producto con informacion y relacionados.
+- Reseñas de productos por compradores verificados, con moderacion de administrador.
 - Carrito con ajuste de cantidades, subtotal, impuestos y envio.
 - Creacion de pedidos reales en backend.
-- Checkout con Stripe.
+- Checkout con Stripe, confirmacion de pago, envios y reembolsos.
 - Confirmacion de pago y actualizacion de estado del pedido.
 - Login y autenticacion con Clerk.
 - Panel de administracion para catalogo, usuarios y pedidos.
+- Alertas de stock bajo y notificaciones por email (SendGrid).
+- Historial de auditoria de acciones de administrador (solo lectura).
+- Reporte de inventario exportable en CSV y PDF.
+- Servidor MCP (Model Context Protocol) que expone la logica de negocio como herramientas para agentes.
 
 ## Integraciones
 
@@ -179,16 +186,26 @@ Persisten productos, categorias, usuarios, pedidos y eventos de webhook.
 
 El frontend consume la API mediante `src/api/apiClient.ts` y `src/api/fitgearApi.ts`, con base URL configurable por `VITE_API_BASE_URL`.
 
+### Servidor MCP
+
+El paquete `mcp-server/` expone la logica de negocio del backend como herramientas para agentes (Claude Code, Codex, etc.) sobre transporte stdio, reutilizando los services/models/middlewares de `backend/src/`. Cubre catalogo, ordenes, metricas, inventario, categorias, reseñas y auditoria. Detalle de cada tool en [`docs/mcp/registry.md`](docs/mcp/registry.md) y guia de uso en [`mcp-server/README.md`](mcp-server/README.md).
+
 ## Scripts disponibles
 
 ### Raiz del proyecto
 
 ```bash
-npm run dev
-npm run build
+npm run dev         # servidor de desarrollo (SSR) en http://localhost:3000
+npm run build       # typecheck + build de produccion (dist/client + dist/server)
+npm run start       # levanta el build de produccion (node, no requiere el CLI de dev)
+npm run typecheck
 npm run lint
-npm run preview
 ```
+
+`npm start` corre `vite preview`, que en la version instalada de `@tanstack/react-start`
+(sin Nitro) es el mecanismo soportado para servir el build de `dist/` como un
+proceso Node real — sirve `dist/client` como estatico y usa `dist/server/server.js`
+para el SSR de cada ruta.
 
 ### Backend
 
@@ -226,7 +243,7 @@ bun src/server.ts
 ### Clerk no autentica
 
 - Revisa `VITE_CLERK_PUBLISHABLE_KEY` en el frontend.
-- Confirma que la instancia de Clerk permita `http://localhost:5173`.
+- Confirma que la instancia de Clerk permita `http://localhost:3000`.
 
 ## Estado actual del proyecto
 

@@ -19,3 +19,11 @@ export const syncClerkUserSchema = z.object({
 export const emailParamSchema = z.object({
   email: z.string().trim().email('email must be valid').max(254, 'email is too long'),
 })
+
+export const updateUserRoleSchema = z.object({
+  role: z.enum(['ADMIN', 'CUSTOMER'], { message: 'role must be ADMIN or CUSTOMER' }),
+})
+
+export const updateUserStatusSchema = z.object({
+  isActive: z.boolean({ message: 'isActive must be a boolean' }),
+})

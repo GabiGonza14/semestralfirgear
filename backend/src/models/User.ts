@@ -11,6 +11,10 @@ const userSchema = new Schema(
       default: 'CUSTOMER',
       required: true,
     },
+    // Soft-deactivation (HU-44): an inactive account is kept for history/audit
+    // but is banned in Clerk so it can no longer sign in. Defaults to true so
+    // every existing and newly-synced user is active.
+    isActive: { type: Boolean, default: true, required: true },
   },
   { timestamps: true },
 )

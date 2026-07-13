@@ -11,6 +11,7 @@ mock.module('../../../backend/src/services/productService', () => ({
   listProducts: mockListProducts,
   getProductById: mock(async () => ({})),
   updateProduct: mock(async () => ({})),
+  suggestProducts: mock(async () => []),
 }))
 
 // requireAuth is a soft-auth — always resolves for public tools.
@@ -103,7 +104,9 @@ describe('searchProductsTool', () => {
   it('product without populated category returns empty category string', async () => {
     mockListProducts.mockResolvedValueOnce([makeProduct({ categoryId: null })])
 
-    const results = await searchProductsTool({})
+    // Non-autocomplete calls return ProductSummary[]; narrow the union so the
+    // ProductSummary-only `category` field is accessible.
+    const results = (await searchProductsTool({})) as Array<{ category: string }>
 
     expect(results[0].category).toBe('')
   })

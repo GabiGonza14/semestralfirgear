@@ -10,6 +10,9 @@ mock.module('../../../backend/src/services/productService', () => ({
   updateProduct: mockUpdateProduct,
   getProductById: mock(async () => ({})),
   listProducts: mock(async () => []),
+  // Global mock.module: searchProducts.ts imports suggestProducts, so keep it
+  // here too or that tool's import breaks when this mock wins the run.
+  suggestProducts: mock(async () => []),
 }))
 
 // Mock the User model — the tool resolves clerkUserId -> role via findOne().select().

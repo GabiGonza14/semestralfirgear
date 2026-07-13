@@ -5,10 +5,19 @@ import { queryKeys } from '../lib/queryKeys'
 
 const PAYMENT_CONFIRMATION_RETRYABLE_STATUS = 409
 
-export function useCheckoutPaymentConfirmationQuery(orderId: string | null, sessionId: string | null) {
+// `authReady` gates the query until Clerk has resolved the session and the
+// auth-token getter is registered (AuthContext). Stripe redirects back to the
+// success page as a full page load, so without this gate the confirmation
+// request fires before the token exists and the backend answers 401
+// ("No se proporciono token de autenticacion").
+export function useCheckoutPaymentConfirmationQuery(
+  orderId: string | null,
+  sessionId: string | null,
+  authReady: boolean,
+) {
   return useQuery({
     queryKey: queryKeys.payments.confirmation(orderId ?? 'unknown', sessionId ?? 'none'),
-    enabled: Boolean(orderId),
+    enabled: Boolean(orderId) && authReady,
     staleTime: Infinity,
     gcTime: 1000 * 60 * 30,
     refetchOnWindowFocus: false,

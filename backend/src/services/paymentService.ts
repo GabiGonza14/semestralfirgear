@@ -2,10 +2,14 @@ import Stripe from 'stripe'
 import mongoose, { Types, type ClientSession } from 'mongoose'
 import { env } from '../config/env'
 import { getStripeClient } from '../config/stripe'
+import { OrderEventModel } from '../models/OrderEvent'
 import { OrderItemModel } from '../models/OrderItem'
 import { OrderModel } from '../models/Order'
 import { ProductModel } from '../models/Product'
+import { UserModel } from '../models/User'
 import { HttpError } from '../utils/httpError'
+import { logger } from '../utils/logger'
+import { notifyAdminsOfLowStockCrossing } from './lowStockService'
 import { dispatchNotification } from './notificationService'
 import {
   markWebhookFailed,
@@ -34,6 +38,18 @@ interface GroupedOrderItem {
   productId: string
   quantity: number
   size?: string
+}
+
+// HU-46: a product whose stock was just decremented by a paid order, carried out
+// of the transaction so admins can be emailed AFTER the PENDING->PAID commit
+// (never for a transaction that later aborts). `previousStock` is reconstructed
+// from the post-decrement doc: the decrement is exactly `quantity`.
+interface StockDecrementRecord {
+  id: string
+  name: string
+  stock: number
+  lowStockThreshold: number
+  previousStock: number
 }
 
 const TAX_RATE = 0.07
@@ -240,14 +256,239 @@ export async function confirmCheckoutPayment(orderId: string, sessionId?: string
   return { status: 'PAID' as const }
 }
 
+// An order can only be refunded from a state where money actually changed hands.
+const REFUNDABLE_STATUSES = new Set(['PAID', 'SHIPPED', 'DELIVERED'])
+
+interface RefundOrderOptions {
+  reason?: string
+  actorClerkId?: string | null
+}
+
+/**
+ * HU-29: refunds an order in full through the Stripe Refunds API and marks it
+ * REFUNDED. Stripe is called FIRST — the order is only mutated once Stripe
+ * confirms the refund, so a Stripe failure never leaves an order REFUNDED
+ * without the money actually being returned (atomicity). Idempotent on the order
+ * id so a double click cannot issue two refunds. Records the action in the order
+ * history (OrderEvent) and emails the customer the refund detail.
+ */
+export async function refundOrder(orderId: string, options: RefundOrderOptions = {}) {
+  const order = await OrderModel.findById(orderId).populate('userId', 'email fullName')
+
+  if (!order) {
+    throw new HttpError(404, 'Order not found')
+  }
+
+  // Idempotency guard: a second attempt on an already-refunded order is a no-op
+  // error, not a second Stripe refund.
+  if (order.status === 'REFUNDED') {
+    throw new HttpError(409, 'Order is already refunded')
+  }
+
+  if (!REFUNDABLE_STATUSES.has(order.status)) {
+    throw new HttpError(400, 'Only paid, shipped or delivered orders can be refunded')
+  }
+
+  // A SHIPPED order is a real return (goods already left the warehouse), not
+  // a plain cancellation — require the admin to document why.
+  if (order.status === 'SHIPPED' && !options.reason?.trim()) {
+    throw new HttpError(400, 'A reason is required to refund an order that has already shipped')
+  }
+
+  if (!order.stripePaymentIntentId) {
+    throw new HttpError(400, 'Order has no Stripe payment to refund')
+  }
+
+  const stripe = getStripeClient()
+
+  let refund: Stripe.Refund
+  try {
+    refund = await stripe.refunds.create(
+      { payment_intent: order.stripePaymentIntentId },
+      // Idempotency key scoped to the order: Stripe returns the SAME refund if
+      // this is retried, so a network retry or double click never double-refunds.
+      { idempotencyKey: `refund_order_${orderId}` },
+    )
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    logger.error('[refund] Stripe refund failed', { orderId, error })
+    // Atomicity: the order is left untouched so it never shows REFUNDED without
+    // an actual Stripe refund behind it.
+    throw new HttpError(502, `Stripe refund failed: ${message}`)
+  }
+
+  order.status = 'REFUNDED'
+  order.refundedAt = new Date()
+  order.stripeRefundId = refund.id
+  order.refundReason = options.reason
+  await order.save()
+
+  await restoreOrderStock(orderId)
+  await recordRefundHistory(order, refund.id, options)
+  notifyCustomerRefund(order, order.totalAmount, options.reason)
+
+  return order
+}
+
+// Mirrors the decrement applied at PENDING->PAID (applyStockDecrement) so a
+// refunded order's items become sellable again — otherwise stock taken by a
+// purchase never comes back once that purchase is cancelled/refunded.
+// Best-effort like recordRefundHistory: the money is already back with the
+// customer by this point, so a restore failure must not turn the request into
+// an error — it's logged loudly instead.
+async function restoreOrderStock(orderId: string) {
+  try {
+    const items = await OrderItemModel.find({ orderId }).select('productId quantity size')
+    for (const item of items) {
+      await restoreProductStock({
+        productId: item.productId.toString(),
+        quantity: item.quantity,
+        size: item.size ?? undefined,
+      })
+    }
+  } catch (error) {
+    logger.error('[refund] failed to restore stock', { orderId, error })
+  }
+}
+
+// Self-service window: a customer can cancel-and-refund WITHOUT admin
+// involvement only while the order is still PAID — nothing has shipped yet, so
+// there's no logistics to coordinate. Once SHIPPED, cancellation requires an
+// admin (via the admin refund flow).
+const SELF_REFUNDABLE_STATUS = 'PAID'
+
+/**
+ * Customer-facing self-cancel: verifies the caller owns the order, then runs
+ * the exact same Stripe refund as the admin path (refundOrder) — same
+ * atomicity, order-history entry and customer email — just restricted to
+ * PAID orders and gated by ownership instead of the ADMIN role.
+ */
+export async function selfRefundOrder(orderId: string, clerkUserId: string) {
+  const order = await OrderModel.findById(orderId).select('userId status')
+
+  if (!order) {
+    throw new HttpError(404, 'Order not found')
+  }
+
+  const user = await UserModel.findOne({ clerkUserId }).select('_id')
+
+  if (!user || order.userId.toString() !== user._id.toString()) {
+    throw new HttpError(403, 'You do not have access to this order')
+  }
+
+  if (order.status !== SELF_REFUNDABLE_STATUS) {
+    throw new HttpError(400, 'Only paid orders that have not shipped yet can be self-cancelled')
+  }
+
+  return refundOrder(orderId, { reason: 'Cancelado por el cliente', actorClerkId: clerkUserId })
+}
+
+// Best-effort history write: the money is already back with the customer, so a
+// history-log failure must not turn the request into an error. It's logged loudly
+// instead. Runs on the same connection right after order.save(), so this is rare.
+async function recordRefundHistory(
+  order: InstanceType<typeof OrderModel>,
+  stripeRefundId: string,
+  options: RefundOrderOptions,
+) {
+  try {
+    await OrderEventModel.create({
+      orderId: order._id,
+      type: 'REFUNDED',
+      actorClerkId: options.actorClerkId ?? undefined,
+      reason: options.reason,
+      metadata: { stripeRefundId, amount: order.totalAmount },
+    })
+  } catch (error) {
+    logger.error('[refund] failed to write order history event', {
+      orderId: order._id.toString(),
+      error,
+    })
+  }
+}
+
+function notifyCustomerRefund(
+  order: InstanceType<typeof OrderModel>,
+  amount: number,
+  reason?: string,
+) {
+  const customer = order.userId as unknown as PopulatedOrderCustomer | null
+  const email = typeof order.userId === 'string' ? undefined : customer?.email
+
+  if (!email) {
+    logger.warn('[refund] cannot notify: order has no customer email', {
+      orderId: order._id.toString(),
+    })
+    return
+  }
+
+  const orderId = order._id.toString()
+
+  dispatchNotification({
+    type: 'ORDER_REFUNDED',
+    to: email,
+    orderId,
+    subject: `Reembolso procesado — Orden #${orderId.slice(-6).toUpperCase()}`,
+    html: buildRefundEmailHtml({
+      name: customer?.fullName,
+      orderId,
+      amount,
+      refundedAt: order.refundedAt ?? new Date(),
+      reason,
+    }),
+  })
+}
+
+function buildRefundEmailHtml(params: {
+  name?: string
+  orderId: string
+  amount: number
+  refundedAt: Date
+  reason?: string
+}): string {
+  const greeting = params.name ? `Hola ${params.name},` : 'Hola,'
+  const orderNumber = params.orderId.slice(-6).toUpperCase()
+  const ordersUrl = `${env.frontendUrl}/orders/${params.orderId}`
+  const refundDate = params.refundedAt.toLocaleDateString('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+
+  const reasonBlock = params.reason
+    ? `<p style="color:#475569;"><em>Motivo: ${params.reason}</em></p>`
+    : ''
+
+  return `
+  <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #0f172a;">
+    <h2 style="color: #4d7c0f;">Tu reembolso fue procesado</h2>
+    <p>${greeting}</p>
+    <p>Hemos procesado el reembolso de tu orden <strong>#${orderNumber}</strong>.</p>
+    <p style="background:#f0fdf4; border-radius:8px; padding:12px 16px; color:#166534;">
+      💳 <strong>Monto reembolsado:</strong> $${params.amount.toFixed(2)}<br/>
+      📅 <strong>Fecha:</strong> ${refundDate}
+    </p>
+    ${reasonBlock}
+    <p style="color:#475569;">El importe puede tardar unos días hábiles en reflejarse en tu método de pago,
+      según tu banco.</p>
+    <p style="margin: 24px 0;">
+      <a href="${ordersUrl}"
+         style="background:#84cc16; color:#0f172a; padding:12px 24px; border-radius:9999px;
+                text-decoration:none; font-weight:bold;">Ver mi orden</a>
+    </p>
+    <p style="color:#94a3b8; font-size:12px;">Si tienes dudas, responde a este correo. — Equipo FITGEAR</p>
+  </div>`
+}
+
 export async function constructWebhookEvent(payload: string, signature: string | undefined) {
   if (!signature) {
-    console.error('[stripe-webhook] rejected event: missing Stripe signature header')
+    logger.error('[stripe-webhook] rejected event: missing Stripe signature header')
     throw new HttpError(400, 'Missing Stripe signature header')
   }
 
   if (!env.stripeWebhookSecret) {
-    console.error('[stripe-webhook] rejected event: STRIPE_WEBHOOK_SECRET is not configured')
+    logger.error('[stripe-webhook] rejected event: STRIPE_WEBHOOK_SECRET is not configured')
     throw new HttpError(500, 'Stripe webhook is not configured')
   }
 
@@ -258,7 +499,7 @@ export async function constructWebhookEvent(payload: string, signature: string |
     // uses the Web Crypto provider, whose HMAC only works asynchronously.
     return await stripe.webhooks.constructEventAsync(payload, signature, env.stripeWebhookSecret)
   } catch (error) {
-    console.error('[stripe-webhook] signature verification failed', error)
+    logger.error('[stripe-webhook] signature verification failed', { error })
     throw new HttpError(400, 'Invalid Stripe signature')
   }
 }
@@ -271,7 +512,7 @@ export async function handleStripeEvent(event: Stripe.Event) {
     const record = await recordWebhookEvent(event, extractWebhookData(event))
     alreadyProcessed = record.alreadyProcessed
   } catch (error) {
-    console.error('[stripe-webhook] failed to record audit event', { eventId: event.id, error })
+    logger.error('[stripe-webhook] failed to record audit event', { eventId: event.id, error })
   }
 
   // Idempotency: a redelivery of an already-processed event does no work twice.
@@ -303,7 +544,7 @@ export async function handleStripeEvent(event: Stripe.Event) {
     }
 
     const message = error instanceof Error ? error.message : String(error)
-    console.error('[stripe-webhook] failed to process event', {
+    logger.error('[stripe-webhook] failed to process event', {
       eventId: event.id,
       type: event.type,
       error,
@@ -370,7 +611,7 @@ async function handlePaymentFailed(event: Stripe.Event) {
   const orderId = paymentIntent.metadata?.orderId
 
   if (!orderId) {
-    console.warn('[stripe-webhook] payment_intent.payment_failed without orderId metadata', {
+    logger.warn('[stripe-webhook] payment_intent.payment_failed without orderId metadata', {
       paymentIntentId: paymentIntent.id,
     })
     return
@@ -395,7 +636,7 @@ async function markOrderAsFailed(orderId: string, paymentIntentId: string, reaso
   const order = await OrderModel.findById(orderId).populate('userId', 'email fullName')
 
   if (!order) {
-    console.warn('[stripe-webhook] payment failed for unknown order', { orderId })
+    logger.warn('[stripe-webhook] payment failed for unknown order', { orderId })
     return null
   }
 
@@ -403,7 +644,7 @@ async function markOrderAsFailed(orderId: string, paymentIntentId: string, reaso
   // that already reached PAID/SHIPPED/DELIVERED/CANCELLED/REFUNDED. Returning
   // null here also means the customer is NOT re-notified for such late events.
   if (order.status !== 'PENDING') {
-    console.info('[stripe-webhook] ignoring payment_failed for non-pending order', {
+    logger.info('[stripe-webhook] ignoring payment_failed for non-pending order', {
       orderId,
       status: order.status,
     })
@@ -415,7 +656,7 @@ async function markOrderAsFailed(orderId: string, paymentIntentId: string, reaso
   order.stripePaymentIntentId = paymentIntentId
   await order.save()
 
-  console.info('[stripe-webhook] order marked FAILED', { orderId, paymentIntentId, reason })
+  logger.info('[stripe-webhook] order marked FAILED', { orderId, paymentIntentId, reason })
   return order
 }
 
@@ -427,7 +668,7 @@ function notifyCustomerPaymentFailed(
   const email = typeof order.userId === 'string' ? undefined : customer?.email
 
   if (!email) {
-    console.warn('[stripe-webhook] cannot notify: order has no customer email', {
+    logger.warn('[stripe-webhook] cannot notify: order has no customer email', {
       orderId: order._id.toString(),
     })
     return
@@ -477,6 +718,148 @@ function buildPaymentFailedEmailHtml(params: {
                 text-decoration:none; font-weight:bold;">Reintentar pago</a>
     </p>
     <p style="color:#94a3b8; font-size:12px;">Si no reconoces esta compra, ignora este correo. — Equipo FITGEAR</p>
+  </div>`
+}
+
+interface ConfirmationLineItem {
+  name: string
+  quantity: number
+  size?: string | null
+  subtotal: number
+}
+
+// HU-30: loads everything the confirmation email needs (customer + line items),
+// builds the template and dispatches it. Fire-and-forget via dispatchNotification
+// so it never blocks the caller; all failures are logged/audited, never thrown.
+// Exported for unit testing the confirmation behaviour in isolation.
+export async function notifyCustomerPurchaseConfirmed(orderId: string) {
+  try {
+    const order = await OrderModel.findById(orderId).populate('userId', 'email fullName')
+
+    if (!order) {
+      logger.warn('[stripe-webhook] cannot send confirmation: order not found', { orderId })
+      return
+    }
+
+    const customer = order.userId as unknown as PopulatedOrderCustomer | null
+    const email = typeof order.userId === 'string' ? undefined : customer?.email
+
+    if (!email) {
+      logger.warn('[stripe-webhook] cannot send confirmation: order has no customer email', { orderId })
+      return
+    }
+
+    const items = await OrderItemModel.find({ orderId: order._id }).populate('productId', 'name')
+    const lineItems: ConfirmationLineItem[] = items.map((item) => {
+      const product = item.productId as unknown as PopulatedProductRef | null
+      return {
+        name: product?.name ?? 'Producto',
+        quantity: item.quantity,
+        size: item.size,
+        subtotal: item.subtotal,
+      }
+    })
+
+    const estimatedDelivery = estimateDeliveryDate(order.paidAt ?? new Date())
+
+    dispatchNotification({
+      type: 'PURCHASE_CONFIRMATION',
+      to: email,
+      orderId,
+      subject: `Confirmación de compra — Orden #${orderId.slice(-6).toUpperCase()}`,
+      html: buildPurchaseConfirmationEmailHtml({
+        name: customer?.fullName,
+        orderId,
+        items: lineItems,
+        total: order.totalAmount,
+        estimatedDelivery,
+      }),
+    })
+  } catch (error) {
+    // A confirmation-email failure must never break the payment flow itself.
+    logger.error('[stripe-webhook] failed to send purchase confirmation', { orderId, error })
+  }
+}
+
+// Estimated delivery = paid date + 5 business days (weekends skipped). Kept
+// simple: FITGEAR has no carrier integration, so this is an informational ETA.
+// Exported for unit testing.
+export function estimateDeliveryDate(from: Date): Date {
+  const date = new Date(from)
+  let added = 0
+  while (added < 5) {
+    date.setDate(date.getDate() + 1)
+    const day = date.getDay()
+    if (day !== 0 && day !== 6) {
+      added++
+    }
+  }
+  return date
+}
+
+function formatDeliveryDate(date: Date): string {
+  return date.toLocaleDateString('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+function buildPurchaseConfirmationEmailHtml(params: {
+  name?: string
+  orderId: string
+  items: ConfirmationLineItem[]
+  total: number
+  estimatedDelivery: Date
+}): string {
+  const greeting = params.name ? `Hola ${params.name},` : 'Hola,'
+  const orderNumber = params.orderId.slice(-6).toUpperCase()
+  const ordersUrl = `${env.frontendUrl}/orders/${params.orderId}`
+
+  const rows = params.items
+    .map((item) => {
+      const sizeLabel = item.size ? ` <span style="color:#94a3b8;">(Talla ${item.size})</span>` : ''
+      return `
+      <tr>
+        <td style="padding:8px 0; border-bottom:1px solid #e2e8f0;">${item.name}${sizeLabel}</td>
+        <td style="padding:8px 0; border-bottom:1px solid #e2e8f0; text-align:center;">${item.quantity}</td>
+        <td style="padding:8px 0; border-bottom:1px solid #e2e8f0; text-align:right;">$${item.subtotal.toFixed(2)}</td>
+      </tr>`
+    })
+    .join('')
+
+  return `
+  <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #0f172a;">
+    <h2 style="color: #4d7c0f;">¡Gracias por tu compra!</h2>
+    <p>${greeting}</p>
+    <p>Hemos recibido tu pago y tu orden <strong>#${orderNumber}</strong> está confirmada.
+      Aquí tienes el resumen:</p>
+    <table style="width:100%; border-collapse:collapse; margin:16px 0;">
+      <thead>
+        <tr style="color:#64748b; text-align:left; font-size:13px;">
+          <th style="padding:8px 0; border-bottom:2px solid #cbd5e1;">Producto</th>
+          <th style="padding:8px 0; border-bottom:2px solid #cbd5e1; text-align:center;">Cant.</th>
+          <th style="padding:8px 0; border-bottom:2px solid #cbd5e1; text-align:right;">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2" style="padding:12px 0; font-weight:bold; text-align:right;">Total</td>
+          <td style="padding:12px 0; font-weight:bold; text-align:right;">$${params.total.toFixed(2)}</td>
+        </tr>
+      </tfoot>
+    </table>
+    <p style="background:#f0fdf4; border-radius:8px; padding:12px 16px; color:#166534;">
+      📦 <strong>Entrega estimada:</strong> ${formatDeliveryDate(params.estimatedDelivery)}
+    </p>
+    <p style="margin: 24px 0;">
+      <a href="${ordersUrl}"
+         style="background:#84cc16; color:#0f172a; padding:12px 24px; border-radius:9999px;
+                text-decoration:none; font-weight:bold;">Ver mi orden</a>
+    </p>
+    <p style="color:#94a3b8; font-size:12px;">Este es un correo automático de confirmación. — Equipo FITGEAR</p>
   </div>`
 }
 
@@ -586,13 +969,45 @@ function restoreProductStock(item: GroupedOrderItem) {
 async function applyStockDecrement(
   groupedItems: GroupedOrderItem[],
   session?: ClientSession,
-) {
+): Promise<StockDecrementRecord[]> {
+  const decrements: StockDecrementRecord[] = []
+
   for (const item of groupedItems) {
     const updated = await decrementProductStock(item, session)
 
     if (!updated) {
       throw new HttpError(409, 'Stock update conflict. Try again with refreshed inventory.')
     }
+
+    decrements.push({
+      id: String(updated._id),
+      name: updated.name,
+      stock: updated.stock,
+      lowStockThreshold: updated.lowStockThreshold,
+      // findOneAndUpdate decremented `stock` by exactly item.quantity, so the
+      // pre-update value is the returned value plus what we just took.
+      previousStock: updated.stock + item.quantity,
+    })
+  }
+
+  return decrements
+}
+
+// Fires the low-stock admin alert for every product that just crossed its
+// threshold downward. Called only after the PENDING->PAID transition is durably
+// committed. Each notify call re-checks the crossing and no-ops otherwise, and is
+// fire-and-forget, so this never blocks or breaks the payment flow.
+function dispatchLowStockAlerts(decrements: StockDecrementRecord[]) {
+  for (const record of decrements) {
+    void notifyAdminsOfLowStockCrossing(
+      {
+        id: record.id,
+        name: record.name,
+        stock: record.stock,
+        lowStockThreshold: record.lowStockThreshold,
+      },
+      record.previousStock,
+    )
   }
 }
 
@@ -604,49 +1019,74 @@ async function markOrderAsPaidAndDeductStock(
   await assertCustomerOrder(orderId)
 
   const session = await mongoose.startSession()
+  let didTransitionToPaid = false
+  let lowStockDecrements: StockDecrementRecord[] = []
 
   try {
     session.startTransaction()
-    await markOrderAsPaidAndDeductStockWithSession(
+    const result = await markOrderAsPaidAndDeductStockWithSession(
       orderId,
       stripeCheckoutSessionId,
       stripePaymentIntentId,
       session,
     )
+    didTransitionToPaid = result.transitioned
+    lowStockDecrements = result.decrements
     await session.commitTransaction()
   } catch (error) {
     await session.abortTransaction()
 
     if (isTransactionUnsupportedError(error)) {
-      await markOrderAsPaidAndDeductStockFallback(orderId, stripeCheckoutSessionId, stripePaymentIntentId)
-      return
+      const result = await markOrderAsPaidAndDeductStockFallback(
+        orderId,
+        stripeCheckoutSessionId,
+        stripePaymentIntentId,
+      )
+      didTransitionToPaid = result.transitioned
+      lowStockDecrements = result.decrements
+    } else {
+      throw error
     }
-
-    throw error
   } finally {
     await session.endSession()
   }
+
+  // HU-46: only after the stock decrements are durably committed, email admins
+  // about any product that crossed its low-stock threshold on this order.
+  if (didTransitionToPaid) {
+    dispatchLowStockAlerts(lowStockDecrements)
+  }
+
+  // HU-30: send the purchase confirmation email only on the real PENDING->PAID
+  // transition. Both the webhook and the confirm endpoint route through here, and
+  // both early-return when the order is already PAID, so this fires exactly once.
+  if (didTransitionToPaid) {
+    await notifyCustomerPurchaseConfirmed(orderId)
+  }
 }
 
+// Returns true when the order actually transitioned PENDING->PAID in this call
+// (false when there was no order or it was already PAID), so the caller knows
+// whether to send the one-time purchase confirmation email (HU-30).
 async function markOrderAsPaidAndDeductStockWithSession(
   orderId: string,
   stripeCheckoutSessionId: string,
   stripePaymentIntentId: string | undefined,
   session: ClientSession,
-) {
+): Promise<{ transitioned: boolean; decrements: StockDecrementRecord[] }> {
   const orderQuery = OrderModel.findById(orderId)
   const order = await orderQuery.session(session)
 
   if (!order) {
-    return
+    return { transitioned: false, decrements: [] }
   }
 
   if (order.status === 'PAID') {
-    return
+    return { transitioned: false, decrements: [] }
   }
 
   const groupedItems = await ensureOrderHasAvailableStock(orderId, session)
-  await applyStockDecrement(groupedItems, session)
+  const decrements = await applyStockDecrement(groupedItems, session)
 
   order.status = 'PAID'
   order.paymentProvider = 'STRIPE'
@@ -654,25 +1094,30 @@ async function markOrderAsPaidAndDeductStockWithSession(
   order.stripePaymentIntentId = stripePaymentIntentId
   order.paidAt = new Date()
   await order.save({ session })
+
+  return { transitioned: true, decrements }
 }
 
+// Same PENDING->PAID contract as the transactional path: returns true only when
+// this call performed the transition (HU-30 confirmation email trigger).
 async function markOrderAsPaidAndDeductStockFallback(
   orderId: string,
   stripeCheckoutSessionId: string,
   stripePaymentIntentId?: string,
-) {
+): Promise<{ transitioned: boolean; decrements: StockDecrementRecord[] }> {
   const order = await OrderModel.findById(orderId)
 
   if (!order) {
-    return
+    return { transitioned: false, decrements: [] }
   }
 
   if (order.status === 'PAID') {
-    return
+    return { transitioned: false, decrements: [] }
   }
 
   const groupedItems = await ensureOrderHasAvailableStock(orderId)
   const decremented: GroupedOrderItem[] = []
+  const decrements: StockDecrementRecord[] = []
 
   try {
     for (const item of groupedItems) {
@@ -683,6 +1128,13 @@ async function markOrderAsPaidAndDeductStockFallback(
       }
 
       decremented.push(item)
+      decrements.push({
+        id: String(updated._id),
+        name: updated.name,
+        stock: updated.stock,
+        lowStockThreshold: updated.lowStockThreshold,
+        previousStock: updated.stock + item.quantity,
+      })
     }
 
     order.status = 'PAID'
@@ -691,6 +1143,8 @@ async function markOrderAsPaidAndDeductStockFallback(
     order.stripePaymentIntentId = stripePaymentIntentId
     order.paidAt = new Date()
     await order.save()
+
+    return { transitioned: true, decrements }
   } catch (error) {
     for (const item of decremented) {
       await restoreProductStock(item)

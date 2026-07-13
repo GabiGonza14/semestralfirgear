@@ -1,70 +1,42 @@
 import { useEffect, useMemo, useState } from 'react'
-import { createProduct, deleteProduct, getCategories, updateProduct } from '../../api/fitgearApi'
+import { createProduct, deleteProduct, updateProduct } from '../../api/fitgearApi'
 import type { ProductUpsertInput } from '../../api/fitgearApi'
-import type { Product } from '../../types'
-import { InventoryFilters, type CategoryOption } from './InventoryFilters'
+import { isLowStock } from '../../lib/inventory'
+import type { Category, Product } from '../../types'
+import { InventoryExportControls } from './InventoryExportControls'
+import { InventoryFilters } from './InventoryFilters'
 import { ProductFormModal } from './ProductFormModal'
 import { DeleteConfirmModal } from './DeleteConfirmModal'
 import { ProductTable } from './ProductTable'
 
 interface AdminInventorySectionProps {
   products: Product[]
+  categories: Category[]
   onRefreshProducts: () => Promise<void>
 }
 
 type ProductStatusFilter = 'all' | 'active' | 'inactive'
 type ProductSort = 'nameAsc' | 'priceAsc' | 'priceDesc' | 'stockAsc' | 'stockDesc'
 
-export function AdminInventorySection({ products, onRefreshProducts }: AdminInventorySectionProps) {
-  const [categories, setCategories] = useState<CategoryOption[]>([])
-  const [categoriesLoading, setCategoriesLoading] = useState(true)
-  const [categoriesError, setCategoriesError] = useState<string | null>(null)
+const PAGE_SIZE = 20
+
+export function AdminInventorySection({ products, categories, onRefreshProducts }: AdminInventorySectionProps) {
   const [search, setSearch] = useState('')
   const [categoryId, setCategoryId] = useState('all')
   const [status, setStatus] = useState<ProductStatusFilter>('all')
   const [sortBy, setSortBy] = useState<ProductSort>('nameAsc')
+  const [lowStockOnly, setLowStockOnly] = useState(false)
+  const [page, setPage] = useState(1)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [mutationError, setMutationError] = useState<string | null>(null)
 
-  useEffect(() => {
-    let active = true
-    setCategoriesLoading(true)
-
-    void getCategories()
-      .then((result) => {
-        if (!active) {
-          return
-        }
-
-        setCategories(
-          result.map((category) => ({
-            id: category._id,
-            name: category.name,
-            requiresSizes: category.requiresSizes,
-          })),
-        )
-        setCategoriesError(null)
-      })
-      .catch((error: unknown) => {
-        if (!active) {
-          return
-        }
-
-        setCategoriesError(error instanceof Error ? error.message : 'No se pudieron cargar categorias.')
-      })
-      .finally(() => {
-        if (active) {
-          setCategoriesLoading(false)
-        }
-      })
-
-    return () => {
-      active = false
-    }
-  }, [])
+  // HU-46: total low-stock count across the whole catalog (not just the current
+  // filter), so the chip's badge stays accurate even while other filters narrow
+  // the visible table.
+  const lowStockCount = useMemo(() => products.filter(isLowStock).length, [products])
 
   const categoryNameById = useMemo(
     () => new Map(categories.map((category) => [category.id, category.name])),
@@ -81,8 +53,9 @@ export function AdminInventorySection({ products, onRefreshProducts }: AdminInve
       const matchesCategory = categoryId === 'all' ? true : product.categoryId === categoryId
       const matchesStatus =
         status === 'all' ? true : status === 'active' ? product.isActive : !product.isActive
+      const matchesLowStock = lowStockOnly ? isLowStock(product) : true
 
-      return matchesSearch && matchesCategory && matchesStatus
+      return matchesSearch && matchesCategory && matchesStatus && matchesLowStock
     })
 
     return [...filtered].sort((left, right) => {
@@ -100,16 +73,18 @@ export function AdminInventorySection({ products, onRefreshProducts }: AdminInve
           return left.name.localeCompare(right.name)
       }
     })
-  }, [categoryId, products, search, sortBy, status])
+  }, [categoryId, lowStockOnly, products, search, sortBy, status])
 
-  const categoryOptions = useMemo(
-    () =>
-      categories.map((category) => ({
-        id: category.id,
-        name: category.name,
-        requiresSizes: category.requiresSizes,
-      })),
-    [categories],
+  // Any filter change can shrink the result set below the current page.
+  useEffect(() => {
+    setPage(1)
+  }, [categoryId, lowStockOnly, search, sortBy, status])
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pagedProducts = useMemo(
+    () => filteredProducts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filteredProducts, currentPage],
   )
 
   const handleCreate = () => {
@@ -182,7 +157,7 @@ export function AdminInventorySection({ products, onRefreshProducts }: AdminInve
         categoryId={categoryId}
         status={status}
         sortBy={sortBy}
-        categories={categoryOptions}
+        categories={categories}
         onSearchChange={setSearch}
         onCategoryChange={setCategoryId}
         onStatusChange={setStatus}
@@ -190,15 +165,7 @@ export function AdminInventorySection({ products, onRefreshProducts }: AdminInve
         onCreateClick={handleCreate}
       />
 
-      {categoriesLoading ? (
-        <p className="text-sm text-slate-400">Cargando categorias para el inventario...</p>
-      ) : null}
-
-      {categoriesError ? (
-        <p className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
-          {categoriesError}
-        </p>
-      ) : null}
+      <InventoryExportControls />
 
       {successMessage ? (
         <p className="rounded-2xl border border-lime-400/20 bg-lime-400/10 px-4 py-3 text-sm text-lime-300">
@@ -212,18 +179,76 @@ export function AdminInventorySection({ products, onRefreshProducts }: AdminInve
         </p>
       ) : null}
 
-      <div className="flex items-center justify-between text-sm text-slate-400">
-        <span>{filteredProducts.length} productos encontrados</span>
-        {categoryNameById.size > 0 ? <span>{categoryNameById.size} categorias disponibles</span> : null}
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
+        <div className="flex flex-wrap items-center gap-3">
+          <span>{filteredProducts.length} productos encontrados</span>
+          {categoryNameById.size > 0 ? <span>{categoryNameById.size} categorias disponibles</span> : null}
+        </div>
+
+        {lowStockCount > 0 ? (
+          <button
+            type="button"
+            onClick={() => setLowStockOnly((value) => !value)}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition ${
+              lowStockOnly
+                ? 'bg-amber-400 text-slate-950'
+                : 'border border-amber-400/30 text-amber-300 hover:border-amber-400/60 hover:bg-amber-400/10'
+            }`}
+          >
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Stock bajo
+            <span
+              className={`rounded-full px-1.5 text-[10px] ${
+                lowStockOnly ? 'bg-slate-950/20 text-slate-900' : 'bg-amber-400/15 text-amber-300'
+              }`}
+            >
+              {lowStockCount}
+            </span>
+          </button>
+        ) : null}
       </div>
 
-      <ProductTable products={filteredProducts} onEdit={handleEdit} onDelete={handleDelete} />
+      <ProductTable products={pagedProducts} onEdit={handleEdit} onDelete={handleDelete} />
+
+      {filteredProducts.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
+          <span>
+            Página {currentPage} de {totalPages}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              disabled={currentPage === 1}
+              className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+              disabled={currentPage === totalPages}
+              className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <ProductFormModal
         isOpen={isFormOpen}
         title={editingProduct ? 'Editar producto' : 'Agregar producto'}
         submitLabel={editingProduct ? 'Guardar cambios' : 'Crear producto'}
-        categories={categoryOptions}
+        categories={categories}
         initialProduct={editingProduct}
         onClose={closeForm}
         onSubmit={handleSubmitProduct}
@@ -231,7 +256,7 @@ export function AdminInventorySection({ products, onRefreshProducts }: AdminInve
 
       <DeleteConfirmModal
         isOpen={Boolean(deletingProduct)}
-        productName={deletingProduct?.name ?? ''}
+        itemName={deletingProduct?.name ?? ''}
         onClose={closeDelete}
         onConfirm={confirmDelete}
       />

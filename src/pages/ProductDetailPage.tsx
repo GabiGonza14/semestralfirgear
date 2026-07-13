@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams } from '@tanstack/react-router'
 import { ApiError } from '../api/apiClient'
 import { getProductById, getProducts } from '../api/fitgearApi'
 import { ProductCard } from '../components/ProductCard'
 import { ProductGallery } from '../components/product/ProductGallery'
+import { ProductReviews } from '../components/product/ProductReviews'
 import { ProductSizeSelector } from '../components/product/ProductSizeSelector'
 import { useCart } from '../context/CartContext'
 import type { Product, SizeLabel } from '../types'
@@ -51,7 +52,7 @@ function getAddToCartLabel(outOfStock: boolean, needsSizeChoice: boolean) {
 }
 
 export function ProductDetailPage() {
-  const { id } = useParams()
+  const { id } = useParams({ strict: false }) as { id?: string }
   const { addItem } = useCart()
   const [product, setProduct] = useState<Product | null>(null)
   const [related, setRelated] = useState<Product[]>([])
@@ -187,11 +188,12 @@ export function ProductDetailPage() {
       {/* Breadcrumb */}
       <nav className="flex flex-wrap items-center gap-2 text-sm text-slate-400">
         <Link to="/shop" className="transition hover:text-lime-400">
-          Shop
+          Tienda
         </Link>
         <span className="text-slate-600">/</span>
         <Link
-          to={`/shop?category=${encodeURIComponent(product.category)}`}
+          to="/shop"
+          search={{ category: product.category }}
           className="transition hover:text-lime-400"
         >
           {product.category}
@@ -298,6 +300,8 @@ export function ProductDetailPage() {
           </ul>
         </div>
       </section>
+
+      <ProductReviews productId={product.id} />
 
       {related.length > 0 ? (
         <section className="space-y-8">

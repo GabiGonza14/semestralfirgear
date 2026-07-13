@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { gsap, useGSAP, prefersReducedMotion } from '../lib/gsap'
 import { ApiError } from '../api/apiClient'
 import { getCategories, getProducts } from '../api/fitgearApi'
 import { CategoryFilter } from '../components/CategoryFilter'
+import { ProductAutocomplete } from '../components/ProductAutocomplete'
 import { ProductCard } from '../components/ProductCard'
-import { SearchBar } from '../components/SearchBar'
 import { categories as fallbackCategoryNames } from '../data/categories'
 import { products as fallbackProducts } from '../data/products'
 import type { Product } from '../types'
@@ -28,11 +28,12 @@ const SEARCH_DEBOUNCE_MS = 350
 type PriceRange = 'all' | 'under20' | '20to50' | '50to100' | 'over100'
 
 export function ShopPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const search = useSearch({ strict: false }) as { category?: string; search?: string }
+  const navigate = useNavigate()
   const [selectedCategory, setSelectedCategory] = useState<string>(
-    searchParams.get('category')?.trim() || 'all',
+    search.category?.trim() || 'all',
   )
-  const [query, setQuery] = useState(searchParams.get('search') ?? '')
+  const [query, setQuery] = useState(search.search ?? '')
   const [debouncedQuery, setDebouncedQuery] = useState(query)
   const [sortBy, setSortBy] = useState<'featured' | 'priceAsc' | 'priceDesc'>('featured')
   const [priceRange, setPriceRange] = useState<PriceRange>('all')
@@ -94,13 +95,11 @@ export function ShopPage() {
           // No categories in database — keep empty categories (no automatic local fallback)
           setCategories([])
           setUseFallbackCatalog(false)
-          setLoading(false)
           return
         }
 
         setCategories(result.map((category) => ({ value: category._id, label: category.name })))
         setUseFallbackCatalog(false)
-        setLoading(false)
       })
       .catch((apiError: unknown) => {
         if (!active) {
@@ -123,8 +122,6 @@ export function ShopPage() {
           setCategories(fallbackCategories)
           setError(null)
         }
-
-        setLoading(false)
       })
 
     return () => {
@@ -156,21 +153,23 @@ export function ShopPage() {
         ? null
         : (activeCategories.find((category) => category.value === resolvedCategory)?.label ?? null)
 
-    const next = new URLSearchParams()
-    if (categoryLabel) {
-      next.set('category', categoryLabel)
-    }
-    if (query) {
-      next.set('search', query)
-    }
-    setSearchParams(next, { replace: true })
-  }, [resolvedCategory, query, activeCategories, setSearchParams])
+    navigate({
+      to: '.',
+      search: {
+        category: categoryLabel ?? undefined,
+        search: query || undefined,
+      },
+      replace: true,
+    })
+  }, [resolvedCategory, query, activeCategories, navigate])
 
   useEffect(() => {
     let active = true
 
     if (useFallbackCatalog) {
-      // If fallback is active we don't attempt product requests.
+      // Fallback catalog is local/static data (see activeProducts) — nothing to
+      // fetch, so there's no loading state to wait out.
+      setLoading(false)
       return () => {
         active = false
       }
@@ -328,7 +327,7 @@ export function ShopPage() {
       {/* Header */}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Shop</p>
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Tienda</p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">Catalogo FITGEAR</h1>
           <p className="mt-3 max-w-xl text-slate-400">
             Filtra por categoria, busca productos y ordena para encontrar el accesorio ideal.
@@ -348,7 +347,7 @@ export function ShopPage() {
 
       {/* Toolbar */}
       <div className="space-y-5 rounded-3xl border border-white/[0.08] bg-slate-900/60 p-5 sm:p-6">
-        <SearchBar value={query} onChange={setQuery} />
+        <ProductAutocomplete value={query} onChange={setQuery} />
 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <CategoryFilter
@@ -383,7 +382,7 @@ export function ShopPage() {
                 }
                 className="cursor-pointer appearance-none rounded-full border border-white/10 bg-slate-950/60 py-2.5 pl-4 pr-10 text-sm font-medium text-slate-200 outline-none transition focus:border-lime-400/60 focus:ring-2 focus:ring-lime-400/30"
               >
-                <option value="featured">Destacados</option>
+                <option value="featured">Más nuevos</option>
                 <option value="priceAsc">Precio: menor a mayor</option>
                 <option value="priceDesc">Precio: mayor a menor</option>
               </select>

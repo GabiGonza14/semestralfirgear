@@ -32,3 +32,10 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# one-time migration backup (see src/scripts/migrateProductImagesToCloudinary.ts)
+cloudinary-migration-backup.json
+
+# product images now live on Cloudinary (image-storage tracking issue #145) —
+# nothing writes here anymore, kept out of git going forward.
+uploads/

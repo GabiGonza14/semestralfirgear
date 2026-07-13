@@ -1,9 +1,9 @@
 import type { Context, Next } from 'hono'
 import path from 'node:path'
+import { cloudinary } from '../config/cloudinary'
 import type { AppEnv } from '../app'
 import { HttpError } from '../utils/httpError'
 import { buildProductImageFilename } from '../utils/productImageFilename'
-import { productUploadsPath } from '../utils/uploadPaths'
 
 const allowedMimeTypes = new Set([
   'image/jpeg',
@@ -31,8 +31,9 @@ function parseExistingImages(raw: unknown): string[] {
   }
 }
 
-async function writeUploadedFiles(files: File[], productName: string) {
+async function uploadFilesToCloudinary(files: File[], productName: string) {
   const urls: string[] = []
+  const publicIds: string[] = []
 
   for (const [index, file] of files.entries()) {
     if (!allowedMimeTypes.has(file.type)) {
@@ -43,12 +44,24 @@ async function writeUploadedFiles(files: File[], productName: string) {
       throw new HttpError(400, 'La imagen supera el tamaño máximo permitido de 5MB.')
     }
 
+    // Cloudinary's Node SDK takes a data URI (or a stream) for direct uploads —
+    // simplest option for files already capped at 5MB by the check above.
     const filename = buildProductImageFilename(productName, file.name, index)
-    await Bun.write(path.join(productUploadsPath, filename), file)
-    urls.push(`/uploads/products/${filename}`)
+    const publicId = path.parse(filename).name
+    const buffer = Buffer.from(await file.arrayBuffer())
+    const dataUri = `data:${file.type};base64,${buffer.toString('base64')}`
+
+    const result = await cloudinary.uploader.upload(dataUri, {
+      folder: 'products',
+      public_id: publicId,
+      resource_type: 'image',
+    })
+
+    urls.push(result.secure_url)
+    publicIds.push(result.public_id)
   }
 
-  return urls
+  return { urls, publicIds }
 }
 
 export async function uploadProductImages(c: Context<AppEnv>, next: Next) {
@@ -81,9 +94,13 @@ export async function uploadProductImages(c: Context<AppEnv>, next: Next) {
   }
 
   const productName = typeof body['name'] === 'string' ? body['name'] : 'producto-fitgear'
-  const newImageUrls = await writeUploadedFiles(newFiles, productName)
+  const { urls: newImageUrls, publicIds: newImagePublicIds } = await uploadFilesToCloudinary(newFiles, productName)
 
   body['images'] = [...existingImages, ...newImageUrls]
+  // Public IDs for the images just uploaded, in the same order — the service
+  // uses these to keep Product.imagePublicIds aligned with Product.images
+  // (needed later to delete the right Cloudinary asset).
+  body['newImagePublicIds'] = newImagePublicIds
   // Tracked separately so a later validation failure only cleans up files this
   // request just wrote — never images the client asked to keep.
   body['newlyUploadedImagePaths'] = newImageUrls

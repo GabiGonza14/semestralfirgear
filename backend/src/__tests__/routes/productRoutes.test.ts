@@ -10,6 +10,10 @@ mock.module('../../services/productService', () => ({
   createProduct: async () => ({ _id: '1', name: 'Producto de prueba' }),
   updateProduct: async () => ({ _id: '1', name: 'Producto de prueba' }),
   deleteProduct: async () => undefined,
+  // HU-51: productController now imports suggestProducts — the mock must expose
+  // it (ESM would otherwise throw "export not found" for the whole run).
+  suggestProducts: async (search: string) =>
+    search.trim().length >= 2 ? [{ id: '1', name: 'Producto de prueba', imageUrl: '' }] : [],
 }))
 
 const { productRouter } = await import('../../routes/productRoutes')
@@ -37,11 +41,21 @@ describe('productRoutes — public catalog vs protected admin writes', () => {
     expect(res.status).toBe(200)
   })
 
+  it('GET /products/suggestions (HU-51) is public and returns suggestions (routed before /:id)', async () => {
+    const res = await testApp.request('/products/suggestions?search=pro')
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as Array<{ id: string; name: string; imageUrl: string }>
+    expect(Array.isArray(body)).toBe(true)
+    expect(body[0]).toMatchObject({ id: '1', name: 'Producto de prueba' })
+  })
+
   it('POST /products (admin write) is rejected with 401 without a token', async () => {
     const res = await testApp.request('/products', { method: 'POST' })
     expect(res.status).toBe(401)
-    const body = (await res.json()) as { message: string }
-    expect(body.message).toBe('No se proporcionó token de autenticación')
+    // HU-35: error envelope { error: { code, message, details } }.
+    const body = (await res.json()) as { error: { code: string; message: string } }
+    expect(body.error.code).toBe('UNAUTHORIZED')
+    expect(body.error.message).toBe('No se proporcionó token de autenticación')
   })
 
   it('PUT /products/:id (admin write) is rejected with 401 without a token', async () => {
@@ -68,8 +82,9 @@ describe('productRoutes — public catalog vs protected admin writes', () => {
         headers: { Authorization: 'Bearer not-a-real-jwt' },
       })
       expect(res.status).toBe(401)
-      const body = (await res.json()) as { message: string }
-      expect(body.message).toBe('Token de autenticación inválido o expirado')
+      const body = (await res.json()) as { error: { code: string; message: string } }
+      expect(body.error.code).toBe('UNAUTHORIZED')
+      expect(body.error.message).toBe('Token de autenticación inválido o expirado')
     } finally {
       env.clerkSecretKey = previousSecret
     }

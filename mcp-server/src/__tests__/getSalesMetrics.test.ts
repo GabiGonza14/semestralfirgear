@@ -5,11 +5,13 @@ const mockListOrders = mock(async () => [] as unknown[])
 const mockListProducts = mock(async () => [] as unknown[])
 const mockListUsers = mock(async () => [] as unknown[])
 
-// Export both order-service fns so this mock coexists with the get_order_status /
-// list_orders suites — Bun's mock.module is global across the run.
+// Export every order-service fn any suite may import so this mock coexists with
+// the get_order_status / list_orders / update_order_status suites — Bun's
+// mock.module is global across the run.
 mock.module('../../../backend/src/services/orderService', () => ({
   listOrders: mockListOrders,
   listOrdersByUserId: mock(async () => []),
+  updateOrderStatus: mock(async () => ({})),
 }))
 
 // Export every product-service fn any suite may import so this mock coexists —
@@ -18,6 +20,9 @@ mock.module('../../../backend/src/services/productService', () => ({
   listProducts: mockListProducts,
   getProductById: mock(async () => ({})),
   updateProduct: mock(async () => ({})),
+  // Global mock.module: searchProducts.ts imports suggestProducts, so keep it
+  // here too or that tool's import breaks when this mock wins the run.
+  suggestProducts: mock(async () => []),
 }))
 
 mock.module('../../../backend/src/services/userService', () => ({

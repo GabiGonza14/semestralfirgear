@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { UserButton, useUser } from '@clerk/tanstack-react-start'
+import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 
 export function Navbar() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { isLoaded: clerkLoaded, isSignedIn } = useUser()
   const { isAdmin } = useAuth()
   const { items, openCart } = useCart()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -20,7 +21,7 @@ export function Navbar() {
       window.location.assign(path)
       return
     }
-    navigate(path)
+    navigate({ to: path })
   }
 
   return (
@@ -31,7 +32,7 @@ export function Navbar() {
         <button
           type="button"
           onClick={() => navigateTo(homePath)}
-          className="shrink-0 text-left text-xl font-black uppercase tracking-widest"
+          className="shrink-0 cursor-pointer text-left text-xl font-black uppercase tracking-widest"
         >
           <span className="text-white">FIT</span>
           <span className="text-lime-400">GEAR</span>
@@ -41,43 +42,35 @@ export function Navbar() {
         <nav className="hidden md:flex flex-1 items-center gap-1 ml-6">
           {!isAdmin && (
             <>
-              <NavLink
+              <Link
                 to="/shop"
-                className={({ isActive }) =>
-                  `px-4 py-2 text-sm font-semibold transition rounded-full ${
-                    isActive
-                      ? 'text-lime-400'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
-                  }`
-                }
+                className="px-4 py-2 text-sm font-semibold transition rounded-full"
+                activeProps={{ className: 'text-lime-400' }}
+                inactiveProps={{ className: 'text-slate-300 hover:text-white hover:bg-white/5' }}
               >
-                Shop
-              </NavLink>
-              <NavLink
-                to="/orders"
-                className={({ isActive }) =>
-                  `px-4 py-2 text-sm font-semibold transition rounded-full ${
-                    isActive
-                      ? 'text-lime-400'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
-                  }`
-                }
-              >
-                Mis pedidos
-              </NavLink>
+                Tienda
+              </Link>
+              {isSignedIn && (
+                <Link
+                  to="/orders"
+                  className="px-4 py-2 text-sm font-semibold transition rounded-full"
+                  activeProps={{ className: 'text-lime-400' }}
+                  inactiveProps={{ className: 'text-slate-300 hover:text-white hover:bg-white/5' }}
+                >
+                  Mis pedidos
+                </Link>
+              )}
             </>
           )}
           {isAdmin && (
-            <NavLink
+            <Link
               to="/admin"
-              className={({ isActive }) =>
-                `px-4 py-2 text-sm font-semibold transition rounded-full ${
-                  isActive ? 'text-red-400' : 'text-red-400/70 hover:text-red-400 hover:bg-red-500/10'
-                }`
-              }
+              className="px-4 py-2 text-sm font-semibold transition rounded-full"
+              activeProps={{ className: 'text-red-400' }}
+              inactiveProps={{ className: 'text-red-400/70 hover:text-red-400 hover:bg-red-500/10' }}
             >
               Admin Panel
-            </NavLink>
+            </Link>
           )}
         </nav>
 
@@ -85,20 +78,20 @@ export function Navbar() {
         <div className="flex items-center gap-2 ml-auto">
           {/* Shop link (mobile shortcut) */}
           {!isAdmin && (
-            <NavLink
+            <Link
               to="/shop"
               className="hidden sm:inline-flex md:hidden items-center gap-1.5 rounded-full bg-lime-400 px-4 py-2 text-sm font-bold text-slate-900 transition hover:bg-lime-300"
             >
-              Shop
-            </NavLink>
+              Tienda
+            </Link>
           )}
 
-          <SignedOut>
+          {clerkLoaded && !isSignedIn ? (
             <button
               type="button"
               onClick={() => navigateTo('/login')}
               aria-label="Iniciar sesion"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:border-lime-400/40 hover:text-white hover:bg-white/5"
+              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:border-lime-400/40 hover:text-white hover:bg-white/5"
             >
               <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path
@@ -109,9 +102,9 @@ export function Navbar() {
                 />
               </svg>
             </button>
-          </SignedOut>
+          ) : null}
 
-          <SignedIn>
+          {isSignedIn ? (
             <UserButton
               appearance={{
                 elements: {
@@ -120,7 +113,7 @@ export function Navbar() {
               }}
               userProfileUrl={isAdmin ? '/admin' : '/account'}
             />
-          </SignedIn>
+          ) : null}
 
           {!isAdmin && (
             <button
@@ -130,7 +123,7 @@ export function Navbar() {
                 openCart()
               }}
               aria-label="Ver carrito"
-              className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:border-lime-400/40 hover:text-white hover:bg-white/5"
+              className="relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:border-lime-400/40 hover:text-white hover:bg-white/5"
             >
               <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path
@@ -156,7 +149,7 @@ export function Navbar() {
             type="button"
             onClick={() => setMobileOpen((prev) => !prev)}
             aria-label={mobileOpen ? 'Cerrar menu' : 'Abrir menu'}
-            className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:bg-white/5"
+            className="md:hidden inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:bg-white/5"
           >
             {mobileOpen ? (
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -179,21 +172,23 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => navigateTo('/shop')}
-                className="block w-full text-left rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
+                className="block w-full cursor-pointer text-left rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
               >
-                Shop
+                Tienda
               </button>
-              <button
-                type="button"
-                onClick={() => navigateTo('/orders')}
-                className="block w-full text-left rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
-              >
-                Mis pedidos
-              </button>
+              {isSignedIn && (
+                <button
+                  type="button"
+                  onClick={() => navigateTo('/orders')}
+                  className="block w-full cursor-pointer text-left rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
+                >
+                  Mis pedidos
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => navigateTo('/account')}
-                className="block w-full text-left rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
+                className="block w-full cursor-pointer text-left rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
               >
                 Mi cuenta
               </button>
@@ -203,7 +198,7 @@ export function Navbar() {
             <button
               type="button"
               onClick={() => navigateTo('/admin')}
-              className="block w-full text-left rounded-xl px-4 py-3 text-sm font-semibold text-red-400 transition hover:bg-red-500/10"
+              className="block w-full cursor-pointer text-left rounded-xl px-4 py-3 text-sm font-semibold text-red-400 transition hover:bg-red-500/10"
             >
               Admin Panel
             </button>

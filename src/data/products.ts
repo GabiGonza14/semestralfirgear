@@ -8,6 +8,7 @@ export const products: Product[] = [
     category: 'Bandas',
     price: 29.99,
     stock: 34,
+    lowStockThreshold: 5,
     image:
       '/uploads/products/kit-de-mancuernas-para-pesas-20-kg-1776876019385.webp',
     images: [
@@ -30,6 +31,7 @@ export const products: Product[] = [
     category: 'Pesas',
     price: 89.5,
     stock: 12,
+    lowStockThreshold: 5,
     image:
       '/uploads/products/kit-de-mancuernas-de-musculacion-de-10-kg-1776876263786.webp',
     images: [
@@ -52,6 +54,7 @@ export const products: Product[] = [
     category: 'Guantes',
     price: 24.75,
     stock: 56,
+    lowStockThreshold: 5,
     image:
       '/uploads/products/mancuerna-1777335111876.png',
     images: ['/uploads/products/mancuerna-1777335111876.png'],
@@ -76,6 +79,7 @@ export const products: Product[] = [
     category: 'Botellas',
     price: 18.99,
     stock: 88,
+    lowStockThreshold: 5,
     image:
       '/uploads/products/masajeador-manual-roll-on-1776877368773.webp',
     images: [
@@ -97,6 +101,7 @@ export const products: Product[] = [
     category: 'Colchonetas',
     price: 39.0,
     stock: 27,
+    lowStockThreshold: 5,
     image:
       '/uploads/products/rodillo-de-masaje-liso-1776877329260.webp',
     images: [
@@ -118,6 +123,7 @@ export const products: Product[] = [
     category: 'Accesorios',
     price: 19.99,
     stock: 63,
+    lowStockThreshold: 5,
     image:
       '/uploads/products/cuerda-para-saltar-de-cross-training-de-velocidad-negra-speed-rope-1776876773477.webp',
     images: [

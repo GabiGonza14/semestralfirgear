@@ -28,6 +28,7 @@ type ProductFormState = {
   description: string
   price: string
   stock: string
+  lowStockThreshold: string
   images: ImageSlot[]
   categoryId: string
   isActive: boolean
@@ -48,6 +49,7 @@ const createEmptyState = (initialProduct: Product | null, categories: CategoryOp
     description: initialProduct?.description ?? '',
     price: initialProduct ? String(initialProduct.price) : '',
     stock: initialProduct ? String(initialProduct.stock) : '',
+    lowStockThreshold: String(initialProduct?.lowStockThreshold ?? 5),
     images: (initialProduct?.images ?? []).map((url) => ({ kind: 'existing', url })),
     categoryId: initialProduct?.categoryId ?? categories[0]?.id ?? '',
     isActive: initialProduct?.isActive ?? true,
@@ -219,6 +221,7 @@ export function ProductFormModal({
         description: form.description.trim(),
         price: Number(form.price),
         stock: requiresSizes ? sizesTotalStock : Number(form.stock),
+        lowStockThreshold: Number(form.lowStockThreshold),
         existingImages: form.images.filter((slot) => slot.kind === 'existing').map((slot) => slot.url),
         newImageFiles: form.images
           .filter((slot): slot is ImageSlot & { file: File } => slot.kind === 'new' && Boolean(slot.file))
@@ -238,6 +241,10 @@ export function ProductFormModal({
         Number.isNaN(payload.stock)
       ) {
         throw new Error('Completa todos los campos obligatorios.')
+      }
+
+      if (Number.isNaN(payload.lowStockThreshold) || payload.lowStockThreshold < 0) {
+        throw new Error('El umbral de stock bajo debe ser un numero valido (0 o mayor).')
       }
 
       if (form.images.length === 0) {
@@ -347,6 +354,22 @@ export function ProductFormModal({
                   />
                 </label>
               )}
+
+              <label className="grid gap-2 text-sm font-medium text-slate-300">
+                Umbral de stock bajo
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.lowStockThreshold}
+                  onChange={(event) => handleChange('lowStockThreshold', event.target.value)}
+                  className={fieldClass}
+                  placeholder="5"
+                />
+                <span className="text-xs font-normal text-slate-500">
+                  Se alerta y se avisa por email al admin cuando el stock cae a este valor o menos.
+                </span>
+              </label>
 
               <div className="md:col-span-2">
                 <p className="mb-2 text-sm font-medium text-slate-300">

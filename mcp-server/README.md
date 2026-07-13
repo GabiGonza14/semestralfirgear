@@ -14,7 +14,7 @@ mcp-server/
 ├── package.json          # @modelcontextprotocol/sdk, zod
 ├── tsconfig.json
 └── src/
-    ├── server.ts         # entrypoint stdio, registra las 7 tools
+    ├── server.ts         # entrypoint stdio, registra las 12 tools
     ├── tools/            # una tool por archivo
     └── __tests__/        # tests deterministas (bun:test)
 ```
@@ -29,11 +29,16 @@ mismas del backend.
 |------|----|----|
 | `search_products` | HU-07 | público |
 | `get_product_details` | HU-08 | público |
+| `get_product_reviews` | HU-49 | público |
 | `get_order_status` | HU-15 | cliente (JWT) |
 | `get_sales_metrics` | HU-16 | admin |
+| `get_low_stock_alerts` | HU-46 | admin |
 | `update_stock` | HU-17 | admin |
 | `list_orders` | HU-18 | admin |
+| `update_order_status` | HU-42 | admin |
 | `manage_categories` | HU-20 | admin |
+| `get_audit_log` | HU-52 | admin |
+| `generate_inventory_report` | HU-53 | admin |
 
 Detalle de cada una en [`../docs/mcp/registry.md`](../docs/mcp/registry.md).
 

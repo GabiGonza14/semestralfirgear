@@ -5,6 +5,7 @@ import {
   deleteProductController,
   getProduct,
   getProducts,
+  getProductSuggestions,
   updateProductController,
 } from '../controllers/productController'
 import { requireAdminMiddleware } from '../middlewares/requireAdmin'
@@ -15,13 +16,16 @@ import { idParamSchema } from '../validations/commonValidation'
 import {
   createProductSchema,
   productQuerySchema,
+  productSuggestQuerySchema,
   updateProductSchema,
 } from '../validations/productValidation'
 
 export const productRouter = new Hono<AppEnv>()
 
-// Public catalog reads — no auth required.
+// Public catalog reads — no auth required. `/suggestions` MUST be registered
+// before `/:id`, otherwise "suggestions" is captured as an :id param (HU-51).
 productRouter.get('/', validateQuery(productQuerySchema), getProducts)
+productRouter.get('/suggestions', validateQuery(productSuggestQuerySchema), getProductSuggestions)
 productRouter.get('/:id', validateParams(idParamSchema), getProduct)
 
 // Admin writes — require a valid Clerk JWT AND the ADMIN role (RBAC).

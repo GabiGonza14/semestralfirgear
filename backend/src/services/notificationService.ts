@@ -1,5 +1,6 @@
 import { env } from '../config/env'
 import { NotificationLogModel } from '../models/NotificationLog'
+import { logger } from '../utils/logger'
 
 const SENDGRID_ENDPOINT = 'https://api.sendgrid.com/v3/mail/send'
 const DEFAULT_MAX_ATTEMPTS = 3
@@ -97,7 +98,7 @@ async function safeUpdateLog(logId: string, update: Record<string, unknown>) {
   try {
     await NotificationLogModel.findByIdAndUpdate(logId, update)
   } catch (error) {
-    console.error('[notification] failed to update audit log', { logId, error })
+    logger.error('[notification] failed to update audit log', { logId, error })
   }
 }
 
@@ -116,7 +117,7 @@ async function createAuditLog(input: NotificationInput): Promise<string | undefi
     })
     return log.id
   } catch (error) {
-    console.error('[notification] failed to create audit log', error)
+    logger.error('[notification] failed to create audit log', { error })
     return undefined
   }
 }
@@ -140,9 +141,13 @@ async function attemptDelivery(
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error)
       const retryable = !(error instanceof EmailDeliveryError) || error.retryable
-      console.error(
-        `[notification] attempt ${attempt}/${maxAttempts} failed for "${input.subject}" -> ${input.to}: ${lastError}`,
-      )
+      logger.error('[notification] delivery attempt failed', {
+        attempt,
+        maxAttempts,
+        subject: input.subject,
+        recipient: input.to,
+        error: lastError,
+      })
 
       // Stop early on permanent failures; otherwise back off before retrying.
       if (!retryable) break
@@ -175,9 +180,10 @@ export async function sendNotification(
 
   // Graceful fallback — no provider key configured.
   if (!env.sendgridApiKey) {
-    console.warn(
-      `[notification] SENDGRID_API_KEY missing — email "${input.subject}" to ${input.to} NOT sent (dev fallback)`,
-    )
+    logger.warn('[notification] SENDGRID_API_KEY missing — email NOT sent (dev fallback)', {
+      subject: input.subject,
+      recipient: input.to,
+    })
     if (logId) await safeUpdateLog(logId, { status: 'skipped', attempts: 0 })
     return { status: 'skipped', attempts: 0 }
   }
@@ -209,6 +215,6 @@ export async function sendNotification(
  */
 export function dispatchNotification(input: NotificationInput, options: RetryOptions = {}): void {
   void sendNotification(input, options).catch((error) => {
-    console.error('[notification] unexpected dispatch failure', error)
+    logger.error('[notification] unexpected dispatch failure', { error })
   })
 }

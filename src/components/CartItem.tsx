@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Link } from 'react-router-dom'
+import { Link } from '@tanstack/react-router'
 import type { Product, SizeLabel } from '../types'
 import { formatCurrency } from '../utils/format'
 
@@ -26,7 +26,8 @@ export function CartItem({ product, quantity, size, onIncrease, onDecrease, onRe
       className="flex gap-3 rounded-2xl border border-white/[0.08] bg-slate-900 p-3"
     >
       <Link
-        to={`/product/${product.id}`}
+        to="/product/$id"
+        params={{ id: product.id }}
         className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-b from-white to-slate-100 p-1.5"
       >
         <img src={product.image} alt={product.name} className="max-h-full max-w-full object-contain" />
@@ -34,7 +35,7 @@ export function CartItem({ product, quantity, size, onIncrease, onDecrease, onRe
 
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-lime-400">{product.category}</p>
-        <Link to={`/product/${product.id}`}>
+        <Link to="/product/$id" params={{ id: product.id }}>
           <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-white transition hover:text-lime-300">
             {product.name}
           </h3>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '@tanstack/react-router'
 import { getCategories } from '../api/fitgearApi'
 
 export function HomeCategoryNav() {
@@ -44,7 +44,7 @@ export function HomeCategoryNav() {
           type="button"
           onClick={() => {
             setSelected('Inicio')
-            navigate('/')
+            navigate({ to: '/' })
           }}
           className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
             selected === 'Inicio'
@@ -59,7 +59,7 @@ export function HomeCategoryNav() {
           type="button"
           onClick={() => {
             setSelected('shop')
-            navigate('/shop')
+            navigate({ to: '/shop' })
           }}
           className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
             selected === 'shop'
@@ -76,7 +76,7 @@ export function HomeCategoryNav() {
             type="button"
             onClick={() => {
               setSelected(category)
-              navigate(`/shop?category=${encodeURIComponent(category)}`)
+              navigate({ to: '/shop', search: { category } })
             }}
             className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
               selected === category

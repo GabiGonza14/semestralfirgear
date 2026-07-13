@@ -1,27 +1,80 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { getAdminMetrics, getOrders, getProducts, getUsers, type AdminMetrics } from '../api/fitgearApi'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Link } from '@tanstack/react-router'
+import {
+  getAdminMetrics,
+  getCategories,
+  getOrders,
+  getProducts,
+  getUsers,
+  type AdminMetrics,
+  type MongoCategory,
+} from '../api/fitgearApi'
 import { AdminSidebar } from '../components/AdminSidebar'
+import { AdminAuditSection } from '../components/admin/AdminAuditSection'
 import { AdminCategoriesSection } from '../components/admin/AdminCategoriesSection'
 import { AdminInventorySection } from '../components/admin/AdminInventorySection'
+import { AdminOrderDetailModal } from '../components/admin/AdminOrderDetailModal'
+import { AdminOrdersSection } from '../components/admin/AdminOrdersSection'
+import { AdminReviewsSection } from '../components/admin/AdminReviewsSection'
+import { AdminUsersSection } from '../components/admin/AdminUsersSection'
 import { SummaryCard } from '../components/SummaryCard'
 import { useAuth } from '../context/AuthContext'
-import type { BackendOrder, BackendUser, Product } from '../types'
+import { isLowStock } from '../lib/inventory'
+import type { BackendOrder, BackendUser, Category, Product } from '../types'
 import { formatCurrency, formatDate } from '../utils/format'
 
-type AdminSection = 'overview' | 'inventory' | 'categories' | 'orders' | 'users'
+function mapCategories(raw: MongoCategory[]): Category[] {
+  return raw.map((category) => ({
+    id: category._id,
+    name: category.name,
+    description: category.description,
+    requiresSizes: category.requiresSizes,
+  }))
+}
 
-const ORDER_STATUS_FILTERS = ['ALL', 'PENDING', 'PAID', 'SHIPPED'] as const
-type OrderStatusFilter = (typeof ORDER_STATUS_FILTERS)[number]
+type AdminSection =
+  | 'overview'
+  | 'inventory'
+  | 'categories'
+  | 'orders'
+  | 'users'
+  | 'reviews'
+  | 'audit'
+
+const USERS_OVERVIEW_LIMIT = 6
+
+// Keeps a section mounted once it's been visited, toggling only its visibility
+// afterwards. This makes returning to a section instant — its already-fetched
+// data and local state (filters, pagination) survive instead of re-fetching on
+// every switch. Uses the `hidden` attribute (not a class) so the parent's
+// `space-y` margins skip it while inactive.
+function KeepAlive({
+  active,
+  visited,
+  children,
+}: {
+  active: boolean
+  visited: boolean
+  children: ReactNode
+}) {
+  if (!visited) {
+    return null
+  }
+  return <div hidden={!active}>{children}</div>
+}
 
 export function AdminDashboardPage() {
   const [section, setSection] = useState<AdminSection>('overview')
-  const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatusFilter>('ALL')
-  const { isAdmin } = useAuth()
+  // Sections the user has opened at least once — drives KeepAlive so revisiting
+  // one is instant (no remount/refetch). Overview is "visited" from the start.
+  const [visited, setVisited] = useState<Set<AdminSection>>(() => new Set(['overview']))
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const { isAdmin, backendUser } = useAuth()
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<BackendOrder[]>([])
   const [users, setUsers] = useState<BackendUser[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -33,15 +86,15 @@ export function AdminDashboardPage() {
     let active = true
     setLoading(true)
 
-    // Metrics come server-computed from /api/admin/metrics; the lists are still
-    // needed for the orders/users tables and the inventory section.
-    Promise.all([getAdminMetrics(), getProducts({ includeInactive: true }), getOrders(), getUsers()])
-      .then(([metricsData, productsData, ordersData, usersData]) => {
+    // Overview-critical data (summary cards + recent orders + users table)
+    // resolves the panel's loading gate on its own. Metrics are server-computed
+    // from /api/admin/metrics.
+    Promise.all([getAdminMetrics(), getOrders(), getUsers()])
+      .then(([metricsData, ordersData, usersData]) => {
         if (!active) {
           return
         }
         setMetrics(metricsData)
-        setProducts(productsData)
         setOrders(ordersData)
         setUsers(usersData)
         setError(null)
@@ -58,18 +111,95 @@ export function AdminDashboardPage() {
         }
       })
 
+    // Products is a separate, often-larger fetch (full catalog incl. inactive)
+    // only needed for the low-stock count and the Inventario section, so it
+    // loads in parallel WITHOUT blocking the overview above.
+    getProducts({ includeInactive: true })
+      .then((productsData) => {
+        if (active) {
+          setProducts(productsData)
+        }
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          setError(err instanceof Error ? err.message : 'No se pudo cargar el catálogo.')
+        }
+      })
+
+    // Categories, shared by Inventario (selector + filtro) and Categorias
+    // (gestion + conteo por categoria) — fetched once here, at the dashboard
+    // level, so both sections stay in sync with each other and with a single
+    // source of truth instead of each fetching its own now-independently-stale
+    // copy (a category created in one tab used to never appear in the other
+    // without a full page reload).
+    getCategories()
+      .then((categoriesData) => {
+        if (active) {
+          setCategories(mapCategories(categoriesData))
+        }
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          setError(err instanceof Error ? err.message : 'No se pudieron cargar las categorias.')
+        }
+      })
+
     return () => {
       active = false
     }
   }, [isAdmin])
 
-  const filteredOrders = useMemo(
-    () =>
-      orderStatusFilter === 'ALL'
-        ? orders
-        : orders.filter((order) => order.status === orderStatusFilter),
-    [orders, orderStatusFilter],
+  // Mark a section visited the first time it becomes active, so KeepAlive keeps
+  // it mounted from then on.
+  useEffect(() => {
+    setVisited((prev) => {
+      if (prev.has(section)) {
+        return prev
+      }
+      const next = new Set(prev)
+      next.add(section)
+      return next
+    })
+  }, [section])
+
+  // Derive the open order from the live list so it reflects status changes (e.g.
+  // a refund flipping it to REFUNDED) without a second source of truth.
+  const selectedOrder = useMemo(
+    () => orders.find((order) => order.id === selectedOrderId) ?? null,
+    [orders, selectedOrderId],
   )
+
+  // HU-46: low-stock count derived from the products already loaded above (no
+  // extra fetch), using the same rule as the backend getLowStockProducts query.
+  const lowStockCount = useMemo(
+    () => products.filter((product) => isLowStock(product)).length,
+    [products],
+  )
+
+  // Reload orders and metrics after a refund (a refund removes the order from
+  // revenue, so the totals change too).
+  const refreshOrdersAndMetrics = async () => {
+    const [ordersData, metricsData] = await Promise.all([getOrders(), getAdminMetrics()])
+    setOrders(ordersData)
+    setMetrics(metricsData)
+  }
+
+  // A customer placing an order happens in a completely different browser
+  // session — nothing here re-fetches on its own when that happens, so
+  // without this poll a new order only ever showed up after a manual page
+  // reload. Runs while the panel is open, independent of which tab is active
+  // (Overview and Ordenes both render AdminOrdersSection off this same state).
+  useEffect(() => {
+    if (!isAdmin) {
+      return
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refreshOrdersAndMetrics()
+    }, 20000)
+
+    return () => window.clearInterval(intervalId)
+  }, [isAdmin])
 
   const refreshProducts = async () => {
     // Refresh metrics too: editing inventory/stock changes activeProductsCount.
@@ -84,6 +214,15 @@ export function AdminDashboardPage() {
     setProducts(productsData)
     setOrders(ordersData)
     setUsers(usersData)
+  }
+
+  // Used by AdminCategoriesSection after create/edit/delete/toggle — product
+  // counts there are derived from the `products` state above (already shared
+  // and kept fresh by refreshProducts), so this only needs to refetch the
+  // categories themselves.
+  const refreshCategories = async () => {
+    const categoriesData = await getCategories()
+    setCategories(mapCategories(categoriesData))
   }
 
   if (!isAdmin) {
@@ -131,12 +270,28 @@ export function AdminDashboardPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <SummaryCard label="Productos" value={`${metrics?.activeProductsCount ?? 0}`} trend="Activos en el catálogo" />
-          <SummaryCard label="Órdenes" value={`${metrics?.ordersCount ?? 0}`} trend="En procesamiento" />
-          <SummaryCard label="Usuarios" value={`${metrics?.usersCount ?? 0}`} trend="Registrados" />
-          <SummaryCard label="Ingresos" value={formatCurrency(metrics?.totalRevenue ?? 0)} trend="Total de ventas" />
-        </div>
+        {section === 'overview' ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <SummaryCard label="Productos" value={`${metrics?.activeProductsCount ?? 0}`} trend="Activos en el catálogo" />
+            <SummaryCard label="Órdenes" value={`${metrics?.ordersCount ?? 0}`} trend="En procesamiento" />
+            <SummaryCard label="Usuarios" value={`${metrics?.usersCount ?? 0}`} trend="Registrados" />
+            <SummaryCard label="Ingresos" value={formatCurrency(metrics?.totalRevenue ?? 0)} trend="Total de ventas" />
+            <SummaryCard label="Stock bajo" value={`${lowStockCount}`} trend="Productos por reabastecer" />
+          </div>
+        ) : null}
+
+        {section === 'overview' && lowStockCount > 0 ? (
+          <div className="flex items-center gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+            <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span>
+              {lowStockCount === 1
+                ? '1 producto está en o por debajo de su umbral de stock. Revísalo en Inventario.'
+                : `${lowStockCount} productos están en o por debajo de su umbral de stock. Revísalos en Inventario.`}
+            </span>
+          </div>
+        ) : null}
 
         {loading ? (
           <p className="text-sm text-slate-300">Cargando panel de administración...</p>
@@ -146,70 +301,52 @@ export function AdminDashboardPage() {
           <p className="rounded-xl border border-rose-400/40 bg-rose-400/10 p-3 text-sm text-rose-100">{error}</p>
         ) : null}
 
-        {section === 'inventory' ? (
-          <AdminInventorySection products={products} onRefreshProducts={refreshProducts} />
-        ) : null}
+        <KeepAlive active={section === 'inventory'} visited={visited.has('inventory')}>
+          <AdminInventorySection products={products} categories={categories} onRefreshProducts={refreshProducts} />
+        </KeepAlive>
 
-        {section === 'categories' ? <AdminCategoriesSection /> : null}
+        <KeepAlive active={section === 'categories'} visited={visited.has('categories')}>
+          <AdminCategoriesSection categories={categories} products={products} onRefresh={refreshCategories} />
+        </KeepAlive>
+
+        <KeepAlive active={section === 'reviews'} visited={visited.has('reviews')}>
+          <AdminReviewsSection />
+        </KeepAlive>
+
+        <KeepAlive active={section === 'audit'} visited={visited.has('audit')}>
+          <AdminAuditSection active={section === 'audit'} />
+        </KeepAlive>
 
         {(section === 'overview' || section === 'orders') && (
-          <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-lg font-semibold text-white">Órdenes recientes</h3>
-              <div className="flex flex-wrap gap-2">
-                {ORDER_STATUS_FILTERS.map((statusFilter) => (
-                  <button
-                    key={statusFilter}
-                    type="button"
-                    onClick={() => setOrderStatusFilter(statusFilter)}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                      orderStatusFilter === statusFilter
-                        ? 'bg-lime-400 text-slate-950'
-                        : 'border border-white/12 text-slate-300 hover:border-white/30 hover:bg-white/5'
-                    }`}
-                  >
-                    {statusFilter === 'ALL' ? 'Todos' : statusFilter}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-140 text-left text-sm text-slate-300">
-                <thead className="text-slate-400">
-                  <tr>
-                    <th className="pb-2">ID</th>
-                    <th className="pb-2">Fecha</th>
-                    <th className="pb-2">Cliente</th>
-                    <th className="pb-2">Estado</th>
-                    <th className="pb-2">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredOrders.map((order) => (
-                    <tr key={order.id} className="border-t border-white/10">
-                      <td className="py-2">{order.id}</td>
-                      <td>{formatDate(order.createdAt)}</td>
-                      <td>{order.customerName ?? order.userId}</td>
-                      <td className="capitalize">{order.status.toLowerCase()}</td>
-                      <td>{formatCurrency(order.totalAmount)}</td>
-                    </tr>
-                  ))}
-                  {filteredOrders.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-4 text-center text-slate-400">
-                        No hay órdenes con este estado.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          </section>
+          <AdminOrdersSection
+            orders={orders}
+            loading={loading}
+            onSelectOrder={setSelectedOrderId}
+            variant={section === 'orders' ? 'full' : 'overview'}
+            onViewAll={() => setSection('orders')}
+          />
         )}
 
-        {(section === 'overview' || section === 'users') && (
+        {section === 'overview' ? (
           <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-            <h3 className="mb-4 text-lg font-semibold text-white">Usuarios registrados</h3>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-lg font-semibold text-white">
+                Usuarios registrados
+                <span className="ml-2 text-sm font-normal text-slate-500">
+                  últimos {Math.min(USERS_OVERVIEW_LIMIT, users.length)}
+                </span>
+              </h3>
+
+              {users.length > USERS_OVERVIEW_LIMIT ? (
+                <button
+                  type="button"
+                  onClick={() => setSection('users')}
+                  className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5"
+                >
+                  Ver todos ({users.length})
+                </button>
+              ) : null}
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-140 text-left text-sm text-slate-300">
                 <thead className="text-slate-400">
@@ -217,15 +354,17 @@ export function AdminDashboardPage() {
                     <th className="pb-2">Nombre</th>
                     <th className="pb-2">Email</th>
                     <th className="pb-2">Rol</th>
+                    <th className="pb-2">Estado</th>
                     <th className="pb-2">Fecha de registro</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((user) => (
+                  {users.slice(0, USERS_OVERVIEW_LIMIT).map((user) => (
                     <tr key={user.id} className="border-t border-white/10">
                       <td className="py-2">{user.fullName}</td>
                       <td>{user.email}</td>
                       <td className="capitalize">{user.role.toLowerCase()}</td>
+                      <td>{user.isActive ? 'Activo' : 'Inactivo'}</td>
                       <td>{formatDate(user.createdAt)}</td>
                     </tr>
                   ))}
@@ -233,8 +372,24 @@ export function AdminDashboardPage() {
               </table>
             </div>
           </section>
-        )}
+        ) : null}
+
+        <KeepAlive active={section === 'users'} visited={visited.has('users')}>
+          <AdminUsersSection
+            users={users}
+            currentUserId={backendUser?.id}
+            onRefresh={refreshProducts}
+          />
+        </KeepAlive>
       </div>
+
+      {selectedOrder ? (
+        <AdminOrderDetailModal
+          order={selectedOrder}
+          onClose={() => setSelectedOrderId(null)}
+          onUpdated={refreshOrdersAndMetrics}
+        />
+      ) : null}
     </div>
   )
 }

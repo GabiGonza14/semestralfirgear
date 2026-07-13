@@ -32,17 +32,42 @@ services:
       NODE_ENV: production
       PORT: 4000
       MONGODB_URI: mongodb://root:rootpassword@mongodb:27017/fitgear?authSource=admin
-      FRONTEND_URL: http://localhost:5173
+      FRONTEND_URL: http://localhost:3000
       BACKEND_URL: http://localhost:4000
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
       SENDGRID_API_KEY: ${SENDGRID_API_KEY}
       EMAIL_FROM: ${EMAIL_FROM}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
     ports:
       - "4000:4000"
-    volumes:
-      - ./backend/uploads:/app/uploads
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Horneadas en el bundle del cliente en build-time por Vite — deben
+        # apuntar a URLs alcanzables desde el NAVEGADOR del usuario, no desde
+        # la red interna de Docker (por eso localhost:4000, no backend:4000).
+        VITE_API_BASE_URL: http://localhost:4000/api
+        VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY}
+        VITE_POSTHOG_KEY: ${VITE_POSTHOG_KEY}
+        VITE_POSTHOG_HOST: ${VITE_POSTHOG_HOST}
+    container_name: fitgear-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      # Leidas en runtime por el middleware de Clerk en el server SSR
+      # (app/start.ts) — sin prefijo VITE_, nunca se inyectan en el cliente.
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+    ports:
+      - "3000:3000"
 
 volumes:
   mongodb_data:

@@ -1,4 +1,4 @@
-import { AuthenticateWithRedirectCallback } from '@clerk/clerk-react'
+import { AuthenticateWithRedirectCallback } from '@clerk/tanstack-react-start'
 
 export function SsoCallbackPage() {
   return <AuthenticateWithRedirectCallback signInForceRedirectUrl="/shop" />

@@ -1,12 +1,12 @@
-import { SignIn, useAuth } from '@clerk/clerk-react'
-import { Link, Navigate } from 'react-router-dom'
+import { SignIn, useAuth } from '@clerk/tanstack-react-start'
+import { Link, Navigate } from '@tanstack/react-router'
 import { clerkDarkAppearance } from '../lib/clerkAppearance'
 
 export function LoginPage() {
   const { isSignedIn } = useAuth()
 
   if (isSignedIn) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/post-login" replace />
   }
 
   return (
@@ -43,7 +43,7 @@ export function LoginPage() {
             routing="path"
             path="/login"
             signUpUrl="/sign-up"
-            forceRedirectUrl="/"
+            forceRedirectUrl="/post-login"
             appearance={clerkDarkAppearance}
           />
         </div>

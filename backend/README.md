@@ -15,7 +15,16 @@ Backend for FITGEAR using Hono + Bun + MongoDB.
 - Transactional write with fallback for standalone MongoDB
 - Stripe checkout, payment confirmation and webhook handling
 - Failed-payment webhook (`payment_intent.payment_failed`): marks the order `FAILED`, emails the customer retry instructions, and records the event in the audit log (HU-28)
+- Purchase-confirmation email on successful payment: sent once on the `PENDING`->`PAID` transition, with the order number, purchased items, total and estimated delivery date (HU-30)
+- Order-shipped email: admin-only `PATCH /api/orders/:id/ship` moves a `PAID` order to `SHIPPED`, stamps `shippedAt`, and emails the customer the order number, ship date and optional tracking number (HU-31)
+- Refunds: admin-only `POST /api/orders/:id/refund` issues a full Stripe refund (idempotent, atomic — the order only becomes `REFUNDED` once Stripe confirms), emails the customer the refund detail, and writes a traceable `OrderEvent` (admin, timestamp, `stripeRefundId`, reason). `GET /api/orders/:id/history` (admin) returns the order event history (HU-29)
+- Manual order status changes: admin-only `PATCH /api/orders/:id/status` enforces the lifecycle state machine (only valid forward transitions; `PAID` is never manual), audits every change to `OrderEvent` with the acting admin, and emails the customer on `SHIPPED`. Also exposed as the `update_order_status` MCP tool (admin JWT) for logistics automation (HU-42)
 - Transactional email via SendGrid with async delivery + up to 3 retries (exponential backoff, transient failures only); every send is audited in `NotificationLog`
+- Low-stock alerts: per-product `lowStockThreshold` (default 5); `GET /api/admin/low-stock` lists products at or below threshold and admins are emailed once on the downward crossing. Also exposed as the `get_low_stock_alerts` MCP tool (HU-46)
+- Product reviews by verified purchasers: public rating summary + reviews (`GET /api/reviews/product/:productId`), review creation for buyers, and admin moderation (`GET /api/reviews`, `PATCH /api/reviews/:id/moderate`). Also exposed as the `get_product_reviews` MCP tool (HU-49, HU-50)
+- Search autocomplete: `GET /api/products/suggestions` returns up to 5 lightweight type-ahead suggestions (HU-51)
+- Admin action audit trail: every admin action (orders, users, products, categories) is recorded in an immutable `AuditLog`; `GET /api/admin/audit` (admin) is filterable by action, actor and date range. Also exposed as the `get_audit_log` MCP tool (HU-52)
+- Exportable inventory report: `GET /api/admin/inventory-report?format=json|csv|pdf` (admin) returns a point-in-time report (stock, valuation, low-stock flags) as JSON, a semicolon-delimited CSV, or a server-generated PDF. Also exposed as the `generate_inventory_report` MCP tool (HU-53)
 
 ## Requirements
 
@@ -71,21 +80,37 @@ bun run start
 - `PUT /api/categories/:id`
 - `DELETE /api/categories/:id`
 - `GET /api/products`
+- `GET /api/products/suggestions` (autocomplete, HU-51)
 - `GET /api/products/:id`
 - `POST /api/products`
 - `PUT /api/products/:id`
 - `DELETE /api/products/:id`
+- `GET /api/reviews/product/:productId` (public product reviews)
+- `POST /api/reviews/product/:productId` (create review — buyer)
+- `GET /api/reviews` (admin moderation queue)
+- `PATCH /api/reviews/:id/moderate` (admin)
 - `GET /api/users`
 - `GET /api/users/:id`
 - `GET /api/users/email/:email`
 - `POST /api/users/sync-clerk`
+- `PATCH /api/users/:id/role` (admin)
+- `PATCH /api/users/:id/status` (admin)
 - `GET /api/orders`
 - `GET /api/orders/:id`
 - `POST /api/orders`
 - `GET /api/orders/user/:userId`
+- `PATCH /api/orders/:id/cancel`
+- `PATCH /api/orders/:id/ship` (admin)
+- `PATCH /api/orders/:id/status` (admin)
+- `POST /api/orders/:id/refund` (admin)
+- `GET /api/orders/:id/history` (admin)
 - `POST /api/payments/create-checkout-session`
 - `POST /api/payments/confirm-checkout-payment`
 - `POST /api/payments/webhook`
+- `GET /api/admin/metrics` (admin dashboard summary)
+- `GET /api/admin/low-stock` (admin, HU-46)
+- `GET /api/admin/audit` (admin audit trail, HU-52)
+- `GET /api/admin/inventory-report?format=json|csv|pdf` (admin, HU-53)
 
 ## Status codes used
 

@@ -1,4 +1,4 @@
-import { UserProfile } from '@clerk/clerk-react'
+import { UserProfile } from '@clerk/tanstack-react-start'
 
 export function AccountPage() {
   return (
@@ -23,8 +23,8 @@ export function AccountPage() {
                 variables: {
                   colorPrimary: '#a3e635',
                   colorBackground: '#0f172a',
-                  colorText: '#e2e8f0',
-                  colorInputBackground: '#0b1220',
+                  colorForeground: '#e2e8f0',
+                  colorInput: '#0b1220',
                   borderRadius: '0.9rem',
                 },
                 elements: {

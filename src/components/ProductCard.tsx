@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from '@tanstack/react-router'
 import { useCart } from '../context/CartContext'
 import type { Product } from '../types'
 import { formatCurrency } from '../utils/format'
@@ -10,7 +10,7 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900 transition duration-300 hover:-translate-y-1 hover:border-lime-400/30 hover:shadow-[0_24px_50px_-24px_rgba(163,230,53,0.25)]">
-      <Link to={`/product/${product.id}`} className="relative block">
+      <Link to="/product/$id" params={{ id: product.id }} className="relative block">
         {/* Light image stage so product photos pop on the dark card */}
         <div className="flex aspect-square items-center justify-center bg-gradient-to-b from-white to-slate-100 p-4">
           <img
@@ -45,7 +45,7 @@ export function ProductCard({ product }: { product: Product }) {
           {product.category}
         </p>
 
-        <Link to={`/product/${product.id}`} className="flex-1">
+        <Link to="/product/$id" params={{ id: product.id }} className="flex-1">
           <h3 className="line-clamp-2 text-xs font-semibold leading-snug text-white transition group-hover:text-lime-300 sm:text-sm">
             {product.name}
           </h3>
@@ -74,7 +74,8 @@ export function ProductCard({ product }: { product: Product }) {
         {product.sizes.length > 0 ? (
           // Sized products need a size picked first — send them to the detail page instead.
           <Link
-            to={`/product/${product.id}`}
+            to="/product/$id"
+            params={{ id: product.id }}
             className="mt-1 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-lime-400 px-4 py-2 text-xs font-bold text-slate-900 transition hover:bg-lime-300 hover:shadow-[0_0_24px_-6px_rgba(163,230,53,0.6)]"
           >
             Ver tallas

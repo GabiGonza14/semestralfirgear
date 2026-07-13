@@ -1,10 +1,11 @@
-import { Link } from 'react-router-dom'
+import { Link } from '@tanstack/react-router'
 import type { ReactElement } from 'react'
 
 interface Program {
   title: string
   body: string
   to: string
+  search?: { category: string }
   icon: ReactElement
   /** Per-card accent classes — full strings so Tailwind keeps them. */
   tile: string
@@ -22,7 +23,8 @@ const programs: Program[] = [
   {
     title: 'Fuerza',
     body: 'Mancuernas y cargas para desarrollar potencia y masa muscular de forma progresiva.',
-    to: '/shop?category=Pesas',
+    to: '/shop',
+    search: { category: 'Pesas' },
     tile: 'bg-lime-400 text-slate-900',
     glow: 'hover:shadow-[0_28px_60px_-30px_rgba(163,230,53,0.5)]',
     ring: 'hover:border-lime-400/40',
@@ -36,7 +38,8 @@ const programs: Program[] = [
   {
     title: 'Resistencia',
     body: 'Bandas elasticas y accesorios funcionales para trabajar fuerza-resistencia en cualquier lugar.',
-    to: '/shop?category=Bandas',
+    to: '/shop',
+    search: { category: 'Bandas' },
     tile: 'bg-cyan-400 text-slate-900',
     glow: 'hover:shadow-[0_28px_60px_-30px_rgba(34,211,238,0.5)]',
     ring: 'hover:border-cyan-400/40',
@@ -50,7 +53,8 @@ const programs: Program[] = [
   {
     title: 'Movilidad',
     body: 'Colchonetas y rodillos para flexibilidad, recuperacion y entrenamiento de piso.',
-    to: '/shop?category=Colchonetas',
+    to: '/shop',
+    search: { category: 'Colchonetas' },
     tile: 'bg-violet-400 text-slate-900',
     glow: 'hover:shadow-[0_28px_60px_-30px_rgba(167,139,250,0.5)]',
     ring: 'hover:border-violet-400/40',
@@ -65,7 +69,8 @@ const programs: Program[] = [
   {
     title: 'Cardio',
     body: 'Cuerdas y herramientas ligeras para quemar calorias y mejorar tu capacidad aerobica.',
-    to: '/shop?category=Accesorios',
+    to: '/shop',
+    search: { category: 'Accesorios' },
     tile: 'bg-amber-400 text-slate-900',
     glow: 'hover:shadow-[0_28px_60px_-30px_rgba(251,191,36,0.5)]',
     ring: 'hover:border-amber-400/40',
@@ -109,6 +114,7 @@ export function ProgramCards() {
             <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-400">{program.body}</p>
             <Link
               to={program.to}
+              search={program.search}
               className={`mt-6 inline-flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide transition ${program.link}`}
             >
               Ver mas
