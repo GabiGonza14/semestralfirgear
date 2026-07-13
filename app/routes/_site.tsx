@@ -1,12 +1,14 @@
 import { useEffect } from 'react'
 import { Outlet, createFileRoute, useLocation } from '@tanstack/react-router'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { MotionConfig } from 'framer-motion'
 import { AuthProvider, useAuth } from '../../src/context/AuthContext'
 import { CartProvider, useCart } from '../../src/context/CartContext'
 import { Navbar } from '../../src/components/Navbar'
 import { Footer } from '../../src/components/Footer'
 import { CartDrawer } from '../../src/components/cart/CartDrawer'
 import { ErrorBoundary } from '../../src/components/ErrorBoundary'
+import { RouteTransition } from '../../src/components/RouteTransition'
 import { queryClient } from '../../src/lib/queryClient'
 
 // Pathless layout route (migrated from src/layouts/SiteLayout.tsx): wraps every
@@ -60,6 +62,7 @@ function SiteChrome() {
   }, [location.pathname, closeCart])
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
       {isPostLogin || isAdminBooting ? null : <Navbar />}
 
@@ -100,9 +103,11 @@ function SiteChrome() {
                 : 'mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10'
             }
           >
-            <ErrorBoundary resetKey={location.pathname}>
-              <Outlet />
-            </ErrorBoundary>
+            <RouteTransition routeKey={location.pathname}>
+              <ErrorBoundary resetKey={location.pathname}>
+                <Outlet />
+              </ErrorBoundary>
+            </RouteTransition>
           </div>
         </main>
       )}
@@ -110,5 +115,6 @@ function SiteChrome() {
       {isPostLogin || isAdminPage ? null : <Footer />}
       <CartDrawer />
     </div>
+    </MotionConfig>
   )
 }
