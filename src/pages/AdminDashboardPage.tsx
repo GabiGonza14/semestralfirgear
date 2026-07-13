@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
-import { getAdminMetrics, getOrders, getProducts, getUsers, type AdminMetrics } from '../api/fitgearApi'
+import {
+  getAdminMetrics,
+  getCategories,
+  getOrders,
+  getProducts,
+  getUsers,
+  type AdminMetrics,
+  type MongoCategory,
+} from '../api/fitgearApi'
 import { AdminSidebar } from '../components/AdminSidebar'
 import { AdminAuditSection } from '../components/admin/AdminAuditSection'
 import { AdminCategoriesSection } from '../components/admin/AdminCategoriesSection'
@@ -12,8 +20,17 @@ import { AdminUsersSection } from '../components/admin/AdminUsersSection'
 import { SummaryCard } from '../components/SummaryCard'
 import { useAuth } from '../context/AuthContext'
 import { isLowStock } from '../lib/inventory'
-import type { BackendOrder, BackendUser, Product } from '../types'
+import type { BackendOrder, BackendUser, Category, Product } from '../types'
 import { formatCurrency, formatDate } from '../utils/format'
+
+function mapCategories(raw: MongoCategory[]): Category[] {
+  return raw.map((category) => ({
+    id: category._id,
+    name: category.name,
+    description: category.description,
+    requiresSizes: category.requiresSizes,
+  }))
+}
 
 type AdminSection =
   | 'overview'
@@ -57,6 +74,7 @@ export function AdminDashboardPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [orders, setOrders] = useState<BackendOrder[]>([])
   const [users, setUsers] = useState<BackendUser[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -108,6 +126,24 @@ export function AdminDashboardPage() {
         }
       })
 
+    // Categories, shared by Inventario (selector + filtro) and Categorias
+    // (gestion + conteo por categoria) — fetched once here, at the dashboard
+    // level, so both sections stay in sync with each other and with a single
+    // source of truth instead of each fetching its own now-independently-stale
+    // copy (a category created in one tab used to never appear in the other
+    // without a full page reload).
+    getCategories()
+      .then((categoriesData) => {
+        if (active) {
+          setCategories(mapCategories(categoriesData))
+        }
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          setError(err instanceof Error ? err.message : 'No se pudieron cargar las categorias.')
+        }
+      })
+
     return () => {
       active = false
     }
@@ -148,6 +184,23 @@ export function AdminDashboardPage() {
     setMetrics(metricsData)
   }
 
+  // A customer placing an order happens in a completely different browser
+  // session — nothing here re-fetches on its own when that happens, so
+  // without this poll a new order only ever showed up after a manual page
+  // reload. Runs while the panel is open, independent of which tab is active
+  // (Overview and Ordenes both render AdminOrdersSection off this same state).
+  useEffect(() => {
+    if (!isAdmin) {
+      return
+    }
+
+    const intervalId = window.setInterval(() => {
+      void refreshOrdersAndMetrics()
+    }, 20000)
+
+    return () => window.clearInterval(intervalId)
+  }, [isAdmin])
+
   const refreshProducts = async () => {
     // Refresh metrics too: editing inventory/stock changes activeProductsCount.
     const [metricsData, productsData, ordersData, usersData] = await Promise.all([
@@ -161,6 +214,15 @@ export function AdminDashboardPage() {
     setProducts(productsData)
     setOrders(ordersData)
     setUsers(usersData)
+  }
+
+  // Used by AdminCategoriesSection after create/edit/delete/toggle — product
+  // counts there are derived from the `products` state above (already shared
+  // and kept fresh by refreshProducts), so this only needs to refetch the
+  // categories themselves.
+  const refreshCategories = async () => {
+    const categoriesData = await getCategories()
+    setCategories(mapCategories(categoriesData))
   }
 
   if (!isAdmin) {
@@ -208,13 +270,15 @@ export function AdminDashboardPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          <SummaryCard label="Productos" value={`${metrics?.activeProductsCount ?? 0}`} trend="Activos en el catálogo" />
-          <SummaryCard label="Órdenes" value={`${metrics?.ordersCount ?? 0}`} trend="En procesamiento" />
-          <SummaryCard label="Usuarios" value={`${metrics?.usersCount ?? 0}`} trend="Registrados" />
-          <SummaryCard label="Ingresos" value={formatCurrency(metrics?.totalRevenue ?? 0)} trend="Total de ventas" />
-          <SummaryCard label="Stock bajo" value={`${lowStockCount}`} trend="Productos por reabastecer" />
-        </div>
+        {section === 'overview' ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <SummaryCard label="Productos" value={`${metrics?.activeProductsCount ?? 0}`} trend="Activos en el catálogo" />
+            <SummaryCard label="Órdenes" value={`${metrics?.ordersCount ?? 0}`} trend="En procesamiento" />
+            <SummaryCard label="Usuarios" value={`${metrics?.usersCount ?? 0}`} trend="Registrados" />
+            <SummaryCard label="Ingresos" value={formatCurrency(metrics?.totalRevenue ?? 0)} trend="Total de ventas" />
+            <SummaryCard label="Stock bajo" value={`${lowStockCount}`} trend="Productos por reabastecer" />
+          </div>
+        ) : null}
 
         {section === 'overview' && lowStockCount > 0 ? (
           <div className="flex items-center gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
@@ -238,11 +302,11 @@ export function AdminDashboardPage() {
         ) : null}
 
         <KeepAlive active={section === 'inventory'} visited={visited.has('inventory')}>
-          <AdminInventorySection products={products} onRefreshProducts={refreshProducts} />
+          <AdminInventorySection products={products} categories={categories} onRefreshProducts={refreshProducts} />
         </KeepAlive>
 
         <KeepAlive active={section === 'categories'} visited={visited.has('categories')}>
-          <AdminCategoriesSection />
+          <AdminCategoriesSection categories={categories} products={products} onRefresh={refreshCategories} />
         </KeepAlive>
 
         <KeepAlive active={section === 'reviews'} visited={visited.has('reviews')}>

@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { createProduct, deleteProduct, getCategories, updateProduct } from '../../api/fitgearApi'
+import { createProduct, deleteProduct, updateProduct } from '../../api/fitgearApi'
 import type { ProductUpsertInput } from '../../api/fitgearApi'
 import { isLowStock } from '../../lib/inventory'
-import type { Product } from '../../types'
+import type { Category, Product } from '../../types'
 import { InventoryExportControls } from './InventoryExportControls'
-import { InventoryFilters, type CategoryOption } from './InventoryFilters'
+import { InventoryFilters } from './InventoryFilters'
 import { ProductFormModal } from './ProductFormModal'
 import { DeleteConfirmModal } from './DeleteConfirmModal'
 import { ProductTable } from './ProductTable'
 
 interface AdminInventorySectionProps {
   products: Product[]
+  categories: Category[]
   onRefreshProducts: () => Promise<void>
 }
 
@@ -19,10 +20,7 @@ type ProductSort = 'nameAsc' | 'priceAsc' | 'priceDesc' | 'stockAsc' | 'stockDes
 
 const PAGE_SIZE = 20
 
-export function AdminInventorySection({ products, onRefreshProducts }: AdminInventorySectionProps) {
-  const [categories, setCategories] = useState<CategoryOption[]>([])
-  const [categoriesLoading, setCategoriesLoading] = useState(true)
-  const [categoriesError, setCategoriesError] = useState<string | null>(null)
+export function AdminInventorySection({ products, categories, onRefreshProducts }: AdminInventorySectionProps) {
   const [search, setSearch] = useState('')
   const [categoryId, setCategoryId] = useState('all')
   const [status, setStatus] = useState<ProductStatusFilter>('all')
@@ -39,43 +37,6 @@ export function AdminInventorySection({ products, onRefreshProducts }: AdminInve
   // filter), so the chip's badge stays accurate even while other filters narrow
   // the visible table.
   const lowStockCount = useMemo(() => products.filter(isLowStock).length, [products])
-
-  useEffect(() => {
-    let active = true
-    setCategoriesLoading(true)
-
-    void getCategories()
-      .then((result) => {
-        if (!active) {
-          return
-        }
-
-        setCategories(
-          result.map((category) => ({
-            id: category._id,
-            name: category.name,
-            requiresSizes: category.requiresSizes,
-          })),
-        )
-        setCategoriesError(null)
-      })
-      .catch((error: unknown) => {
-        if (!active) {
-          return
-        }
-
-        setCategoriesError(error instanceof Error ? error.message : 'No se pudieron cargar categorias.')
-      })
-      .finally(() => {
-        if (active) {
-          setCategoriesLoading(false)
-        }
-      })
-
-    return () => {
-      active = false
-    }
-  }, [])
 
   const categoryNameById = useMemo(
     () => new Map(categories.map((category) => [category.id, category.name])),
@@ -124,16 +85,6 @@ export function AdminInventorySection({ products, onRefreshProducts }: AdminInve
   const pagedProducts = useMemo(
     () => filteredProducts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
     [filteredProducts, currentPage],
-  )
-
-  const categoryOptions = useMemo(
-    () =>
-      categories.map((category) => ({
-        id: category.id,
-        name: category.name,
-        requiresSizes: category.requiresSizes,
-      })),
-    [categories],
   )
 
   const handleCreate = () => {
@@ -206,7 +157,7 @@ export function AdminInventorySection({ products, onRefreshProducts }: AdminInve
         categoryId={categoryId}
         status={status}
         sortBy={sortBy}
-        categories={categoryOptions}
+        categories={categories}
         onSearchChange={setSearch}
         onCategoryChange={setCategoryId}
         onStatusChange={setStatus}
@@ -215,16 +166,6 @@ export function AdminInventorySection({ products, onRefreshProducts }: AdminInve
       />
 
       <InventoryExportControls />
-
-      {categoriesLoading ? (
-        <p className="text-sm text-slate-400">Cargando categorias para el inventario...</p>
-      ) : null}
-
-      {categoriesError ? (
-        <p className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
-          {categoriesError}
-        </p>
-      ) : null}
 
       {successMessage ? (
         <p className="rounded-2xl border border-lime-400/20 bg-lime-400/10 px-4 py-3 text-sm text-lime-300">
@@ -307,7 +248,7 @@ export function AdminInventorySection({ products, onRefreshProducts }: AdminInve
         isOpen={isFormOpen}
         title={editingProduct ? 'Editar producto' : 'Agregar producto'}
         submitLabel={editingProduct ? 'Guardar cambios' : 'Crear producto'}
-        categories={categoryOptions}
+        categories={categories}
         initialProduct={editingProduct}
         onClose={closeForm}
         onSubmit={handleSubmitProduct}

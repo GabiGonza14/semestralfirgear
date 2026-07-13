@@ -1,26 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  createCategory,
-  deleteCategory,
-  getCategories,
-  getProducts,
-  updateCategory,
-} from '../../api/fitgearApi'
+import { useMemo, useState } from 'react'
+import { createCategory, deleteCategory, updateCategory } from '../../api/fitgearApi'
 import type { Category, Product } from '../../types'
-import type { MongoCategory } from '../../api/fitgearApi'
 import { DeleteConfirmModal } from './DeleteConfirmModal'
 
 const fieldClass =
   'rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-slate-100 outline-none transition focus:border-lime-400/60 focus:ring-2 focus:ring-lime-400/30 placeholder:text-slate-500'
-
-function mapCategories(raw: MongoCategory[]): Category[] {
-  return raw.map((category) => ({
-    id: category._id,
-    name: category.name,
-    description: category.description,
-    requiresSizes: category.requiresSizes,
-  }))
-}
 
 // Product counts drive the delete guard: a category with associated products
 // cannot be removed, so we surface that count in the UI upfront.
@@ -32,10 +16,14 @@ function countProductsByCategory(products: Product[]): Record<string, number> {
   return counts
 }
 
-export function AdminCategoriesSection() {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [productCountByCategory, setProductCountByCategory] = useState<Record<string, number>>({})
-  const [loading, setLoading] = useState(true)
+interface AdminCategoriesSectionProps {
+  categories: Category[]
+  products: Product[]
+  onRefresh: () => Promise<void>
+}
+
+export function AdminCategoriesSection({ categories, products, onRefresh }: AdminCategoriesSectionProps) {
+  const productCountByCategory = useMemo(() => countProductsByCategory(products), [products])
   const [error, setError] = useState<string | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
 
@@ -52,50 +40,11 @@ export function AdminCategoriesSection() {
 
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
 
-  // Guards every setState below against firing after unmount — loadCategories
-  // is called both from the initial effect and after edit/create/delete, so a
-  // single ref covers all call sites instead of duplicating the fetch per site.
-  const isMountedRef = useRef(true)
-  useEffect(() => {
-    isMountedRef.current = true
-    return () => {
-      isMountedRef.current = false
-    }
-  }, [])
-
-  const loadCategories = async () => {
-    const [categoryResult, products] = await Promise.all([
-      getCategories(),
-      getProducts({ includeInactive: true }),
-    ])
-
-    if (!isMountedRef.current) {
-      return
-    }
-    setCategories(mapCategories(categoryResult))
-    setProductCountByCategory(countProductsByCategory(products))
-    setError(null)
-  }
-
-  useEffect(() => {
-    loadCategories()
-      .catch((err: unknown) => {
-        if (isMountedRef.current) {
-          setError(err instanceof Error ? err.message : 'No se pudieron cargar las categorias.')
-        }
-      })
-      .finally(() => {
-        if (isMountedRef.current) {
-          setLoading(false)
-        }
-      })
-  }, [])
-
   const handleToggle = async (category: Category) => {
     setTogglingId(category.id)
     try {
       await updateCategory(category.id, { requiresSizes: !category.requiresSizes })
-      await loadCategories()
+      await onRefresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo actualizar la categoria.')
     } finally {
@@ -134,7 +83,7 @@ export function AdminCategoriesSection() {
         description: editDescription.trim(),
       })
       cancelEdit()
-      await loadCategories()
+      await onRefresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo renombrar la categoria.')
     } finally {
@@ -150,7 +99,7 @@ export function AdminCategoriesSection() {
     try {
       await deleteCategory(deletingCategory.id)
       setDeletingCategory(null)
-      await loadCategories()
+      await onRefresh()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudo eliminar la categoria.'
       throw new Error(message)
@@ -172,7 +121,7 @@ export function AdminCategoriesSection() {
       setName('')
       setDescription('')
       setRequiresSizes(false)
-      await loadCategories()
+      await onRefresh()
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'No se pudo crear la categoria.')
     } finally {
@@ -207,10 +156,7 @@ export function AdminCategoriesSection() {
           </p>
         ) : null}
 
-        {loading ? (
-          <p className="mt-4 text-sm text-slate-400">Cargando categorias...</p>
-        ) : (
-          <ul className="mt-5 divide-y divide-white/[0.06]">
+        <ul className="mt-5 divide-y divide-white/[0.06]">
             {categories.map((category) => {
               const productCount = productCountByCategory[category.id] ?? 0
               const isEditing = editingId === category.id
@@ -316,8 +262,7 @@ export function AdminCategoriesSection() {
             {categories.length === 0 ? (
               <li className="py-3 text-sm text-slate-400">Todavia no hay categorias.</li>
             ) : null}
-          </ul>
-        )}
+        </ul>
       </section>
 
       <section className="rounded-3xl border border-white/[0.08] bg-slate-900 p-5 sm:p-6">
