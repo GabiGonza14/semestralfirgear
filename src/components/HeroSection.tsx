@@ -11,16 +11,16 @@ export function HeroSection() {
           FITGEAR Performance Store
         </p>
         <h1 className="text-4xl font-black uppercase leading-tight text-white sm:text-6xl">
-          Equipa tu entrenamiento, supera tu limite.
+          Equipa tu entrenamiento, supera tu límite.
         </h1>
         <p className="mt-5 text-lg text-slate-200">
           Accesorios fitness para atletas reales: fuerza, movilidad y cardio con
-          calidad premium y experiencia de compra rapida.
+          calidad premium y experiencia de compra rápida.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <CTAButton to="/shop">Comprar ahora</CTAButton>
           <CTAButton to="/shop" variant="secondary">
-            Explorar catalogo
+            Explorar catálogo
           </CTAButton>
         </div>
       </div>

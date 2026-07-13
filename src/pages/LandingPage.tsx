@@ -18,7 +18,7 @@ const iconClass = 'h-5 w-5'
 
 const trustItems: TrustItem[] = [
   {
-    label: 'Envio rapido',
+    label: 'Envío rápido',
     icon: (
       <svg className={iconClass} viewBox="0 0 24 24" fill="none" aria-hidden>
         <path d="M3 7h11v8H3zM14 10h4l3 3v2h-7z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
@@ -37,7 +37,7 @@ const trustItems: TrustItem[] = [
     ),
   },
   {
-    label: 'Devoluciones faciles',
+    label: 'Devoluciones fáciles',
     icon: (
       <svg className={iconClass} viewBox="0 0 24 24" fill="none" aria-hidden>
         <path d="M4 9a8 8 0 0 1 14-3M20 6v4h-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -99,7 +99,7 @@ export function LandingPage() {
             </h2>
             <p className="mx-auto mt-5 max-w-md text-slate-400">
               Mancuernas, accesorios de cardio y herramientas de movilidad con compra
-              simple y entrega rapida.
+              simple y entrega rápida.
             </p>
             <div className="mt-9 flex flex-wrap justify-center gap-3">
               <Link

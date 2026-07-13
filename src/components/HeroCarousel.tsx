@@ -23,7 +23,7 @@ const SLIDES: HeroCarouselSlide[] = [
     // Pesas
     image:
       'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=1920&q=80',
-    title: 'Pesas para tu mejor version',
+    title: 'Pesas para tu mejor versión',
     subtitle: 'Mancuernas y barras de alto rendimiento para ganar fuerza real.',
     // Categoria destino del slide — ajusta el nombre si usas otra categoria.
     category: 'Pesas',
@@ -33,7 +33,7 @@ const SLIDES: HeroCarouselSlide[] = [
     // Botellas
     image:
       'https://images.unsplash.com/photo-1764426445457-59169e244cce?auto=format&fit=crop&w=1920&q=80',
-    title: 'Hidratacion que no te frena',
+    title: 'Hidratación que no te frena',
     subtitle: 'Botellas deportivas para acompañarte en cada entrenamiento.',
     category: 'Botellas',
   },
@@ -42,8 +42,8 @@ const SLIDES: HeroCarouselSlide[] = [
     // Bandas
     image:
       'https://images.pexels.com/photos/863977/pexels-photo-863977.jpeg?auto=compress&cs=tinysrgb&w=1920',
-    title: 'Resistencia que se adapta a vos',
-    subtitle: 'Bandas elasticas para fuerza, movilidad y recuperacion.',
+    title: 'Resistencia que se adapta a ti',
+    subtitle: 'Bandas elásticas para fuerza, movilidad y recuperación.',
     category: 'Bandas',
   },
 ]
@@ -99,7 +99,7 @@ export function HeroCarousel() {
               className="group relative block h-full w-full shrink-0"
               aria-hidden={i !== index}
               tabIndex={i === index ? 0 : -1}
-              aria-label={`Ver categoria ${slide.category}`}
+              aria-label={`Ver categoría ${slide.category}`}
             >
               <div
                 className="absolute inset-0 bg-slate-900 bg-cover bg-center transition-transform duration-[1200ms] ease-out group-hover:scale-105"

@@ -46,7 +46,7 @@ export function CartDrawer() {
   const checkoutMutation = useMutation({
     mutationFn: async () => {
       if (!backendUser) {
-        throw new Error('Debes iniciar sesion para crear una orden.')
+        throw new Error('Debes iniciar sesión para crear un pedido.')
       }
 
       const activeOrderId = canReusePendingOrder
@@ -86,7 +86,7 @@ export function CartDrawer() {
       window.location.assign(session.url)
     },
     onError: (error: unknown) => {
-      setCheckoutError(error instanceof Error ? error.message : 'No se pudo crear la orden.')
+      setCheckoutError(error instanceof Error ? error.message : 'No pudimos crear tu pedido.')
     },
   })
 
@@ -163,7 +163,7 @@ export function CartDrawer() {
               <div className="shrink-0 border-b border-amber-400/20 bg-amber-400/10 px-5 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="text-sm text-amber-200">
-                    <p className="font-semibold">Algunos productos ya no estan disponibles</p>
+                    <p className="font-semibold">Algunos productos ya no están disponibles</p>
                     <p className="mt-1 text-amber-200/80">
                       Quitamos de tu carrito: {removedOnRestore.map((line) => line.name).join(', ')}.
                     </p>
@@ -192,7 +192,7 @@ export function CartDrawer() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-white">Tu carrito esta vacio</p>
+                  <p className="text-lg font-bold text-white">Tu carrito está vacío</p>
                   <p className="mt-1 text-sm text-slate-400">
                     Explora accesorios y arma tu kit de entrenamiento ideal.
                   </p>

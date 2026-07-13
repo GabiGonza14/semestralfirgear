@@ -114,7 +114,7 @@ export function CategoryShowcase() {
         <div data-reveal className="mb-10">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Destacado</p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl">
-            Compra por categoria
+            Compra por categoría
           </h2>
         </div>
 

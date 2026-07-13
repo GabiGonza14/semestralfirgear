@@ -36,7 +36,7 @@ export function LoginPage() {
           <div className="mb-6 text-center">
             <h1 className="text-3xl font-bold tracking-tight text-white">Bienvenido de vuelta</h1>
             <p className="mt-2 text-sm text-slate-400">
-              Inicia sesion para continuar con tu entrenamiento.
+              Inicia sesión para continuar con tu entrenamiento.
             </p>
           </div>
           <SignIn

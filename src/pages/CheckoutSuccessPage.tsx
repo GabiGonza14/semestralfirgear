@@ -72,20 +72,20 @@ export function CheckoutSuccessPage() {
 
   const paymentError =
     !orderId
-      ? 'No se encontro la orden para confirmar el pago.'
+      ? 'No encontramos el pedido para confirmar el pago.'
       : isPendingConfirmation
-        ? 'El pago aun se esta confirmando en Stripe. Puedes recargar en unos segundos.'
+        ? 'El pago aún se está confirmando. Puedes recargar en unos segundos.'
         : confirmationQuery.error instanceof Error
         ? confirmationQuery.error.message
         : confirmationQuery.error
-          ? 'No se pudo confirmar el pago. Intenta recargar la pagina.'
+          ? 'No pudimos confirmar el pago. Intenta recargar la página.'
           : null
 
   const title = isPaid ? 'Gracias por tu compra' : 'Estamos validando tu pago'
   const badge = isPaid ? 'Pago confirmado' : 'Confirmando pago'
   const description = isPaid
-    ? 'Stripe confirmo el pago y la orden ya puede pasar al flujo logistico.'
-    : 'Estamos sincronizando el estado de pago con el backend para dejar la orden al dia.'
+    ? 'Confirmamos tu pago. Ya estamos preparando tu pedido para el envío.'
+    : 'Estamos confirmando tu pago. En un momento verás tu pedido actualizado.'
 
   return (
     <motion.section
@@ -113,13 +113,13 @@ export function CheckoutSuccessPage() {
       <p className="mt-3 text-slate-400">{description}</p>
       {orderId ? (
         <p className="mt-3 inline-block rounded-full bg-white/[0.04] px-3 py-1 font-mono text-xs text-slate-400">
-          Orden: {orderId}
+          Pedido: {orderId}
         </p>
       ) : null}
       {confirmationQuery.isLoading || confirmationQuery.isFetching ? (
         <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-slate-300">
           <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-lime-400" aria-hidden />
-          Confirmando pago y actualizando inventario...
+          Confirmando tu pago...
         </div>
       ) : null}
       {paymentError ? (

@@ -23,11 +23,11 @@ export function CheckoutCancelPage() {
   const retryCheckoutMutation = useMutation({
     mutationFn: async () => {
       if (!orderId) {
-        throw new Error('No se encontro la orden para reintentar el pago.')
+        throw new Error('No encontramos el pedido para reintentar el pago.')
       }
 
       if (orderQuery.data?.status !== 'PENDING') {
-        throw new Error('Solo se puede reintentar el pago para ordenes en estado PENDING.')
+        throw new Error('Solo puedes reintentar el pago de un pedido pendiente.')
       }
 
       return createCheckoutSession({ orderId })
@@ -52,11 +52,11 @@ export function CheckoutCancelPage() {
   const cancelOrderMutation = useMutation({
     mutationFn: async () => {
       if (!orderId) {
-        throw new Error('No se encontro la orden para cancelar.')
+        throw new Error('No encontramos el pedido para cancelar.')
       }
 
       if (orderQuery.data?.status !== 'PENDING') {
-        throw new Error('Solo se puede cancelar una orden en estado PENDING.')
+        throw new Error('Solo puedes cancelar un pedido pendiente.')
       }
 
       return cancelOrder(orderId)
@@ -80,23 +80,23 @@ export function CheckoutCancelPage() {
     retryCheckoutMutation.error instanceof Error
       ? retryCheckoutMutation.error.message
       : retryCheckoutMutation.error
-        ? 'No se pudo reintentar el pago.'
+        ? 'No pudimos reintentar el pago.'
         : null
 
   const cancelError =
     cancelOrderMutation.error instanceof Error
       ? cancelOrderMutation.error.message
       : cancelOrderMutation.error
-        ? 'No se pudo cancelar la orden.'
+        ? 'No pudimos cancelar el pedido.'
         : null
 
   const orderStatusMessage =
     orderQuery.isLoading || orderQuery.isFetching
-      ? 'Validando estado de la orden...'
+      ? 'Validando el estado de tu pedido...'
       : orderQuery.data && orderQuery.data.status !== 'PENDING'
         ? orderQuery.data.status === 'CANCELLED'
-          ? 'Esta orden ya fue cancelada.'
-          : `La orden esta en estado ${orderQuery.data.status}. No se puede reintentar ni cancelar el checkout.`
+          ? 'Este pedido ya fue cancelado.'
+          : `Tu pedido está en estado ${orderQuery.data.status}. Ya no se puede reintentar ni cancelar el pago.`
         : null
 
   const retryDisabled =
@@ -129,13 +129,13 @@ export function CheckoutCancelPage() {
       </div>
 
       <p className="mt-6 text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Pago cancelado</p>
-      <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">No se completo el pago</h1>
+      <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">No se completó el pago</h1>
       <p className="mt-3 text-slate-400">
-        Tu orden sigue en estado pendiente. Puedes volver al carrito y reintentar cuando quieras.
+        Tu pedido sigue pendiente. Puedes volver al carrito y reintentar cuando quieras.
       </p>
       {orderId ? (
         <p className="mt-3 inline-block rounded-full bg-white/[0.04] px-3 py-1 font-mono text-xs text-slate-400">
-          Orden pendiente: {orderId}
+          Pedido pendiente: {orderId}
         </p>
       ) : null}
       {retryError ? (
@@ -168,7 +168,7 @@ export function CheckoutCancelPage() {
           onClick={() => cancelOrderMutation.mutate()}
           className="inline-flex items-center gap-2 rounded-full border border-rose-400/30 px-6 py-3 text-sm font-semibold text-rose-300 transition hover:border-rose-400/60 hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:text-slate-500"
         >
-          {cancelOrderMutation.isPending ? 'Cancelando orden...' : 'Cancelar orden'}
+          {cancelOrderMutation.isPending ? 'Cancelando pedido...' : 'Cancelar pedido'}
         </button>
         <button
           type="button"

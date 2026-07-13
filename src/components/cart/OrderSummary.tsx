@@ -30,7 +30,7 @@ export function OrderSummary({
 
       <div className="mt-5 space-y-3 text-sm text-slate-400">
         <p className="flex justify-between">
-          <span>Items</span>
+          <span>Artículos</span>
           <span className="font-medium text-slate-200">{lineCount}</span>
         </p>
         <p className="flex justify-between">
@@ -42,7 +42,7 @@ export function OrderSummary({
           <span className="font-medium text-slate-200">{formatCurrency(taxAmount)}</span>
         </p>
         <p className="flex justify-between">
-          <span>Envio</span>
+          <span>Envío</span>
           <span className="font-medium text-slate-200">
             {shippingAmount > 0 ? formatCurrency(shippingAmount) : 'Gratis'}
           </span>
