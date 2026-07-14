@@ -80,6 +80,17 @@ describe('updateUserRole (HU-44)', () => {
     expect(mockAuditCreate).not.toHaveBeenCalled()
   })
 
+  it('blocks an admin from changing ANOTHER admin\'s role (no admin-on-admin management)', async () => {
+    fakeUser.role = 'ADMIN'
+
+    await expect(updateUserRole(ADMIN_CLERK_ID, 'user_target_id', 'CUSTOMER')).rejects.toThrow(
+      'No puedes cambiar el rol de otro administrador',
+    )
+    expect(mockSave).not.toHaveBeenCalled()
+    expect(mockSyncRole).not.toHaveBeenCalled()
+    expect(mockAuditCreate).not.toHaveBeenCalled()
+  })
+
   it('throws 404 when the target user does not exist', async () => {
     mockFindById.mockImplementationOnce(async () => null)
 
@@ -162,6 +173,27 @@ describe('setUserActive (HU-44)', () => {
     expect(mockSave).not.toHaveBeenCalled()
     expect(mockSyncActive).not.toHaveBeenCalled()
     expect(mockAuditCreate).not.toHaveBeenCalled()
+  })
+
+  it('blocks an admin from deactivating ANOTHER admin (no admin-on-admin management)', async () => {
+    fakeUser.role = 'ADMIN'
+
+    await expect(setUserActive(ADMIN_CLERK_ID, 'user_target_id', false)).rejects.toThrow(
+      'No puedes desactivar a otro administrador',
+    )
+    expect(mockSave).not.toHaveBeenCalled()
+    expect(mockSyncActive).not.toHaveBeenCalled()
+  })
+
+  it('still allows reactivating another admin (recovery, not privilege escalation)', async () => {
+    fakeUser.role = 'ADMIN'
+    fakeUser.isActive = false
+
+    await setUserActive(ADMIN_CLERK_ID, 'user_target_id', true)
+
+    expect(fakeUser.isActive).toBe(true)
+    expect(mockSyncActive).toHaveBeenCalledWith(TARGET_CLERK_ID, true)
+    expect(mockAuditCreate).toHaveBeenCalledTimes(1)
   })
 
   it('throws 404 when the target user does not exist', async () => {

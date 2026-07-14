@@ -159,6 +159,22 @@ export function AdminOrderDetailModal({ order, onClose, onUpdated }: AdminOrderD
           </div>
         </div>
 
+        {order.shippingAddress ? (
+          <div className="mt-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+            <p className="text-xs text-slate-400">Dirección de envío</p>
+            <p className="text-sm font-semibold text-white">{order.shippingAddress.name}</p>
+            <p className="text-sm text-slate-300">
+              {[order.shippingAddress.line1, order.shippingAddress.line2].filter(Boolean).join(', ')}
+            </p>
+            <p className="text-sm text-slate-300">
+              {[order.shippingAddress.city, order.shippingAddress.state, order.shippingAddress.postalCode]
+                .filter(Boolean)
+                .join(', ')}
+              {order.shippingAddress.country ? ` · ${order.shippingAddress.country}` : ''}
+            </p>
+          </div>
+        ) : null}
+
         <div className="mt-4">
           <h4 className="mb-2 text-sm font-semibold text-white">Productos</h4>
           <div className="overflow-hidden rounded-2xl border border-white/[0.06]">

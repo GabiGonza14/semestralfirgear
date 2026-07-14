@@ -81,6 +81,12 @@ export function AdminUsersSection({ users, currentUserId, onRefresh }: AdminUser
             {pagedUsers.map((user) => {
               const isSelf = user.id === currentUserId
               const isPending = pendingId === user.id
+              // No admin-on-admin management: another admin's role can't be
+              // touched at all, and another admin can't be deactivated (though
+              // reactivating one is still allowed — see userAdminService).
+              const isOtherAdmin = !isSelf && user.role === 'ADMIN'
+              const roleLocked = isSelf || isPending || isOtherAdmin
+              const deactivateLocked = isSelf || isPending || (isOtherAdmin && user.isActive)
 
               return (
                 <tr key={user.id} className="border-t border-white/10">
@@ -90,9 +96,15 @@ export function AdminUsersSection({ users, currentUserId, onRefresh }: AdminUser
                     <select
                       value={user.role}
                       onChange={(event) => handleRoleChange(user, event.target.value as UserRole)}
-                      disabled={isSelf || isPending}
+                      disabled={roleLocked}
                       aria-label={`Rol de ${user.fullName}`}
-                      title={isSelf ? 'No puedes cambiar tu propio rol' : undefined}
+                      title={
+                        isSelf
+                          ? 'No puedes cambiar tu propio rol'
+                          : isOtherAdmin
+                            ? 'No puedes cambiar el rol de otro administrador'
+                            : undefined
+                      }
                       className="rounded-lg border border-white/12 bg-slate-950/60 px-2 py-1 text-xs font-semibold text-slate-100 outline-none transition focus:border-lime-400/60 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <option value="CUSTOMER">CUSTOMER</option>
@@ -115,8 +127,14 @@ export function AdminUsersSection({ users, currentUserId, onRefresh }: AdminUser
                     <button
                       type="button"
                       onClick={() => handleToggleActive(user)}
-                      disabled={isSelf || isPending}
-                      title={isSelf ? 'No puedes desactivar tu propia cuenta' : undefined}
+                      disabled={deactivateLocked}
+                      title={
+                        isSelf
+                          ? 'No puedes desactivar tu propia cuenta'
+                          : isOtherAdmin && user.isActive
+                            ? 'No puedes desactivar a otro administrador'
+                            : undefined
+                      }
                       className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                         user.isActive
                           ? 'border-rose-400/30 text-rose-300 hover:border-rose-400/60 hover:bg-rose-500/10'

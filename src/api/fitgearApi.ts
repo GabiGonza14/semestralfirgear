@@ -125,6 +125,7 @@ interface MongoOrder {
   items: MongoOrderItem[]
   shippedAt?: string
   refundReason?: string
+  shippingAddress?: BackendOrder['shippingAddress']
 }
 
 interface MongoOrderEvent {
@@ -259,6 +260,7 @@ function mapOrder(order: MongoOrder): BackendOrder {
     items: (order.items ?? []).map(mapOrderItem),
     shippedAt: order.shippedAt,
     refundReason: order.refundReason,
+    shippingAddress: order.shippingAddress,
   }
 }
 

@@ -266,7 +266,9 @@ function buildOrderShippedEmailHtml(params: {
 }): string {
   const greeting = params.name ? `Hola ${params.name},` : 'Hola,'
   const orderNumber = params.orderId.slice(-6).toUpperCase()
-  const ordersUrl = `${env.frontendUrl}/orders/${params.orderId}`
+  // There is no per-order detail page in the frontend (just the /orders list,
+  // where each order is an expandable row) — linking to /orders/<id> 404'd.
+  const ordersUrl = `${env.frontendUrl}/orders`
   const shipDate = params.shippedAt.toLocaleDateString('es-ES', {
     weekday: 'long',
     day: 'numeric',

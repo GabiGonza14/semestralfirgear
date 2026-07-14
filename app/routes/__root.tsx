@@ -3,7 +3,12 @@ import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { ClerkProvider } from '@clerk/tanstack-react-start'
 import { ErrorBoundary } from '../../src/components/ErrorBoundary'
 import { PostHogProvider } from '../../src/components/PostHogProvider'
-import appCss from '../../src/index.css?url'
+// Imported as a STRING (?inline), not a URL: the compiled Tailwind + brand CSS
+// is inlined into a <style> in the shell <head> below, so it is applied at the
+// very first paint with no external fetch gap. Loading it as an external
+// <link> instead left a brief streaming-SSR window where the document painted
+// unstyled before /assets/*.css arrived (FOUC).
+import appCss from '../../src/index.css?inline'
 
 // Root route. `shellComponent` renders the full HTML document shell (per the
 // current TanStack Start + Clerk integration). The Clerk publishable key is
@@ -31,7 +36,6 @@ export const Route = createRootRoute({
         rel: 'stylesheet',
         href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap',
       },
-      { rel: 'stylesheet', href: appCss },
     ],
   }),
   shellComponent: RootDocument,
@@ -39,11 +43,21 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="es">
+    // Inline dark background on <html>/<body> so the very first paint is already
+    // on-brand dark. The base rule `body { background: var(--fg-black) }` lives
+    // in the external stylesheet (src/index.css), which is NOT applied yet during
+    // the brief streaming-SSR window before /assets/*.css loads — without this
+    // shim that window flashes as unstyled (bright) content (FOUC). #020617 is
+    // --fg-black, duplicated here on purpose since the variable isn't live yet.
+    <html lang="es" style={{ backgroundColor: '#020617' }}>
       <head>
         <HeadContent />
+        {/* Compiled Tailwind + brand CSS inlined so it is applied at the first
+            paint (no external stylesheet fetch) — this is what eliminates the
+            FOUC. The inline background above stays as a belt-and-suspenders. */}
+        <style dangerouslySetInnerHTML={{ __html: appCss }} />
       </head>
-      <body>
+      <body style={{ backgroundColor: '#020617' }}>
         {/* HU-34: PostHog initialized here (alongside ClerkProvider, before the
             route tree) so analytics + session replay are live from first paint.
             The ErrorBoundary wraps the route tree so React render errors reach

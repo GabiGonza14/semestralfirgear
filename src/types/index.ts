@@ -88,6 +88,16 @@ export interface BackendOrder {
   shippedAt?: string
   /** Motivo del reembolso, si se escribió uno. Solo aplica a REFUNDED. */
   refundReason?: string
+  /** Collected by Stripe Checkout once the customer pays — absent until then. */
+  shippingAddress?: {
+    name?: string
+    line1?: string
+    line2?: string
+    city?: string
+    state?: string
+    postalCode?: string
+    country?: string
+  }
 }
 
 // An entry in an order's audit history (HU-29), e.g. a refund.

@@ -111,7 +111,7 @@ export function Navbar() {
                   avatarBox: 'h-9 w-9 ring-2 ring-lime-400/40',
                 },
               }}
-              userProfileUrl={isAdmin ? '/admin' : '/account'}
+              userProfileUrl={isAdmin ? '/admin/account' : '/account'}
             />
           ) : null}
 

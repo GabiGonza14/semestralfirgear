@@ -55,6 +55,48 @@ interface StockDecrementRecord {
 const TAX_RATE = 0.07
 const SHIPPING_FEE = 4.99
 
+// FITGEAR only ships within Panama today — restricting Stripe's own address
+// form to this country avoids collecting addresses that could never be
+// fulfilled.
+const SHIPPING_ALLOWED_COUNTRIES = ['PA'] as const
+
+interface OrderShippingAddress {
+  name?: string
+  line1?: string
+  line2?: string
+  city?: string
+  state?: string
+  postalCode?: string
+  country?: string
+}
+
+// Stripe returns the address collected by shipping_address_collection under
+// collected_information.shipping_details (not the older, deprecated
+// top-level shipping_details field). Drops nulls so the saved order only
+// carries fields Stripe actually filled in.
+// Exported for unit testing the mapping in isolation.
+export function extractShippingAddress(
+  session: Pick<Stripe.Checkout.Session, 'collected_information'>,
+): OrderShippingAddress | undefined {
+  const shippingDetails = session.collected_information?.shipping_details
+
+  if (!shippingDetails) {
+    return undefined
+  }
+
+  const address = shippingDetails.address
+
+  return {
+    name: shippingDetails.name ?? undefined,
+    line1: address.line1 ?? undefined,
+    line2: address.line2 ?? undefined,
+    city: address.city ?? undefined,
+    state: address.state ?? undefined,
+    postalCode: address.postal_code ?? undefined,
+    country: address.country ?? undefined,
+  }
+}
+
 async function assertCustomerOrder(orderId: string, session?: ClientSession) {
   const orderQuery = OrderModel.findById(orderId).populate('userId', 'email fullName role')
   const order = session ? await orderQuery.session(session) : await orderQuery
@@ -200,6 +242,7 @@ export async function createCheckoutSession(orderId: string): Promise<CheckoutSe
     },
     client_reference_id: order._id.toString(),
     customer_email: customerEmail,
+    shipping_address_collection: { allowed_countries: [...SHIPPING_ALLOWED_COUNTRIES] },
   })
 
   await OrderModel.findByIdAndUpdate(order._id, {
@@ -251,6 +294,7 @@ export async function confirmCheckoutPayment(orderId: string, sessionId?: string
     typeof session.payment_intent === 'string'
       ? session.payment_intent
       : (session.payment_intent?.id ?? undefined),
+    extractShippingAddress(session),
   )
 
   return { status: 'PAID' as const }
@@ -448,7 +492,9 @@ function buildRefundEmailHtml(params: {
 }): string {
   const greeting = params.name ? `Hola ${params.name},` : 'Hola,'
   const orderNumber = params.orderId.slice(-6).toUpperCase()
-  const ordersUrl = `${env.frontendUrl}/orders/${params.orderId}`
+  // There is no per-order detail page in the frontend (just the /orders list,
+  // where each order is an expandable row) — linking to /orders/<id> 404'd.
+  const ordersUrl = `${env.frontendUrl}/orders`
   const refundDate = params.refundedAt.toLocaleDateString('es-ES', {
     weekday: 'long',
     day: 'numeric',
@@ -603,6 +649,7 @@ async function handleCheckoutCompleted(event: Stripe.Event) {
     typeof session.payment_intent === 'string'
       ? session.payment_intent
       : (session.payment_intent?.id ?? undefined),
+    extractShippingAddress(session),
   )
 }
 
@@ -773,6 +820,7 @@ export async function notifyCustomerPurchaseConfirmed(orderId: string) {
         items: lineItems,
         total: order.totalAmount,
         estimatedDelivery,
+        shippingAddress: order.shippingAddress,
       }),
     })
   } catch (error) {
@@ -812,10 +860,23 @@ function buildPurchaseConfirmationEmailHtml(params: {
   items: ConfirmationLineItem[]
   total: number
   estimatedDelivery: Date
+  // Mongoose infers optional nested string fields as nullable, unlike the
+  // Stripe-side OrderShippingAddress (which only ever produces undefined).
+  shippingAddress?: {
+    name?: string | null
+    line1?: string | null
+    line2?: string | null
+    city?: string | null
+    state?: string | null
+    postalCode?: string | null
+    country?: string | null
+  } | null
 }): string {
   const greeting = params.name ? `Hola ${params.name},` : 'Hola,'
   const orderNumber = params.orderId.slice(-6).toUpperCase()
-  const ordersUrl = `${env.frontendUrl}/orders/${params.orderId}`
+  // There is no per-order detail page in the frontend (just the /orders list,
+  // where each order is an expandable row) — linking to /orders/<id> 404'd.
+  const ordersUrl = `${env.frontendUrl}/orders`
 
   const rows = params.items
     .map((item) => {
@@ -828,6 +889,19 @@ function buildPurchaseConfirmationEmailHtml(params: {
       </tr>`
     })
     .join('')
+
+  const shippingAddressBlock = params.shippingAddress
+    ? `
+    <p style="background:#f8fafc; border-radius:8px; padding:12px 16px; color:#334155;">
+      📍 <strong>Dirección de envío:</strong><br/>
+      ${[params.shippingAddress.name, params.shippingAddress.line1, params.shippingAddress.line2]
+        .filter(Boolean)
+        .join('<br/>')}<br/>
+      ${[params.shippingAddress.city, params.shippingAddress.state, params.shippingAddress.postalCode]
+        .filter(Boolean)
+        .join(', ')}${params.shippingAddress.country ? ` · ${params.shippingAddress.country}` : ''}
+    </p>`
+    : ''
 
   return `
   <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #0f172a;">
@@ -854,6 +928,7 @@ function buildPurchaseConfirmationEmailHtml(params: {
     <p style="background:#f0fdf4; border-radius:8px; padding:12px 16px; color:#166534;">
       📦 <strong>Entrega estimada:</strong> ${formatDeliveryDate(params.estimatedDelivery)}
     </p>
+    ${shippingAddressBlock}
     <p style="margin: 24px 0;">
       <a href="${ordersUrl}"
          style="background:#84cc16; color:#0f172a; padding:12px 24px; border-radius:9999px;
@@ -1015,6 +1090,7 @@ async function markOrderAsPaidAndDeductStock(
   orderId: string,
   stripeCheckoutSessionId: string,
   stripePaymentIntentId?: string,
+  shippingAddress?: OrderShippingAddress,
 ) {
   await assertCustomerOrder(orderId)
 
@@ -1028,6 +1104,7 @@ async function markOrderAsPaidAndDeductStock(
       orderId,
       stripeCheckoutSessionId,
       stripePaymentIntentId,
+      shippingAddress,
       session,
     )
     didTransitionToPaid = result.transitioned
@@ -1041,6 +1118,7 @@ async function markOrderAsPaidAndDeductStock(
         orderId,
         stripeCheckoutSessionId,
         stripePaymentIntentId,
+        shippingAddress,
       )
       didTransitionToPaid = result.transitioned
       lowStockDecrements = result.decrements
@@ -1072,6 +1150,7 @@ async function markOrderAsPaidAndDeductStockWithSession(
   orderId: string,
   stripeCheckoutSessionId: string,
   stripePaymentIntentId: string | undefined,
+  shippingAddress: OrderShippingAddress | undefined,
   session: ClientSession,
 ): Promise<{ transitioned: boolean; decrements: StockDecrementRecord[] }> {
   const orderQuery = OrderModel.findById(orderId)
@@ -1093,6 +1172,9 @@ async function markOrderAsPaidAndDeductStockWithSession(
   order.stripeCheckoutSessionId = stripeCheckoutSessionId
   order.stripePaymentIntentId = stripePaymentIntentId
   order.paidAt = new Date()
+  if (shippingAddress) {
+    order.shippingAddress = shippingAddress
+  }
   await order.save({ session })
 
   return { transitioned: true, decrements }
@@ -1104,6 +1186,7 @@ async function markOrderAsPaidAndDeductStockFallback(
   orderId: string,
   stripeCheckoutSessionId: string,
   stripePaymentIntentId?: string,
+  shippingAddress?: OrderShippingAddress,
 ): Promise<{ transitioned: boolean; decrements: StockDecrementRecord[] }> {
   const order = await OrderModel.findById(orderId)
 
@@ -1142,6 +1225,9 @@ async function markOrderAsPaidAndDeductStockFallback(
     order.stripeCheckoutSessionId = stripeCheckoutSessionId
     order.stripePaymentIntentId = stripePaymentIntentId
     order.paidAt = new Date()
+    if (shippingAddress) {
+      order.shippingAddress = shippingAddress
+    }
     await order.save()
 
     return { transitioned: true, decrements }

@@ -1,6 +1,16 @@
 import { UserProfile } from '@clerk/tanstack-react-start'
 
-export function AccountPage() {
+interface AccountPageProps {
+  /**
+   * Must match the router path this component is actually mounted at — Clerk's
+   * `routing="path"` uses it to build URLs for its own internal sub-views
+   * (security, sessions, etc.). Defaults to the customer route; the admin
+   * profile route (see _site.admin.account.tsx) passes '/admin/account'.
+   */
+  path?: string
+}
+
+export function AccountPage({ path = '/account' }: AccountPageProps = {}) {
   return (
     <section className="space-y-6">
       <div>
@@ -18,7 +28,7 @@ export function AccountPage() {
           <div className="[&_*]:!text-slate-100">
             <UserProfile
               routing="path"
-              path="/account"
+              path={path}
               appearance={{
                 variables: {
                   colorPrimary: '#a3e635',

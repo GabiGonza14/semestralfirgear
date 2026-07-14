@@ -20,15 +20,22 @@ async function findUserOrThrow(targetUserId: string) {
 /**
  * Changes a user's RBAC role. An admin cannot change their OWN role — this
  * prevents an admin from accidentally locking themselves out of the panel and
- * is the ticket's explicit rule. The change is mirrored to Clerk and recorded
- * in the user audit log. Clerk sync runs before persisting so a failed
- * propagation aborts without leaving the DB and Clerk out of sync.
+ * is the ticket's explicit rule. An admin also cannot change ANOTHER admin's
+ * role (no admin-on-admin management, no hierarchy/super-admin exception) —
+ * this closes an authorization gap where any admin could demote a rival admin
+ * to CUSTOMER. The change is mirrored to Clerk and recorded in the user audit
+ * log. Clerk sync runs before persisting so a failed propagation aborts
+ * without leaving the DB and Clerk out of sync.
  */
 export async function updateUserRole(actorClerkId: string, targetUserId: string, role: Role) {
   const user = await findUserOrThrow(targetUserId)
 
   if (user.clerkUserId === actorClerkId) {
     throw new HttpError(403, 'No puedes cambiar tu propio rol')
+  }
+
+  if (user.role === 'ADMIN') {
+    throw new HttpError(403, 'No puedes cambiar el rol de otro administrador')
   }
 
   const previousRole = user.role as Role
@@ -54,14 +61,23 @@ export async function updateUserRole(actorClerkId: string, targetUserId: string,
 /**
  * Activates or deactivates a user account without deleting it. A deactivated
  * account is retained for history but banned in Clerk so it can no longer sign
- * in. An admin cannot deactivate their OWN account (self-lockout guard). The
- * change is mirrored to Clerk and recorded in the audit log.
+ * in. An admin cannot deactivate their OWN account (self-lockout guard), nor
+ * deactivate ANOTHER admin's account (no admin-on-admin management, no
+ * hierarchy/super-admin exception) — this closes an authorization gap where
+ * any admin could ban a rival admin out of the panel. Reactivating an admin
+ * (isActive: true) is still allowed — it's a recovery action, not a privilege
+ * escalation, and blocking it too would make a deactivated admin unrecoverable
+ * through the UI. The change is mirrored to Clerk and recorded in the audit log.
  */
 export async function setUserActive(actorClerkId: string, targetUserId: string, isActive: boolean) {
   const user = await findUserOrThrow(targetUserId)
 
   if (user.clerkUserId === actorClerkId && !isActive) {
     throw new HttpError(403, 'No puedes desactivar tu propia cuenta')
+  }
+
+  if (user.role === 'ADMIN' && !isActive) {
+    throw new HttpError(403, 'No puedes desactivar a otro administrador')
   }
 
   if (user.isActive === isActive) {

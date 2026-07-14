@@ -33,3 +33,9 @@ app/routeTree.gen.ts
 
 # Local-only Docker override (usa Atlas para desarrollo)
 docker-compose.override.yml
+
+# Playwright E2E (Punto 6) — reportes y artefactos de corridas locales
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache

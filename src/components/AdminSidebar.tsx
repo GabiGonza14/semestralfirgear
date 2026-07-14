@@ -34,7 +34,7 @@ const sectionLabels: Record<AdminSection, string> = {
 
 export function AdminSidebar({ active, onChange }: AdminSidebarProps) {
   return (
-    <aside className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
+    <aside className="self-start rounded-2xl border border-white/10 bg-slate-900/70 p-4 lg:sticky lg:top-20">
       <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-lime-400">Admin</p>
       <div className="space-y-2">
         {sections.map((section) => (
