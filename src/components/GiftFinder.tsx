@@ -4,6 +4,7 @@ import { getProducts } from '../api/fitgearApi'
 import { hoverLift } from '../lib/motion'
 import type { Product } from '../types'
 import { formatCurrency } from '../utils/format'
+import { FloatingShapes } from './FloatingShapes'
 import { SectionDecor } from './SectionDecor'
 
 interface PriceTier {
@@ -95,7 +96,8 @@ export function GiftFinder() {
 
   return (
     <section className="relative overflow-hidden border-t border-white/[0.06] bg-gradient-to-b from-slate-900/40 to-slate-950">
-      <SectionDecor pattern="grid" glowA="bg-cyan-500/12" glowB="bg-lime-400/12" watermark="Regala" />
+      <SectionDecor pattern="grid" glowA="bg-cyan-500/12" glowB="bg-lime-400/12" watermark="Regala" animated />
+      <FloatingShapes variant="giftfinder" />
       <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div data-reveal>

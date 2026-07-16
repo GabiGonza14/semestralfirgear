@@ -1,10 +1,12 @@
 import { useRef, type ReactElement } from 'react'
 import { Link } from '@tanstack/react-router'
 import { CategoryShowcase } from '../components/CategoryShowcase'
+import { FloatingShapes } from '../components/FloatingShapes'
 import { GiftFinder } from '../components/GiftFinder'
 import { HeroCarousel } from '../components/HeroCarousel'
 import { Marquee } from '../components/Marquee'
 import { SectionDecor } from '../components/SectionDecor'
+import { SolidSeam } from '../components/SolidSeam'
 import { Button, getButtonClassName } from '../components/ui/Button'
 import { useCart } from '../context/CartContext'
 import { useReveal } from '../hooks/useReveal'
@@ -76,14 +78,28 @@ export function LandingPage() {
       {/* Gift finder — browse by budget tier, below the featured section */}
       <GiftFinder />
 
+      <SolidSeam />
+
       {/* CTA banner */}
       <section className="relative overflow-hidden">
-        <SectionDecor pattern="grid" glowA="bg-violet-500/10" glowB="bg-cyan-500/10" />
+        <SectionDecor pattern="stripes" glowA="bg-violet-500/10" glowB="bg-cyan-500/10" animated />
+        <FloatingShapes variant="cta" />
         <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <div
           data-reveal
-          className="relative overflow-hidden rounded-[2rem] border border-lime-400/20 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 px-6 py-14 text-center sm:px-12"
+          className="relative overflow-hidden rounded-[2rem] border border-lime-400/20 px-6 py-14 text-center sm:px-12"
         >
+          {/* Gym photo fill — see public/hero/README.md to swap for owned photography. */}
+          <div
+            className="absolute inset-0 bg-slate-900 bg-cover bg-center"
+            style={{
+              backgroundImage:
+                'url(https://images.unsplash.com/photo-1545612036-2872840642dc?auto=format&fit=crop&w=1600&q=80)',
+            }}
+          />
+          {/* Dark wash so the copy stays legible over the photo */}
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-950/95 via-slate-900/90 to-slate-950/85" />
+
           {/* Lime glow accents */}
           <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-lime-400/10 blur-[90px]" />
           <div className="pointer-events-none absolute -bottom-24 -right-20 h-72 w-72 rounded-full bg-lime-400/10 blur-[90px]" />
@@ -123,8 +139,9 @@ export function LandingPage() {
       </section>
 
       {/* Trust strip — right above the footer */}
-      <div className="border-y border-white/[0.06] bg-slate-900/40">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="relative overflow-hidden border-y border-white/[0.06] bg-slate-900/40">
+        <FloatingShapes variant="trust" />
+        <div className="relative mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-4 py-6 sm:px-6 lg:px-8">
           {trustItems.map((item) => (
             <div
               key={item.label}

@@ -1,42 +1,18 @@
-import { useEffect, useState } from 'react'
-import { getCategories } from '../api/fitgearApi'
 import { FloatingShapes } from './FloatingShapes'
 
-// Decorative infinite-scroll strip. It shows the category names from the DB.
-// The track holds the word list twice so the CSS translateX(-50%) loop is
-// seamless. Hidden from assistive tech.
-export function Marquee() {
-  const [categories, setCategories] = useState<string[]>([])
+// Same alternating white/lime-outline marquee word treatment as Marquee.tsx,
+// with a short motivating mantra instead of category names — a message,
+// not a data-driven list, so it's a fixed word set rather than fetched.
+const MESSAGE = ['ENTRENA', 'CRECE', 'SUPERA', 'REPITE']
 
-  useEffect(() => {
-    let active = true
-
-    void getCategories()
-      .then((result) => {
-        if (active) {
-          setCategories(result.map((category) => category.name))
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setCategories([])
-        }
-      })
-
-    return () => {
-      active = false
-    }
-  }, [])
-
-  // Nothing to show until categories load (keeps the strip out of the way).
-  if (categories.length === 0) {
-    return null
-  }
-
-  // Repeat the categories so the strip is wide enough, then duplicate the whole
-  // unit for the seamless -50% scroll loop.
-  const repeats = Math.max(1, Math.ceil(8 / categories.length))
-  const unit = Array.from({ length: repeats }, () => categories).flat()
+// Solid seam between the gift finder and the CTA banner — same format/color
+// language as the top category Marquee (alternating white/lime-outline
+// words, diamond separators, drifting shapes) so the two ribbons read as one
+// family. Purely cosmetic: hidden from assistive tech, motion respects
+// prefers-reduced-motion via the shared fg-marquee-track class.
+export function SolidSeam() {
+  const repeats = 6
+  const unit = Array.from({ length: repeats }, () => MESSAGE).flat()
   const sequence = [...unit, ...unit]
 
   return (

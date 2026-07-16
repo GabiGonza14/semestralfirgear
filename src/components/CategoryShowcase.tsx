@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { getCategories, getProducts } from '../api/fitgearApi'
+import { FloatingShapes } from './FloatingShapes'
+import { SectionDecor } from './SectionDecor'
 import { hoverLift } from '../lib/motion'
 import type { Product } from '../types'
 import { formatCurrency } from '../utils/format'
@@ -111,6 +113,8 @@ export function CategoryShowcase() {
 
   return (
     <section className="relative overflow-hidden bg-slate-950">
+      <SectionDecor pattern="dots" glowA="bg-lime-400/10" glowB="bg-cyan-500/10" watermark="Gear" />
+      <FloatingShapes variant="showcase" />
       <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <div data-reveal className="mb-10">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Destacado</p>

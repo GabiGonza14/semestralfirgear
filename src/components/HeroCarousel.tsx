@@ -79,7 +79,13 @@ export function HeroCarousel() {
         clearProps: 'transform,opacity,visibility',
       })
     },
-    { dependencies: [index] },
+    // revertOnUpdate: the GreenSock-documented way to make useGSAP revert +
+    // recreate its context on every dependency change instead of only on
+    // unmount. Without it, each slide change just adds another tween to the
+    // same long-lived context rather than tearing the previous run down
+    // first — the recommended pattern here since we want the exact same
+    // clean-slate entrance every time `index` changes.
+    { dependencies: [index], revertOnUpdate: true },
   )
 
   const goTo = useCallback(
