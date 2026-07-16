@@ -248,6 +248,60 @@
   }
 }
 
+/* Ambient drift for the outlined geometric shapes (FloatingShapes.tsx). Each
+   instance sets --float-x/--float-y/--float-rot/--float-duration/--float-delay
+   inline so a handful of shapes never move in lockstep. */
+@keyframes fg-float {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(var(--float-x, 20px), var(--float-y, -16px)) rotate(var(--float-rot, 6deg));
+  }
+}
+
+/* Slides the grid texture one tile-width to the right, looping seamlessly
+   since the distance matches SectionDecor's 54px backgroundSize exactly. */
+@keyframes fg-grid-scroll {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 54px 0;
+  }
+}
+.fg-grid-scroll {
+  animation: fg-grid-scroll 14s linear infinite;
+}
+
+/* Slides a 45deg repeating-linear-gradient stripe pattern along a pure X
+   axis. For a 45deg angle, a horizontal-only shift loops seamlessly at
+   repeat-unit * sqrt(2) — SectionDecor's stripes pattern has a 52px repeat
+   unit, so 52 * 1.41421 ≈ 73.5px. */
+@keyframes fg-stripe-scroll-right {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 73.5px 0;
+  }
+}
+@keyframes fg-stripe-scroll-left {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -73.5px 0;
+  }
+}
+.fg-stripe-scroll-right {
+  animation: fg-stripe-scroll-right 6s linear infinite;
+}
+.fg-stripe-scroll-left {
+  animation: fg-stripe-scroll-left 6s linear infinite;
+}
+
 .fg-marquee-track {
   animation: fg-marquee 30s linear infinite;
 }
@@ -259,6 +313,10 @@
 }
 .fg-hue {
   animation: fg-hue 9s ease-in-out infinite;
+}
+.fg-float {
+  animation: fg-float var(--float-duration, 26s) ease-in-out infinite;
+  animation-delay: var(--float-delay, 0s);
 }
 
 /* =====================================================================
