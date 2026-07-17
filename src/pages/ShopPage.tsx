@@ -3,12 +3,11 @@ import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useStaggerIn } from '../hooks/useStaggerIn'
 import { ApiError } from '../api/apiClient'
 import { getCategories, getProducts } from '../api/fitgearApi'
-import { CategoryFilter } from '../components/CategoryFilter'
+import { CategoryFilter, CategoryIcon } from '../components/CategoryFilter'
 import { FloatingShapes } from '../components/FloatingShapes'
 import { ProductAutocomplete } from '../components/ProductAutocomplete'
 import { ProductCard } from '../components/ProductCard'
 import { SectionDecor } from '../components/SectionDecor'
-import { ShopSpotlight } from '../components/ShopSpotlight'
 import { Select, type SelectOption } from '../components/ui/Select'
 import { categories as fallbackCategoryNames } from '../data/categories'
 import { products as fallbackProducts } from '../data/products'
@@ -45,6 +44,10 @@ const SORT_OPTIONS: ReadonlyArray<SelectOption<SortBy>> = [
   { value: 'priceAsc', label: 'Precio: menor a mayor' },
   { value: 'priceDesc', label: 'Precio: mayor a menor' },
 ]
+
+// Decorative header badges — reuse the same icon vocabulary as the category
+// chips (see CategoryFilter.tsx) so the header and toolbar read as one set.
+const HEADER_ACCENT_ICONS = ['Cuerdas', 'Bandas', 'Pesas', 'Botellas']
 
 export function ShopPage() {
   const search = useSearch({ strict: false }) as { category?: string; search?: string }
@@ -325,13 +328,11 @@ export function ShopPage() {
     // `isolate` scopes the -z-10 backdrop to this subtree; without a local
     // stacking context it would fall behind the app's slate-950 background.
     <div className="relative isolate space-y-8">
-      {/* Ambient catalog backdrop: a dimmed lime dot texture that brightens in a
-          soft radius under the cursor (static dots on touch / reduced motion).
-          Sits behind the content (-z-10); the panels/cards are opaque so the
-          texture only reads through the gaps and margins. */}
+      {/* Ambient catalog backdrop: a dimmed lime dot texture. Sits behind the
+          content (-z-10); the panels/cards are opaque so the texture only
+          reads through the gaps and margins. */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <SectionDecor pattern="dots" dotOpacity={0.35} glowA="bg-lime-400/8" glowB="bg-cyan-500/8" />
-        <ShopSpotlight />
+        <SectionDecor pattern="dots" dotOpacity={0.5} mask={false} glowA="bg-lime-400/8" glowB="bg-cyan-500/8" />
       </div>
       {/* Outlined geometric shapes, pinned to the side gutters that only exist
           once the viewport is wider than the max-w-7xl content (2xl+). They bleed
@@ -344,27 +345,27 @@ export function ShopPage() {
       </div>
 
       {/* Header */}
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Tienda</p>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <h1 className="text-4xl font-bold tracking-tight text-white">Catálogo FITGEAR</h1>
-            {/* Corner accent: a solid lime tag next to 4 outlined diagonal bars,
-                both the same height and skewed the same way so the pair reads as
-                one balanced mark. aria-hidden — purely decorative. */}
-            <span aria-hidden className="inline-flex shrink-0 items-center gap-2">
-              <span className="-skew-x-12 rounded-[5px] bg-lime-400 px-2.5 py-1.5 text-sm font-black uppercase leading-none tracking-wide text-slate-950">
-                Tienda
-              </span>
-              <svg className="h-[26px] w-[72px] text-lime-400" viewBox="0 0 71 28" fill="none">
-                <g stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
-                  <polygon points="2,26 9,26 21,2 14,2" />
-                  <polygon points="18,26 25,26 37,2 30,2" />
-                  <polygon points="34,26 41,26 53,2 46,2" />
-                  <polygon points="50,26 57,26 69,2 62,2" />
-                </g>
-              </svg>
-            </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1
+              className="bg-lime-400 px-5 py-2 text-3xl font-black uppercase leading-none tracking-tight text-slate-950 sm:text-4xl"
+              style={{ clipPath: 'polygon(0 0, 100% 0, calc(100% - 1.1rem) 100%, 0 100%)' }}
+            >
+              Catálogo FITGEAR
+            </h1>
+            {/* Icon accent — same icon set as the category chips below, so the
+                header and the toolbar read as one vocabulary. Purely decorative. */}
+            <div aria-hidden className="flex items-center gap-2">
+              {HEADER_ACCENT_ICONS.map((label) => (
+                <span
+                  key={label}
+                  className="flex h-11 w-11 items-center justify-center rounded-xl bg-lime-400 text-slate-950"
+                >
+                  <CategoryIcon label={label} className="h-5 w-5" />
+                </span>
+              ))}
+            </div>
           </div>
           <p className="mt-3 max-w-xl text-slate-400">
             Todo tu equipo de entrenamiento, en un solo lugar.
@@ -394,29 +395,47 @@ export function ShopPage() {
           />
           <div className="flex shrink-0 flex-wrap gap-3">
             <Select
+              tone="solid"
               label="Filtrar por precio"
               value={priceRange}
               onChange={setPriceRange}
               options={PRICE_OPTIONS}
             />
-            <Select label="Ordenar productos" value={sortBy} onChange={setSortBy} options={SORT_OPTIONS} />
+            <Select
+              tone="solid"
+              label="Ordenar productos"
+              value={sortBy}
+              onChange={setSortBy}
+              options={SORT_OPTIONS}
+            />
           </div>
         </div>
       </div>
 
       {/* Result count */}
       {!loading && !error && hasProducts ? (
-        <p className="text-sm text-slate-400">
-          <span className="font-bold text-white">{displayedProducts.length}</span>{' '}
-          {displayedProducts.length === 1 ? 'producto' : 'productos'}
-          {pageCount > 1 ? (
-            <span>
-              {' '}
-              &middot; página <span className="font-bold text-white">{page}</span> de{' '}
-              <span className="font-bold text-white">{pageCount}</span>
-            </span>
-          ) : null}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-slate-400">
+            <span className="font-bold text-white">{displayedProducts.length}</span>{' '}
+            {displayedProducts.length === 1 ? 'producto' : 'productos'}
+            {pageCount > 1 ? (
+              <span>
+                {' '}
+                &middot; página <span className="font-bold text-white">{page}</span> de{' '}
+                <span className="font-bold text-white">{pageCount}</span>
+              </span>
+            ) : null}
+          </p>
+          <Link
+            to="/"
+            className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/12 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Volver al inicio
+          </Link>
+        </div>
       ) : null}
 
       {/* Loading */}

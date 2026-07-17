@@ -13,6 +13,8 @@ interface SelectProps<T extends string> {
   options: ReadonlyArray<SelectOption<T>>
   /** Accessible name for the control — also used to label the open listbox. */
   label: string
+  /** Trigger style — 'outline' (default, dark) or 'solid' (filled lime). */
+  tone?: 'outline' | 'solid'
 }
 
 /**
@@ -29,7 +31,7 @@ interface SelectProps<T extends string> {
  * fade+rise uses the shared motion tokens and is dropped under reduced motion
  * by the app-wide MotionConfig reducedMotion="user".
  */
-export function Select<T extends string>({ value, onChange, options, label }: SelectProps<T>) {
+export function Select<T extends string>({ value, onChange, options, label, tone = 'outline' }: SelectProps<T>) {
   const [open, setOpen] = useState(false)
   const selectedIndex = Math.max(
     0,
@@ -141,15 +143,19 @@ export function Select<T extends string>({ value, onChange, options, label }: Se
         aria-label={`${label}: ${selected.label}`}
         onClick={() => (open ? closeMenu(false) : openMenu())}
         onKeyDown={handleTriggerKeyDown}
-        className={`inline-flex min-h-[var(--size-touch-min)] items-center gap-2 rounded-full border bg-slate-950/60 py-2.5 pl-4 pr-3 text-sm font-medium text-slate-200 outline-none transition focus-visible:border-lime-400/60 focus-visible:ring-2 focus-visible:ring-lime-400/30 ${
-          open
-            ? 'border-lime-400/60 ring-2 ring-lime-400/30'
-            : 'border-white/10 hover:border-white/25'
-        }`}
+        className={
+          tone === 'solid'
+            ? `inline-flex min-h-[var(--size-touch-min)] items-center gap-2 rounded-full bg-lime-400 py-2.5 pl-4 pr-3 text-sm font-bold text-slate-900 outline-none transition hover:bg-lime-300 focus-visible:ring-2 focus-visible:ring-lime-400/50 ${
+                open ? 'shadow-[0_0_20px_-6px_rgba(163,230,53,0.7)]' : ''
+              }`
+            : `inline-flex min-h-[var(--size-touch-min)] items-center gap-2 rounded-full border bg-slate-950/60 py-2.5 pl-4 pr-3 text-sm font-medium text-slate-200 outline-none transition focus-visible:border-lime-400/60 focus-visible:ring-2 focus-visible:ring-lime-400/30 ${
+                open ? 'border-lime-400/60 ring-2 ring-lime-400/30' : 'border-white/10 hover:border-white/25'
+              }`
+        }
       >
         <span className="whitespace-nowrap">{selected.label}</span>
         <svg
-          className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 shrink-0 transition-transform ${tone === 'solid' ? 'text-slate-900' : 'text-slate-400'} ${open ? 'rotate-180' : ''}`}
           viewBox="0 0 24 24"
           fill="none"
           aria-hidden

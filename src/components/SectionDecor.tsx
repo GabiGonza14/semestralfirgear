@@ -11,6 +11,10 @@ interface SectionDecorProps {
   /** Opacity of the dot texture (dots pattern only). Default 0.5 — the landing
    *  value; pages that sit closer to content (e.g. Shop) can dim it. */
   dotOpacity?: number
+  /** Fade the texture toward the edges with a radial mask. Default true — set
+   *  false for a tall page section where a uniform, edge-to-edge texture reads
+   *  better than one that fades out partway down. */
+  mask?: boolean
 }
 
 // Decorative background layer for landing sections so they never read as a flat
@@ -24,6 +28,7 @@ export function SectionDecor({
   watermark,
   animated = false,
   dotOpacity = 0.5,
+  mask = true,
 }: SectionDecorProps) {
   const patternStyle =
     pattern === 'grid'
@@ -53,7 +58,7 @@ export function SectionDecor({
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
       {/* Texture, faded toward the edges with a radial mask */}
       <div
-        className={`absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black,transparent_88%)] ${
+        className={`absolute inset-0 ${mask ? '[mask-image:radial-gradient(ellipse_at_center,black,transparent_88%)]' : ''} ${
           animated && pattern === 'grid' ? 'fg-grid-scroll' : animated && pattern === 'stripes' ? 'fg-stripe-scroll-right' : ''
         }`}
         style={patternStyle}
