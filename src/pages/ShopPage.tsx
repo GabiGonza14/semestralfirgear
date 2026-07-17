@@ -347,22 +347,24 @@ export function ShopPage() {
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Tienda</p>
-          <div className="mt-3 flex items-center gap-3">
+          <div className="mt-3 flex flex-wrap items-center gap-3">
             <h1 className="text-4xl font-bold tracking-tight text-white">Catálogo FITGEAR</h1>
-            {/* Corner accent: 4 thin outlined diagonal bars (stroke only). */}
-            <svg
-              className="h-5 w-14 shrink-0 text-lime-400"
-              viewBox="0 0 56 20"
-              fill="none"
-              aria-hidden
-            >
-              <g stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
-                <polygon points="2,19 8,19 16,1 10,1" />
-                <polygon points="15,19 21,19 29,1 23,1" />
-                <polygon points="28,19 34,19 42,1 36,1" />
-                <polygon points="41,19 47,19 55,1 49,1" />
-              </g>
-            </svg>
+            {/* Corner accent: a solid lime tag next to 4 outlined diagonal bars,
+                both the same height and skewed the same way so the pair reads as
+                one balanced mark. aria-hidden — purely decorative. */}
+            <span aria-hidden className="inline-flex shrink-0 items-center gap-2">
+              <span className="-skew-x-12 rounded-[5px] bg-lime-400 px-2.5 py-1.5 text-sm font-black uppercase leading-none tracking-wide text-slate-950">
+                Tienda
+              </span>
+              <svg className="h-[26px] w-[72px] text-lime-400" viewBox="0 0 71 28" fill="none">
+                <g stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+                  <polygon points="2,26 9,26 21,2 14,2" />
+                  <polygon points="18,26 25,26 37,2 30,2" />
+                  <polygon points="34,26 41,26 53,2 46,2" />
+                  <polygon points="50,26 57,26 69,2 62,2" />
+                </g>
+              </svg>
+            </span>
           </div>
           <p className="mt-3 max-w-xl text-slate-400">
             Todo tu equipo de entrenamiento, en un solo lugar.
