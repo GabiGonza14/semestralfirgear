@@ -257,10 +257,10 @@ export function AdminDashboardPage() {
   }
 
   return (
-    <div className="lg:grid lg:h-full lg:grid-cols-[240px_1fr]">
+    <div className="sm:grid sm:h-full sm:grid-cols-[240px_1fr]">
       <AdminSidebar active={section} onChange={setSection} />
 
-      <div className="bg-slate-50 px-4 py-8 sm:px-6 lg:h-full lg:overflow-y-auto lg:px-8 lg:py-8">
+      <div className="bg-slate-50 px-4 py-8 sm:h-full sm:overflow-y-auto sm:px-6 lg:px-8 lg:py-8">
         <div className="mx-auto max-w-6xl space-y-6">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-emerald-700">Panel de control</p>

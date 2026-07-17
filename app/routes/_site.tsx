@@ -99,16 +99,16 @@ function SiteChrome() {
         // Every other page: contained, dark surface. Admin is the one
         // exception — no shared Navbar (AdminSidebar owns its own logo/account
         // instead, see AdminSidebar.tsx), height-capped to the full viewport
-        // and non-scrolling at lg+, so the sidebar can stay fixed while only
-        // its own content pane scrolls. Below lg it falls back to normal
-        // document flow (stacked sidebar + content, whole page scrolls) —
-        // the fixed-shell pattern is desktop-oriented by nature, same as the
-        // reference dashboard this was modeled on.
-        <main className={isAdminPage ? 'flex-1 lg:h-dvh lg:overflow-hidden' : 'flex-1'}>
+        // and non-scrolling from sm+, so the sidebar can stay fixed while only
+        // its own content pane scrolls. Below sm (narrow phones) it falls back
+        // to normal document flow (stacked sidebar + content, whole page
+        // scrolls) — the fixed-shell pattern is desktop-oriented by nature,
+        // same as the reference dashboard this was modeled on.
+        <main className={isAdminPage ? 'flex-1 sm:h-dvh sm:overflow-hidden' : 'flex-1'}>
           <div
             className={
               isAdminPage
-                ? 'w-full lg:h-full'
+                ? 'w-full sm:h-full'
                 : 'mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10'
             }
           >

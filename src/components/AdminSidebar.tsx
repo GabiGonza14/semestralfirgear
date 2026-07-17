@@ -111,7 +111,7 @@ export function AdminSidebar({ active, onChange }: Readonly<AdminSidebarProps>) 
   const { user } = useUser()
 
   return (
-    <aside className="flex h-full flex-col overflow-y-auto border-r border-white/10 bg-slate-950 lg:sticky lg:top-0">
+    <aside className="flex h-full flex-col overflow-y-auto border-r border-white/10 bg-slate-950 sm:sticky sm:top-0">
       <div className="border-b border-white/10 px-5 py-5">
         <Link to="/admin" className="text-lg font-black uppercase tracking-widest">
           <span className="text-white">FIT</span>
