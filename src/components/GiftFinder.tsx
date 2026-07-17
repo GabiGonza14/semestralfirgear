@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { getProducts } from '../api/fitgearApi'
+import { hoverLift } from '../lib/motion'
 import type { Product } from '../types'
 import { formatCurrency } from '../utils/format'
+import { FloatingShapes } from './FloatingShapes'
 import { SectionDecor } from './SectionDecor'
 
 interface PriceTier {
@@ -94,12 +96,13 @@ export function GiftFinder() {
 
   return (
     <section className="relative overflow-hidden border-t border-white/[0.06] bg-gradient-to-b from-slate-900/40 to-slate-950">
-      <SectionDecor pattern="grid" glowA="bg-cyan-500/12" glowB="bg-lime-400/12" watermark="Regala" />
+      <SectionDecor pattern="grid" glowA="bg-cyan-500/12" glowB="bg-lime-400/12" watermark="Regala" animated />
+      <FloatingShapes variant="giftfinder" />
       <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div data-reveal>
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Ofertas</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl">
+            <h2 className="font-display mt-3 text-display-sm font-black text-white">
               Regala deporte
             </h2>
             <p className="mt-3 max-w-xl text-slate-400">
@@ -111,7 +114,7 @@ export function GiftFinder() {
             to="/shop"
             className="hidden shrink-0 items-center gap-2 text-sm font-semibold text-slate-300 transition hover:text-lime-400 sm:inline-flex"
           >
-            Ver todo el catalogo
+            Ver todo el catálogo
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -160,7 +163,7 @@ export function GiftFinder() {
                 type="button"
                 onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
                 disabled={!canNext}
-                aria-label="Ver mas productos"
+                aria-label="Ver más productos"
                 className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-slate-900/60 text-white transition hover:border-lime-400/50 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-30"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -185,7 +188,7 @@ export function GiftFinder() {
                 data-reveal
                 to="/product/$id"
                 params={{ id: product.id }}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900 transition duration-300 hover:-translate-y-1 hover:border-lime-400/30 hover:shadow-[0_24px_50px_-24px_rgba(163,230,53,0.25)]"
+                className={`group flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900 ${hoverLift} hover:border-lime-400/30 hover:shadow-[0_24px_50px_-24px_rgba(163,230,53,0.25)]`}
               >
                 <div className="flex aspect-square items-center justify-center bg-gradient-to-b from-white to-slate-100 p-4">
                   <img
@@ -227,7 +230,7 @@ export function GiftFinder() {
           </div>
         ) : (
           <p data-reveal className="mt-8 text-sm text-slate-400">
-            No hay productos en este rango de precio todavia.
+            Aún no hay artículos en este rango. Prueba con otro presupuesto para ver más opciones.
           </p>
         )}
       </div>

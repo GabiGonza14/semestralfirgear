@@ -39,3 +39,6 @@ docker-compose.override.yml
 /playwright-report
 /blob-report
 /playwright/.cache
+
+# clerk configuration (can include secrets)
+/.clerk/

@@ -234,7 +234,7 @@ export function AdminDashboardPage() {
       })
       .catch((err: unknown) => {
         if (active) {
-          setError(err instanceof Error ? err.message : 'No se pudieron cargar las categorias.')
+          setError(err instanceof Error ? err.message : 'No se pudieron cargar las categorías.')
         }
       })
 

@@ -1,12 +1,15 @@
 import { useEffect } from 'react'
 import { Outlet, createFileRoute, useLocation } from '@tanstack/react-router'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { MotionConfig } from 'framer-motion'
 import { AuthProvider, useAuth } from '../../src/context/AuthContext'
 import { CartProvider, useCart } from '../../src/context/CartContext'
 import { Navbar } from '../../src/components/Navbar'
 import { Footer } from '../../src/components/Footer'
+import { SectionDecor } from '../../src/components/SectionDecor'
 import { CartDrawer } from '../../src/components/cart/CartDrawer'
 import { ErrorBoundary } from '../../src/components/ErrorBoundary'
+import { RouteTransition } from '../../src/components/RouteTransition'
 import { queryClient } from '../../src/lib/queryClient'
 
 // Pathless layout route (migrated from src/layouts/SiteLayout.tsx): wraps every
@@ -44,6 +47,7 @@ function SiteChrome() {
   // scoped to exactly /checkout (not /checkout/success or /checkout/cancel,
   // which aren't "the moment of paying").
   const isCheckoutPage = location.pathname === '/checkout'
+  const isShopPage = location.pathname === '/shop'
   const { isLoaded: authLoaded, isAdmin } = useAuth()
   // Admin role sync (backend) resolves after Clerk itself, so /admin briefly
   // renders with no known role yet — and after a logout, isAdmin flips false
@@ -65,6 +69,7 @@ function SiteChrome() {
   }, [location.pathname, closeCart])
 
   return (
+    <MotionConfig reducedMotion="user">
     <div
       className={
         // `flex-1` on the admin <main> below relies on `flex-basis: 0` to size
@@ -115,18 +120,36 @@ function SiteChrome() {
         // its own content pane scrolls. Below sm (narrow phones) it falls back
         // to normal document flow (stacked sidebar + content, whole page
         // scrolls) — the fixed-shell pattern is desktop-oriented by nature,
-        // same as the reference dashboard this was modeled on.
-        <main className={isAdminPage ? 'flex-1 sm:h-dvh sm:overflow-hidden' : 'flex-1'}>
+        // same as the reference dashboard this was modeled on. `relative
+        // isolate` gives the shop page's SectionDecor background a stacking
+        // context to anchor to; it's a no-op everywhere else.
+        <main
+          className={
+            isAdminPage
+              ? 'relative isolate flex-1 sm:h-dvh sm:overflow-hidden'
+              : 'relative isolate flex-1'
+          }
+        >
+          {isShopPage ? (
+            <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+              <SectionDecor pattern="dots" dotOpacity={0.16} mask={false} glowA="bg-lime-400/5" glowB="bg-cyan-500/5" />
+              <div className="absolute inset-0 opacity-100">
+                <SectionDecor pattern="dots" dotOpacity={0.36} glowA="bg-lime-400/6" glowB="bg-cyan-500/6" />
+              </div>
+            </div>
+          ) : null}
           <div
             className={
               isAdminPage
-                ? 'w-full sm:h-full'
-                : 'mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10'
+                ? 'relative z-10 w-full sm:h-full'
+                : 'relative z-10 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10'
             }
           >
-            <ErrorBoundary resetKey={location.pathname}>
-              <Outlet />
-            </ErrorBoundary>
+            <RouteTransition routeKey={location.pathname}>
+              <ErrorBoundary resetKey={location.pathname}>
+                <Outlet />
+              </ErrorBoundary>
+            </RouteTransition>
           </div>
         </main>
       )}
@@ -134,5 +157,6 @@ function SiteChrome() {
       {isPostLogin || isAdminPage || isCheckoutPage ? null : <Footer />}
       <CartDrawer />
     </div>
+    </MotionConfig>
   )
 }

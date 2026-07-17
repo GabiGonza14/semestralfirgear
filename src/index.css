@@ -1,117 +1,210 @@
 @import "tailwindcss";
 
+/* =====================================================================
+   FITGEAR — DESIGN TOKENS  (Diseño Parte 1: fundaciones)
+   ---------------------------------------------------------------------
+   Tailwind v4 is CSS-first: tokens ARE CSS variables. Tokens declared in
+   `@theme` are emitted to `:root` AND generate matching utilities
+   (`text-*`, `ease-*`, `rounded-*`, `font-*`, …).
+
+   Three layers, most-abstract last:
+     LAYER 1 · BASE / PRIMITIVE — raw, context-free values.
+     LAYER 2 · SEMANTIC        — meaning ("surface", "accent"), not value.
+     LAYER 3 · COMPONENT       — per-component decisions built on semantics.
+
+   Rule of thumb: components think in LAYER 2/3. Never hard-code a hex or a
+   duration in a component — reach for the token. Parts 3–8 of the redesign
+   reference this file + docs/design.md as the single source of truth.
+   The palette (slate-950 base + lime-400 accent) is validated on-trend for
+   2026 athletic e-commerce and is intentionally NOT changed here.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   LAYER 1 · BASE / PRIMITIVE TOKENS
+   Declared in @theme so Tailwind also exposes them as utilities/vars.
+   --------------------------------------------------------------------- */
+@theme {
+  /* — Type families — */
+  --font-body: "Inter", "Segoe UI", Tahoma, sans-serif;
+  --font-display: "Rajdhani", "Inter", "Segoe UI", sans-serif;
+
+  /* — DISPLAY type scale — bold hero tier (the gap Part 1 closes).
+     Fluid clamp(min, preferred, max): 2026 reference is 96–120px on
+     desktop; these degrade to legible sizes at ~375px instead of a fixed
+     huge value. Generates `text-display-sm|md|lg|xl`.
+     Pairing --line-height / --letter-spacing tightens big headings.        */
+  --text-display-sm: clamp(2rem, 3vw + 1rem, 3rem);        /* 32 → 48  */
+  --text-display-sm--line-height: 1.05;
+  --text-display-sm--letter-spacing: -0.01em;
+
+  --text-display-md: clamp(2.5rem, 5vw + 1rem, 4.5rem);    /* 40 → 72  */
+  --text-display-md--line-height: 1;
+  --text-display-md--letter-spacing: -0.015em;
+
+  --text-display-lg: clamp(3rem, 6vw + 1rem, 6rem);        /* 48 → 96  */
+  --text-display-lg--line-height: 0.95;
+  --text-display-lg--letter-spacing: -0.02em;
+
+  --text-display-xl: clamp(3.5rem, 8vw + 1rem, 7.5rem);    /* 56 → 120 */
+  --text-display-xl--line-height: 0.92;
+  --text-display-xl--letter-spacing: -0.025em;
+
+  /* — Radius scale — semantic aliases on the ramp we actually use.        */
+  --radius-pill: 9999px;   /* buttons, chips, pills          */
+  --radius-card: 1.5rem;   /* 24px — product/content cards   */
+  --radius-panel: 2rem;    /* 32px — hero & CTA panels       */
+
+  /* — Motion · durations —  (CSS vars; used in CSS and duration-[var()])  */
+  --duration-instant: 100ms;  /* color/opacity nudges          */
+  --duration-fast: 180ms;     /* hovers, small UI transitions  */
+  --duration-base: 260ms;     /* element entrances, toggles    */
+  --duration-slow: 420ms;     /* larger panels, drawers        */
+  --duration-slower: 700ms;   /* hero / full-bleed transitions */
+
+  /* — Motion · easing —  generates `ease-out-athletic`, etc.
+     Athletic = fast out of the gate, soft controlled settle.             */
+  --ease-out-athletic: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-athletic: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* — Sizing — minimum touch target (WCAG 2.5.5 / mobile norm).           */
+  --size-touch-min: 2.75rem;  /* 44px */
+}
+
+/* ---------------------------------------------------------------------
+   LAYER 2 · SEMANTIC TOKENS
+   Meaning, not raw value. This is the vocabulary components should use.
+   Kept in :root (not @theme) so we don't spawn hundreds of color
+   utilities — the app already uses Tailwind's slate/lime ramps directly,
+   and these mirror the exact shades so both stay in lockstep.
+   --------------------------------------------------------------------- */
 :root {
-  /* Brand accent — lime */
-  --fg-accent: #a3e635;
-  --fg-accent-hover: #bef264;
-  --fg-accent-dark: #4d7c0f;
-  --fg-accent-glow: rgba(163, 230, 53, 0.28);
+  /* Surfaces — dark is the product's default theme. */
+  --surface-base: #020617;              /* slate-950 · app background      */
+  --surface-raised: #0f172a;            /* slate-900 · cards               */
+  --surface-overlay: #1e293b;           /* slate-800 · modals, inputs      */
+  --surface-border: rgba(255, 255, 255, 0.08);
 
-  /* Dark surfaces */
-  --fg-black: #020617;
-  --fg-dark: #0f172a;
-  --fg-dark-card: #1e293b;
-  --fg-dark-border: rgba(255, 255, 255, 0.08);
+  /* Text on dark surfaces (all AA-verified — see npm run audit:contrast). */
+  --text-primary: #f8fafc;              /* near-white headings/body        */
+  --text-secondary: #cbd5e1;            /* slate-300 · secondary copy      */
+  --text-muted: #94a3b8;                /* slate-400 · least-emphasis text */
 
-  /* Light surfaces */
-  --fg-white: #ffffff;
-  --fg-surface: #f8fafc;
-  --fg-surface-2: #f1f5f9;
+  /* Brand accent — lime. Unchanged; documented, not redesigned. */
+  --accent: #a3e635;                    /* lime-400 */
+  --accent-hover: #bef264;              /* lime-300 */
+  --accent-strong: #4d7c0f;             /* lime-700 · on light surfaces    */
+  --accent-contrast: #0f172a;           /* text/icon ON a lime fill        */
+  --accent-glow: rgba(163, 230, 53, 0.28);
 
-  /* Text */
-  --fg-text: #0f172a;
-  --fg-muted: #64748b;
-  --fg-light: #f1f5f9;
-  --fg-lighter: #cbd5e1;
+  /* Light-surface neutrals (SectionTitle, light cards). */
+  --surface-light: #f8fafc;
+  --surface-light-2: #f1f5f9;
+  --text-on-light: #0f172a;
+  --border-light: #e2e8f0;
 
-  /* Borders */
-  --fg-border: #e2e8f0;
-
-  /* Typography */
-  --fg-font-body: "Inter", "Segoe UI", Tahoma, sans-serif;
-  --fg-font-display: "Rajdhani", "Inter", "Segoe UI", sans-serif;
-
-  font-family: var(--fg-font-body);
-  color: var(--fg-text);
-  background: var(--fg-black);
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Motion — semantic aliases mapped onto primitive durations/eases.
+     Components pick by INTENT, not by raw number.                         */
+  --motion-ui: var(--duration-fast);        /* hovers, focus, small state  */
+  --motion-enter: var(--duration-base);     /* content entering view       */
+  --motion-panel: var(--duration-slow);     /* drawers, modals             */
+  --motion-ease: var(--ease-out-athletic);  /* default curve               */
 }
 
-* {
-  box-sizing: border-box;
+/* ---------------------------------------------------------------------
+   LAYER 3 · COMPONENT TOKENS
+   Component-scoped decisions, expressed purely in terms of LAYER 2.
+   Change a component's look here, once, not across N class strings.
+   --------------------------------------------------------------------- */
+:root {
+  /* Button — consumed by src/components/ui/Button.tsx */
+  --btn-radius: var(--radius-pill);
+  --btn-min-height: var(--size-touch-min);   /* 44px floor, always */
+  --btn-duration: var(--motion-ui);
+  --btn-ease: var(--motion-ease);
 }
 
-html {
-  scroll-behavior: smooth;
-}
+/* ---------------------------------------------------------------------
+   BASE ELEMENT STYLES — built on the tokens above.
+   In `@layer base` so component-level utilities (e.g. the text-display-*
+   tracking/line-height tokens) reliably win over these element defaults.
+   --------------------------------------------------------------------- */
+@layer base {
+  :root {
+    font-family: var(--font-body);
+    color: var(--text-on-light);
+    background: var(--surface-base);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  /* Dark base so full-bleed sections never flash white during load. */
-  background: var(--fg-black);
-}
+  * {
+    box-sizing: border-box;
+  }
 
-#root {
-  min-height: 100vh;
-}
-
-/* Athletic, condensed display face for headings and the wordmark. */
-h1,
-h2,
-h3,
-.font-display {
-  font-family: var(--fg-font-display);
-  letter-spacing: 0.01em;
-}
-
-/* Tighter, weightier feel for big display headings. */
-h1 {
-  letter-spacing: -0.01em;
-}
-
-/* Focus ring that reads on both light and dark surfaces. */
-:where(a, button, input, select, textarea):focus-visible {
-  outline: 2px solid var(--fg-accent);
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
   html {
-    scroll-behavior: auto;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    /* Dark base so full-bleed sections never flash white during load. */
+    background: var(--surface-base);
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  /* Athletic, condensed display face for headings and the wordmark.
+     Only the family + a gentle default tracking; the display type scale
+     (text-display-*) carries its own tighter tracking and wins as a utility. */
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: 0.01em;
+  }
+
+  /* Focus ring that reads on both light and dark surfaces. */
+  :where(a, button, input, select, textarea):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Slim, on-brand scrollbar (WebKit). */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: var(--radius-pill);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+    background-clip: padding-box;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-contrast);
   }
 }
 
-/* Slim, on-brand scrollbar (WebKit). */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 9999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #475569;
-  background-clip: padding-box;
-}
-
-::selection {
-  background: var(--fg-accent);
-  color: #0f172a;
-}
-
-/* ---------------------------------------------------------------------------
-   Dynamic background motion — drifting glows + marquee.
-   All continuous motion is disabled under prefers-reduced-motion.
---------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------
+   Decorative background motion — drifting glows + marquee.
+   (Continuous, non-essential; disabled globally under reduced-motion
+   by the single centralized block at the bottom of this file.)
+   --------------------------------------------------------------------- */
 @keyframes fg-marquee {
   from {
     transform: translateX(0);
@@ -155,6 +248,60 @@ h1 {
   }
 }
 
+/* Ambient drift for the outlined geometric shapes (FloatingShapes.tsx). Each
+   instance sets --float-x/--float-y/--float-rot/--float-duration/--float-delay
+   inline so a handful of shapes never move in lockstep. */
+@keyframes fg-float {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(var(--float-x, 20px), var(--float-y, -16px)) rotate(var(--float-rot, 6deg));
+  }
+}
+
+/* Slides the grid texture one tile-width to the right, looping seamlessly
+   since the distance matches SectionDecor's 54px backgroundSize exactly. */
+@keyframes fg-grid-scroll {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 54px 0;
+  }
+}
+.fg-grid-scroll {
+  animation: fg-grid-scroll 14s linear infinite;
+}
+
+/* Slides a 45deg repeating-linear-gradient stripe pattern along a pure X
+   axis. For a 45deg angle, a horizontal-only shift loops seamlessly at
+   repeat-unit * sqrt(2) — SectionDecor's stripes pattern has a 52px repeat
+   unit, so 52 * 1.41421 ≈ 73.5px. */
+@keyframes fg-stripe-scroll-right {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 73.5px 0;
+  }
+}
+@keyframes fg-stripe-scroll-left {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -73.5px 0;
+  }
+}
+.fg-stripe-scroll-right {
+  animation: fg-stripe-scroll-right 6s linear infinite;
+}
+.fg-stripe-scroll-left {
+  animation: fg-stripe-scroll-left 6s linear infinite;
+}
+
 .fg-marquee-track {
   animation: fg-marquee 30s linear infinite;
 }
@@ -167,12 +314,42 @@ h1 {
 .fg-hue {
   animation: fg-hue 9s ease-in-out infinite;
 }
+.fg-float {
+  animation: fg-float var(--float-duration, 26s) ease-in-out infinite;
+  animation-delay: var(--float-delay, 0s);
+}
 
+/* =====================================================================
+   REDUCED MOTION — single, centralized handling point.
+   ---------------------------------------------------------------------
+   One place for the whole app. Any CSS animation/transition is
+   near-instant, smooth scrolling is off. JS-driven motion (GSAP) reads
+   the same OS setting via prefersReducedMotion() in src/lib/gsap.ts.
+   Part 8 (#170) layers reusable animation hooks on top of these tokens
+   and must respect this same switch.
+   ===================================================================== */
 @media (prefers-reduced-motion: reduce) {
-  .fg-marquee-track,
-  .fg-drift,
-  .fg-drift-slow,
-  .fg-hue {
-    animation: none;
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* CursorSpotlight (src/components/CursorSpotlight.tsx): hidden via CSS, not a
+   React state toggle, so there's no client-only render branch to desync from
+   SSR. No cursor to follow on touch/coarse pointers, and no cursor-chasing
+   motion under prefers-reduced-motion — both leave just the static
+   SectionDecor dot layers beneath it. */
+@media (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .cursor-spotlight {
+    display: none;
   }
 }

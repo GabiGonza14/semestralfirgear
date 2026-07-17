@@ -2,8 +2,43 @@ import { useEffect, useState } from 'react'
 import { ApiError } from '../../api/apiClient'
 import { createProductReview, getProductReviews } from '../../api/fitgearApi'
 import { useAuth } from '../../context/AuthContext'
-import type { ProductReviewsResponse } from '../../types'
+import type { ProductReviewSummary, ProductReviewsResponse } from '../../types'
 import { formatDate } from '../../utils/format'
+
+const STAR_LEVELS = ['5', '4', '3', '2', '1'] as const
+
+// Breakdown of how many reviews gave each star value, next to the average.
+function RatingDistribution({
+  distribution,
+  total,
+}: Readonly<{
+  distribution: ProductReviewSummary['distribution']
+  total: number
+}>) {
+  return (
+    <div className="w-full min-w-[13rem] space-y-1.5 sm:w-56">
+      {STAR_LEVELS.map((star) => {
+        const count = distribution[star]
+        const percentage = total > 0 ? Math.round((count / total) * 100) : 0
+        return (
+          <div key={star} className="flex items-center gap-2 text-xs text-slate-400">
+            <span className="w-2.5 text-right font-semibold text-slate-300">{star}</span>
+            <svg className="h-3 w-3 shrink-0 text-amber-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M12 2.5l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 20.9l1.1-6.5-4.7-4.6 6.5-.9L12 2.5z" />
+            </svg>
+            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+              <span
+                className="block h-full rounded-full bg-lime-400 transition-[width] duration-[var(--duration-slow)] ease-out-athletic"
+                style={{ width: `${percentage}%` }}
+              />
+            </span>
+            <span className="w-7 text-right tabular-nums">{count}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 // Read-only star row. `value` is rounded to the nearest whole star for display.
 function Stars({ value, className = 'h-4 w-4' }: { value: number; className?: string }) {
@@ -143,20 +178,23 @@ export function ProductReviews({ productId }: { productId: string }) {
 
   return (
     <section className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-6">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Opiniones</p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-white">Reseñas de clientes</h2>
         </div>
         {summary.count > 0 ? (
-          <div className="flex items-center gap-3">
-            <span className="text-3xl font-bold text-white">{summary.averageRating.toFixed(1)}</span>
-            <div className="space-y-1">
-              <Stars value={summary.averageRating} />
-              <p className="text-xs text-slate-400">
-                {summary.count} {summary.count === 1 ? 'reseña' : 'reseñas'}
-              </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl font-bold text-white">{summary.averageRating.toFixed(1)}</span>
+              <div className="space-y-1">
+                <Stars value={summary.averageRating} />
+                <p className="text-xs text-slate-400">
+                  {summary.count} {summary.count === 1 ? 'reseña' : 'reseñas'}
+                </p>
+              </div>
             </div>
+            <RatingDistribution distribution={summary.distribution} total={summary.count} />
           </div>
         ) : null}
       </div>
@@ -226,7 +264,19 @@ export function ProductReviews({ productId }: { productId: string }) {
 
       {/* List */}
       {reviews.length === 0 ? (
-        <p className="text-sm text-slate-400">Todavía no hay reseñas. ¡Sé el primero en opinar!</p>
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/[0.08] bg-slate-900/40 px-6 py-10 text-center">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] text-slate-500">
+            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M12 2.5l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 20.9l1.1-6.5-4.7-4.6 6.5-.9L12 2.5z"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+          <p className="text-sm text-slate-400">Todavía no hay reseñas. ¡Sé el primero en opinar!</p>
+        </div>
       ) : (
         <ul className="space-y-4">
           {reviews.map((review) => (

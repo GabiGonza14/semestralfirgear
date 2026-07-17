@@ -17,11 +17,11 @@ export function OrdersPage() {
     !isLoaded
       ? null
       : !backendUser?.id
-        ? syncError ?? 'No se pudo identificar el usuario para consultar ordenes.'
+        ? syncError ?? 'No pudimos identificar tu cuenta para mostrar tus pedidos.'
         : ordersQuery.error instanceof Error
           ? ordersQuery.error.message
           : ordersQuery.error
-            ? 'No se pudieron cargar tus ordenes.'
+            ? 'No pudimos cargar tus pedidos. Vuelve a intentarlo en un momento.'
             : null
 
   // Pendientes, pagadas, enviadas, entregadas, canceladas y devueltas se
@@ -55,7 +55,7 @@ export function OrdersPage() {
   return (
     <section className="space-y-8">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Mis ordenes</p>
+        <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Mis pedidos</p>
         <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">Historial de compras</h1>
         <p className="mt-3 max-w-2xl text-slate-400">
           Consulta el estado de cada pedido y revisa el detalle de productos comprados.
@@ -87,9 +87,9 @@ export function OrdersPage() {
             </svg>
           </div>
           <div>
-            <p className="text-lg font-bold text-white">Sin pedidos aun</p>
+            <p className="text-lg font-bold text-white">Sin pedidos aún</p>
             <p className="mt-1 text-sm text-slate-400">
-              Cuando completes una compra, tus pedidos apareceran aqui.
+              Cuando completes una compra, tus pedidos aparecerán aquí. Mientras tanto, explora el catálogo y arma tu equipo.
             </p>
           </div>
         </div>
@@ -109,7 +109,7 @@ export function OrdersPage() {
             type="button"
             onClick={() => goToPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            aria-label="Pagina anterior"
+            aria-label="Página anterior"
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -137,7 +137,7 @@ export function OrdersPage() {
             type="button"
             onClick={() => goToPage(Math.min(pageCount, page + 1))}
             disabled={page === pageCount}
-            aria-label="Pagina siguiente"
+            aria-label="Página siguiente"
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>

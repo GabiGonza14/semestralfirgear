@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { Link } from '@tanstack/react-router'
+import { EASE_OUT_ATHLETIC, MOTION_DURATION } from '../lib/motion'
 import type { Product, SizeLabel } from '../types'
 import { formatCurrency } from '../utils/format'
 
@@ -25,8 +26,7 @@ export function CartItem({ product, quantity, size, onIncrease, onDecrease, onRe
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.24, ease: 'easeOut' }}
+      transition={{ duration: MOTION_DURATION.base, ease: EASE_OUT_ATHLETIC }}
       className="flex gap-3 rounded-2xl border border-white/[0.08] bg-slate-900 p-3"
     >
       <Link

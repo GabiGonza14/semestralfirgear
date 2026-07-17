@@ -11,9 +11,9 @@ import type { Product, SizeLabel } from '../types'
 import { formatCurrency } from '../utils/format'
 
 const trustPoints = [
-  'Envio rapido a todo el pais',
+  'Envío rápido a todo el país',
   'Compra protegida con Stripe',
-  'Devoluciones faciles',
+  'Devoluciones fáciles',
 ]
 
 function getStockBadge(outOfStock: boolean, lowStock: boolean, stock: number): ReactNode {
@@ -28,7 +28,7 @@ function getStockBadge(outOfStock: boolean, lowStock: boolean, stock: number): R
   if (lowStock) {
     return (
       <span className="mb-1 rounded-full bg-amber-400/90 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-900">
-        Ultimas {stock} unidades
+        Últimas {stock} unidades
       </span>
     )
   }
@@ -157,13 +157,13 @@ export function ProductDetailPage() {
       <div className="flex flex-col items-center gap-4 rounded-3xl border border-white/[0.08] bg-slate-900/60 px-6 py-16 text-center">
         <h2 className="text-2xl font-bold text-white">{error ?? 'Producto no encontrado'}</h2>
         <p className="max-w-sm text-sm text-slate-400">
-          Es posible que el producto ya no este disponible en el catalogo.
+          Es posible que el producto ya no esté disponible en el catálogo.
         </p>
         <Link
           to="/shop"
           className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-lime-300"
         >
-          Volver al catalogo
+          Volver al catálogo
         </Link>
       </div>
     )
@@ -184,7 +184,7 @@ export function ProductDetailPage() {
   }
 
   return (
-    <div className="space-y-14">
+    <div className="space-y-14 pb-24 lg:pb-0">
       {/* Breadcrumb */}
       <nav className="flex flex-wrap items-center gap-2 text-sm text-slate-400">
         <Link to="/shop" className="transition hover:text-lime-400">
@@ -313,7 +313,7 @@ export function ProductDetailPage() {
               Completa tu equipo
             </h2>
             <p className="mt-2 text-slate-400">
-              Otros accesorios de la misma categoria.
+              Otros accesorios de la misma categoría.
             </p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -323,6 +323,35 @@ export function ProductDetailPage() {
           </div>
         </section>
       ) : null}
+
+      {/* Sticky add-to-cart — mobile only; desktop already has the CTA in view
+          next to the gallery, so this would just be a redundant duplicate. */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-slate-950/95 px-4 pt-3 backdrop-blur-md lg:hidden"
+        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+      >
+        <div className="mx-auto flex max-w-7xl items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-slate-400">{product.name}</p>
+            {product.hasDiscount ? (
+              <p className="flex items-baseline gap-2">
+                <span className="text-lg font-bold text-white">{formatCurrency(product.finalPrice)}</span>
+                <span className="text-xs text-slate-500 line-through">{formatCurrency(product.price)}</span>
+              </p>
+            ) : (
+              <p className="text-lg font-bold text-white">{formatCurrency(product.price)}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => addItem(product, quantity, selectedSize ?? undefined)}
+            disabled={!canAddToCart}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-lime-400 px-6 py-3.5 text-sm font-bold text-slate-900 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+          >
+            {getAddToCartLabel(outOfStock, needsSizeChoice)}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
