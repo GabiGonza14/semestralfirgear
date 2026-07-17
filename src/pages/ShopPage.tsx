@@ -6,7 +6,6 @@ import { getCategories, getProducts } from '../api/fitgearApi'
 import { CategoryFilter } from '../components/CategoryFilter'
 import { ProductAutocomplete } from '../components/ProductAutocomplete'
 import { ProductCard } from '../components/ProductCard'
-import { SectionDecor } from '../components/SectionDecor'
 import { Select, type SelectOption } from '../components/ui/Select'
 import { categories as fallbackCategoryNames } from '../data/categories'
 import { products as fallbackProducts } from '../data/products'
@@ -327,21 +326,6 @@ export function ShopPage() {
     // (it doesn't subtract the scrollbar) — clip that here instead of
     // letting it add horizontal scroll to the whole page.
     <div className="relative isolate space-y-8 overflow-x-hidden">
-      {/* Ambient catalog backdrop: a lime dot texture, uniform edge-to-edge
-          (no fade mask) like the landing sections use. This page's own root
-          is width-capped by the shared max-w-7xl site layout, so the texture
-          bleeds past it to the real viewport edges (left-[calc(50%-50vw)] +
-          w-screen) — otherwise it only covers the content column and reads
-          as a dot island with dark margins on wide screens. Sits behind the
-          content (-z-10); the panels/cards are opaque so the texture only
-          reads through the gaps and margins. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-[calc(50%-50vw)] -z-10 w-screen overflow-hidden"
-      >
-        <SectionDecor pattern="dots" dotOpacity={0.7} mask={false} glowA="bg-lime-400/8" glowB="bg-cyan-500/8" />
-      </div>
-
       {/* Header */}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -360,7 +344,7 @@ export function ShopPage() {
 
         <Link
           to="/"
-          className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/12 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5"
+          className="inline-flex shrink-0 items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-5 py-2.5 text-sm font-semibold text-slate-100 transition hover:border-slate-500 hover:bg-slate-800"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -370,7 +354,7 @@ export function ShopPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="space-y-5 rounded-3xl border border-white/[0.08] bg-slate-900/60 p-5 sm:p-6">
+      <div className="space-y-5 rounded-3xl border border-slate-700 bg-slate-900 p-5 sm:p-6">
         <ProductAutocomplete value={query} onChange={setQuery} />
 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -412,15 +396,6 @@ export function ShopPage() {
               </span>
             ) : null}
           </p>
-          <Link
-            to="/"
-            className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/12 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5"
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Volver al inicio
-          </Link>
         </div>
       ) : null}
 

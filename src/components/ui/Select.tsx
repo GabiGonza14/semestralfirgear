@@ -145,8 +145,8 @@ export function Select<T extends string>({ value, onChange, options, label, tone
         onKeyDown={handleTriggerKeyDown}
         className={
           tone === 'solid'
-            ? `inline-flex min-h-[var(--size-touch-min)] items-center gap-2 rounded-full bg-lime-400 py-2.5 pl-4 pr-3 text-sm font-bold text-slate-900 outline-none transition hover:bg-lime-300 focus-visible:ring-2 focus-visible:ring-lime-400/50 ${
-                open ? 'shadow-[0_0_20px_-6px_rgba(163,230,53,0.7)]' : ''
+            ? `inline-flex min-h-[var(--size-touch-min)] items-center gap-2 rounded-full bg-slate-700 py-2.5 pl-4 pr-3 text-sm font-bold text-slate-100 outline-none transition hover:bg-slate-600 focus-visible:ring-2 focus-visible:ring-slate-400/40 ${
+                open ? 'shadow-[0_0_20px_-6px_rgba(100,116,139,0.45)]' : ''
               }`
             : `inline-flex min-h-[var(--size-touch-min)] items-center gap-2 rounded-full border bg-slate-950/60 py-2.5 pl-4 pr-3 text-sm font-medium text-slate-200 outline-none transition focus-visible:border-lime-400/60 focus-visible:ring-2 focus-visible:ring-lime-400/30 ${
                 open ? 'border-lime-400/60 ring-2 ring-lime-400/30' : 'border-white/10 hover:border-white/25'
@@ -155,7 +155,7 @@ export function Select<T extends string>({ value, onChange, options, label, tone
       >
         <span className="whitespace-nowrap">{selected.label}</span>
         <svg
-          className={`h-4 w-4 shrink-0 transition-transform ${tone === 'solid' ? 'text-slate-900' : 'text-slate-400'} ${open ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 shrink-0 transition-transform ${tone === 'solid' ? 'text-slate-100' : 'text-slate-300'} ${open ? 'rotate-180' : ''}`}
           viewBox="0 0 24 24"
           fill="none"
           aria-hidden

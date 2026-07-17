@@ -10,7 +10,7 @@ const baseChip =
   'inline-flex min-h-[var(--size-touch-min)] items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40'
 const activeChip = 'bg-lime-400 text-slate-900 shadow-[0_0_20px_-6px_rgba(163,230,53,0.7)]'
 const inactiveChip =
-  'border border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/25 hover:text-white'
+  'border border-slate-700 bg-slate-800 text-slate-200 hover:border-slate-600 hover:text-white'
 
 // Display order only — doesn't touch how categories are fetched/filtered.
 // Anything not listed here keeps its original relative order at the end.
