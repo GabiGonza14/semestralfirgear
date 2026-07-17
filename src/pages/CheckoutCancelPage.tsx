@@ -156,7 +156,7 @@ export function CheckoutCancelPage() {
           type="button"
           disabled={retryDisabled}
           onClick={() => retryCheckoutMutation.mutate()}
-          className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+          className={getButtonClassName({ variant: 'primary' })}
         >
           {retryCheckoutMutation.isPending ? 'Reintentando pago...' : 'Reintentar pago'}
         </button>
