@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { UserButton, useUser } from '@clerk/tanstack-react-start'
+import { SignOutButton, UserButton, useUser } from '@clerk/tanstack-react-start'
 import { Link } from '@tanstack/react-router'
 
 type AdminSection =
@@ -144,15 +144,23 @@ export function AdminSidebar({ active, onChange }: Readonly<AdminSidebarProps>) 
       </nav>
 
       <div className="border-t border-white/10 px-3 py-4">
-        <Link
-          to="/shop"
-          className="mb-3 flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-white"
-        >
-          <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Ver tienda
-        </Link>
+        <SignOutButton redirectUrl="/login">
+          <button
+            type="button"
+            className="mb-3 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-400 transition hover:bg-white/5 hover:text-white"
+          >
+            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3M16 17l5-5-5-5M21 12H9"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Cerrar sesión
+          </button>
+        </SignOutButton>
         <div className="flex items-center gap-2.5 px-3">
           <UserButton
             appearance={{ elements: { avatarBox: 'h-8 w-8 ring-2 ring-lime-400/40' } }}
