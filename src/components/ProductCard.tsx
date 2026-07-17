@@ -1,25 +1,43 @@
+import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useCart } from '../context/CartContext'
 import { hoverLift } from '../lib/motion'
 import type { Product } from '../types'
 import { formatCurrency } from '../utils/format'
+import { QuickViewModal } from './QuickViewModal'
 
 export function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart()
   const outOfStock = product.stock <= 0
   const lowStock = !outOfStock && product.stock <= 5
+  // Second photo for the hover cross-fade; single-image products just don't swap.
+  const secondImage = product.images.length > 1 ? product.images[1] : null
+  const [quickViewOpen, setQuickViewOpen] = useState(false)
 
   return (
-    <article className={`group flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900 ${hoverLift} hover:border-lime-400/30 hover:shadow-[0_24px_50px_-24px_rgba(163,230,53,0.25)]`}>
+    <article className={`group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900 ${hoverLift} hover:border-lime-400/30 hover:shadow-[0_24px_50px_-24px_rgba(163,230,53,0.25)]`}>
       <Link to="/product/$id" params={{ id: product.id }} className="relative block">
         {/* Light image stage so product photos pop on the dark card */}
-        <div className="flex aspect-square items-center justify-center bg-gradient-to-b from-white to-slate-100 p-4">
+        <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-gradient-to-b from-white to-slate-100 p-4">
           <img
             src={product.image}
             alt={product.name}
-            className="max-h-full max-w-full object-contain transition duration-500 group-hover:scale-105"
+            className={`max-h-full max-w-full object-contain transition duration-500 group-hover:scale-105 ${
+              secondImage ? 'motion-safe:group-hover:opacity-0' : ''
+            }`}
             loading="lazy"
           />
+          {/* Cross-fade to the second photo on hover — opacity/transform only,
+              and motion-safe so reduced-motion users just keep the cover. */}
+          {secondImage ? (
+            <img
+              src={secondImage}
+              alt=""
+              aria-hidden
+              className="pointer-events-none absolute inset-0 h-full w-full object-contain p-4 opacity-0 transition duration-500 motion-safe:group-hover:scale-105 motion-safe:group-hover:opacity-100"
+              loading="lazy"
+            />
+          ) : null}
         </div>
 
         {/* Status badges */}
@@ -40,6 +58,21 @@ export function ProductCard({ product }: { product: Product }) {
           ) : null}
         </div>
       </Link>
+
+      {/* Quick view — outside the Link so it never navigates, and always
+          rendered (not hover-gated) so it's reachable by tap. 44px touch target. */}
+      <button
+        type="button"
+        onClick={() => setQuickViewOpen(true)}
+        aria-haspopup="dialog"
+        aria-label={`Vista rápida de ${product.name}`}
+        className="absolute right-2 top-2 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-slate-950/55 text-white backdrop-blur transition hover:border-lime-400/50 hover:bg-slate-950/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/50"
+      >
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+        </svg>
+      </button>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-lime-400">
@@ -103,6 +136,10 @@ export function ProductCard({ product }: { product: Product }) {
           </button>
         )}
       </div>
+
+      {quickViewOpen ? (
+        <QuickViewModal product={product} onClose={() => setQuickViewOpen(false)} />
+      ) : null}
     </article>
   )
 }
