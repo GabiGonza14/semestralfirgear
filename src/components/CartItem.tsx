@@ -15,6 +15,10 @@ interface CartItemProps {
 export function CartItem({ product, quantity, size, onIncrease, onDecrease, onRemove }: Readonly<CartItemProps>) {
   const unitPrice = product.hasDiscount ? product.finalPrice : product.price
   const subtotal = quantity * unitPrice
+  const availableStock = size
+    ? product.sizes.find((entry) => entry.label === size)?.stock ?? 0
+    : product.stock
+  const atStockLimit = quantity >= availableStock
 
   return (
     <motion.article
@@ -70,8 +74,9 @@ export function CartItem({ product, quantity, size, onIncrease, onDecrease, onRe
             <button
               type="button"
               onClick={onIncrease}
+              disabled={atStockLimit}
               aria-label="Aumentar cantidad"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-300 transition hover:bg-white/10 hover:text-lime-400"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-300 transition hover:bg-white/10 hover:text-lime-400 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-300"
             >
               <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -80,6 +85,9 @@ export function CartItem({ product, quantity, size, onIncrease, onDecrease, onRe
           </div>
           <p className="text-xs font-semibold text-white">{formatCurrency(subtotal)}</p>
         </div>
+        {atStockLimit ? (
+          <p className="mt-1 text-[11px] text-amber-300">Llegaste al máximo disponible</p>
+        ) : null}
       </div>
 
       <button

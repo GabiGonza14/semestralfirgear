@@ -8,32 +8,32 @@ interface ProductTableProps {
   onDelete: (product: Product) => void
 }
 
-export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) {
+export function ProductTable({ products, onEdit, onDelete }: Readonly<ProductTableProps>) {
   return (
-    <section className="overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-900">
-      <div className="border-b border-white/[0.07] px-5 py-4">
-        <h3 className="text-lg font-bold text-white">Listado de productos</h3>
+    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 px-5 py-4">
+        <h3 className="text-lg font-bold text-slate-900">Listado de productos</h3>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-white/[0.06] text-left text-sm">
-          <thead className="bg-white/[0.02] text-xs uppercase tracking-[0.16em] text-slate-400">
+        <table className="min-w-full divide-y divide-slate-100 text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase tracking-[0.16em] text-slate-500">
             <tr>
               <th className="px-5 py-3 font-semibold">Imagen</th>
               <th className="px-5 py-3 font-semibold">Nombre</th>
-              <th className="px-5 py-3 font-semibold">Categoria</th>
+              <th className="px-5 py-3 font-semibold">Categoría</th>
               <th className="px-5 py-3 font-semibold">Precio</th>
               <th className="px-5 py-3 font-semibold">Stock</th>
               <th className="px-5 py-3 font-semibold">Estado</th>
               <th className="px-5 py-3 font-semibold">Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.06] text-slate-300">
+          <tbody className="divide-y divide-slate-100 text-slate-600">
             {products.length > 0 ? (
               products.map((product) => (
-                <tr key={product.id} className="transition hover:bg-white/[0.02]">
+                <tr key={product.id} className="transition hover:bg-slate-50">
                   <td className="px-5 py-4">
-                    <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-b from-white to-slate-100">
+                    <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
                       <img
                         src={product.image}
                         alt={product.name}
@@ -41,18 +41,18 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                       />
                     </div>
                   </td>
-                  <td className="px-5 py-4 font-medium text-white">{product.name}</td>
-                  <td className="px-5 py-4 text-slate-400">{product.category}</td>
-                  <td className="px-5 py-4 font-medium text-white">
+                  <td className="px-5 py-4 font-medium text-slate-900">{product.name}</td>
+                  <td className="px-5 py-4 text-slate-500">{product.category}</td>
+                  <td className="px-5 py-4 font-medium text-slate-900">
                     {product.hasDiscount ? (
                       <div className="flex flex-col gap-1">
-                        <span className="inline-flex w-fit items-center rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-semibold text-rose-300 ring-1 ring-rose-400/30">
+                        <span className="inline-flex w-fit items-center rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700 ring-1 ring-rose-200">
                           -{product.discountPercentage}%
                         </span>
                         <span className="text-xs text-slate-500 line-through">
                           {formatCurrency(product.price)}
                         </span>
-                        <span className="text-white">{formatCurrency(product.finalPrice)}</span>
+                        <span className="text-slate-900">{formatCurrency(product.finalPrice)}</span>
                       </div>
                     ) : (
                       formatCurrency(product.price)
@@ -63,16 +63,16 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                       <span
                         className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
                           product.stock === 0
-                            ? 'bg-rose-500/15 text-rose-300 ring-1 ring-rose-400/30'
+                            ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'
                             : isLowStock(product)
-                              ? 'bg-amber-400/15 text-amber-300 ring-1 ring-amber-400/30'
-                              : 'bg-lime-400/15 text-lime-300 ring-1 ring-lime-400/30'
+                              ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'
+                              : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
                         }`}
                       >
                         {product.stock} unidades
                       </span>
                       {isLowStock(product) ? (
-                        <span className="inline-flex w-fit items-center gap-1 text-[11px] font-semibold text-amber-400">
+                        <span className="inline-flex w-fit items-center gap-1 text-[11px] font-semibold text-amber-600">
                           <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" aria-hidden>
                             <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
@@ -85,8 +85,8 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                     <span
                       className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                         product.isActive
-                          ? 'bg-lime-400/15 text-lime-300 ring-1 ring-lime-400/30'
-                          : 'bg-white/[0.06] text-slate-400 ring-1 ring-white/10'
+                          ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+                          : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'
                       }`}
                     >
                       {product.isActive ? 'Activo' : 'Inactivo'}
@@ -97,14 +97,14 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                       <button
                         type="button"
                         onClick={() => onEdit(product)}
-                        className="rounded-full border border-white/12 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5"
+                        className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
                       >
                         Editar
                       </button>
                       <button
                         type="button"
                         onClick={() => onDelete(product)}
-                        className="rounded-full bg-rose-500/90 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-500"
+                        className="rounded-full bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-500"
                       >
                         Eliminar
                       </button>
@@ -114,7 +114,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
+                <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
                   No hay productos para mostrar con estos filtros.
                 </td>
               </tr>

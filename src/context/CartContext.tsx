@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { getProducts } from '../api/fitgearApi'
+import { cartReducer } from '../lib/cartReducer'
 import {
   deserializeCart,
   reconcileCart,
@@ -73,58 +74,6 @@ const SHIPPING_FEE = 4.99
 
 function roundCurrency(value: number) {
   return Math.round(value * 100) / 100
-}
-
-type CartAction =
-  | { type: 'add'; product: Product; quantity: number; size?: SizeLabel }
-  | { type: 'remove'; productId: string; size?: SizeLabel }
-  | { type: 'increase'; productId: string; size?: SizeLabel }
-  | { type: 'decrease'; productId: string; size?: SizeLabel }
-  | { type: 'restore'; items: CartItemModel[] }
-  | { type: 'clear' }
-
-// Two lines are the same cart line only if they're the same product AND the
-// same size — a product in two different sizes must stay two separate lines.
-function isSameLine(item: CartItemModel, productId: string, size: SizeLabel | undefined) {
-  return item.product.id === productId && item.size === size
-}
-
-function cartReducer(state: CartItemModel[], action: CartAction): CartItemModel[] {
-  switch (action.type) {
-    case 'add': {
-      const existing = state.some((item) => isSameLine(item, action.product.id, action.size))
-      if (existing) {
-        return state.map((item) =>
-          isSameLine(item, action.product.id, action.size)
-            ? { ...item, quantity: item.quantity + action.quantity }
-            : item,
-        )
-      }
-      return [...state, { product: action.product, quantity: action.quantity, size: action.size }]
-    }
-    case 'remove':
-      return state.filter((item) => !isSameLine(item, action.productId, action.size))
-    case 'increase':
-      return state.map((item) =>
-        isSameLine(item, action.productId, action.size)
-          ? { ...item, quantity: item.quantity + 1 }
-          : item,
-      )
-    case 'decrease':
-      return state
-        .map((item) =>
-          isSameLine(item, action.productId, action.size)
-            ? { ...item, quantity: item.quantity - 1 }
-            : item,
-        )
-        .filter((item) => item.quantity > 0)
-    case 'restore':
-      return action.items
-    case 'clear':
-      return state.length > 0 ? [] : state
-    default:
-      return state
-  }
 }
 
 const CartContext = createContext<CartContextValue | undefined>(undefined)

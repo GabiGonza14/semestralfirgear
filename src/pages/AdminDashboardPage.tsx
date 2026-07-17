@@ -22,6 +22,7 @@ import { useAuth } from '../context/AuthContext'
 import { isLowStock } from '../lib/inventory'
 import type { BackendOrder, BackendUser, Category, Product } from '../types'
 import { formatCurrency, formatDate } from '../utils/format'
+import { ROLE_LABELS } from '../utils/userRoleLabels'
 
 function mapCategories(raw: MongoCategory[]): Category[] {
   return raw.map((category) => ({
@@ -61,6 +62,99 @@ function KeepAlive({
     return null
   }
   return <div hidden={!active}>{children}</div>
+}
+
+interface AdminOverviewPanelProps {
+  section: AdminSection
+  metrics: AdminMetrics | null
+  lowStockCount: number
+  users: BackendUser[]
+  onViewAllUsers: () => void
+}
+
+// Overview-only content (summary cards, low-stock banner, registered-users
+// table) — pulled out of AdminDashboardPage so its cognitive complexity stays
+// under the section === 'overview' checks that used to live inline there.
+function AdminOverviewPanel({
+  section,
+  metrics,
+  lowStockCount,
+  users,
+  onViewAllUsers,
+}: Readonly<AdminOverviewPanelProps>) {
+  if (section !== 'overview') {
+    return null
+  }
+
+  return (
+    <>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <SummaryCard label="Productos" value={`${metrics?.activeProductsCount ?? 0}`} trend="Activos en el catálogo" />
+        <SummaryCard label="Órdenes" value={`${metrics?.ordersCount ?? 0}`} trend="En procesamiento" />
+        <SummaryCard label="Usuarios" value={`${metrics?.usersCount ?? 0}`} trend="Registrados" />
+        <SummaryCard label="Ingresos" value={formatCurrency(metrics?.totalRevenue ?? 0)} trend="Total de ventas" accent />
+        <SummaryCard label="Stock bajo" value={`${lowStockCount}`} trend="Productos por reabastecer" tone={lowStockCount > 0 ? 'warning' : 'default'} />
+      </div>
+
+      {lowStockCount > 0 ? (
+        <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <svg className="h-5 w-5 shrink-0 text-amber-500" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span>
+            {lowStockCount === 1
+              ? '1 producto está en o por debajo de su umbral de stock. Revísalo en Inventario.'
+              : `${lowStockCount} productos están en o por debajo de su umbral de stock. Revísalos en Inventario.`}
+          </span>
+        </div>
+      ) : null}
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-slate-900">
+            Usuarios registrados
+            <span className="ml-2 text-sm font-normal text-slate-500">
+              últimos {Math.min(USERS_OVERVIEW_LIMIT, users.length)}
+            </span>
+          </h3>
+
+          {users.length > USERS_OVERVIEW_LIMIT ? (
+            <button
+              type="button"
+              onClick={onViewAllUsers}
+              className="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+            >
+              Ver todos ({users.length})
+            </button>
+          ) : null}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-140 text-left text-sm text-slate-600">
+            <thead className="text-slate-500">
+              <tr>
+                <th className="pb-2 font-medium">Nombre</th>
+                <th className="pb-2 font-medium">Email</th>
+                <th className="pb-2 font-medium">Rol</th>
+                <th className="pb-2 font-medium">Estado</th>
+                <th className="pb-2 font-medium">Fecha de registro</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.slice(0, USERS_OVERVIEW_LIMIT).map((user) => (
+                <tr key={user.id} className="border-t border-slate-100">
+                  <td className="py-2.5 font-medium text-slate-900">{user.fullName}</td>
+                  <td>{user.email}</td>
+                  <td>{ROLE_LABELS[user.role]}</td>
+                  <td>{user.isActive ? 'Activo' : 'Inactivo'}</td>
+                  <td>{formatDate(user.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </>
+  )
 }
 
 export function AdminDashboardPage() {
@@ -126,8 +220,8 @@ export function AdminDashboardPage() {
         }
       })
 
-    // Categories, shared by Inventario (selector + filtro) and Categorias
-    // (gestion + conteo por categoria) — fetched once here, at the dashboard
+    // Categories, shared by Inventario (selector + filtro) and Categorías
+    // (gestión + conteo por categoría) — fetched once here, at the dashboard
     // level, so both sections stay in sync with each other and with a single
     // source of truth instead of each fetching its own now-independently-stale
     // copy (a category created in one tab used to never appear in the other
@@ -227,26 +321,26 @@ export function AdminDashboardPage() {
 
   if (!isAdmin) {
     return (
-      <section className="space-y-6">
+      <section className="space-y-6 bg-slate-50 p-6 sm:p-10">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-amber-400">Acceso restringido</p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">
-            Area exclusiva para administradores
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-amber-600">Acceso restringido</p>
+          <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-900">
+            Área exclusiva para administradores
           </h1>
-          <p className="mt-3 max-w-2xl text-slate-400">
-            Este panel solo esta disponible para usuarios con permisos de administracion.
+          <p className="mt-3 max-w-2xl text-slate-500">
+            Este panel solo está disponible para el equipo con permisos de administración.
           </p>
         </div>
-        <div className="rounded-3xl border-2 border-amber-400/40 bg-gradient-to-br from-amber-400/10 to-orange-400/5 p-8 sm:p-12">
+        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 sm:p-12">
           <div className="flex flex-col items-center text-center">
-            <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-400/20">
-              <svg className="h-8 w-8 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+              <svg className="h-8 w-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4v2m0 0v2m0-12V7m0 4V5m0 4v2" />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-amber-100">Acceso denegado</h2>
-            <p className="mt-3 text-amber-50/80">Necesitas iniciar sesión como administrador para acceder a este panel.</p>
-            <Link to="/login" className="mt-6 inline-flex rounded-full bg-amber-400/90 px-6 py-2.5 font-semibold text-slate-900 transition hover:bg-amber-300">
+            <h2 className="text-2xl font-bold text-amber-900">Necesitas acceso de administrador</h2>
+            <p className="mt-3 text-amber-800/80">Inicia sesión con una cuenta de administrador para entrar al panel.</p>
+            <Link to="/login" className="mt-6 inline-flex rounded-full bg-amber-700 px-6 py-2.5 font-semibold text-white transition hover:bg-amber-600">
               Ir a inicio de sesión
             </Link>
           </div>
@@ -256,131 +350,74 @@ export function AdminDashboardPage() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+    <div className="sm:grid sm:h-full sm:grid-cols-[240px_1fr]">
       <AdminSidebar active={section} onChange={setSection} />
 
-      <div className="space-y-6">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Panel de control</p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">
-            Administracion de FITGEAR
-          </h1>
-          <p className="mt-3 max-w-2xl text-slate-400">
-            Gestiona catalogo, ordenes, usuarios y operaciones del e-commerce en tiempo real.
-          </p>
-        </div>
-
-        {section === 'overview' ? (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            <SummaryCard label="Productos" value={`${metrics?.activeProductsCount ?? 0}`} trend="Activos en el catálogo" />
-            <SummaryCard label="Órdenes" value={`${metrics?.ordersCount ?? 0}`} trend="En procesamiento" />
-            <SummaryCard label="Usuarios" value={`${metrics?.usersCount ?? 0}`} trend="Registrados" />
-            <SummaryCard label="Ingresos" value={formatCurrency(metrics?.totalRevenue ?? 0)} trend="Total de ventas" />
-            <SummaryCard label="Stock bajo" value={`${lowStockCount}`} trend="Productos por reabastecer" />
+      <div className="bg-slate-50 px-4 py-8 sm:h-full sm:overflow-y-auto sm:px-6 lg:px-8 lg:py-8">
+        <div className="mx-auto max-w-6xl space-y-6">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-emerald-700">Panel de control</p>
+            <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-900">
+              Administración de FITGEAR
+            </h1>
+            <p className="mt-3 max-w-2xl text-slate-500">
+              Gestiona catálogo, órdenes, usuarios y operaciones del e-commerce en tiempo real.
+            </p>
           </div>
-        ) : null}
 
-        {section === 'overview' && lowStockCount > 0 ? (
-          <div className="flex items-center gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-            <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span>
-              {lowStockCount === 1
-                ? '1 producto está en o por debajo de su umbral de stock. Revísalo en Inventario.'
-                : `${lowStockCount} productos están en o por debajo de su umbral de stock. Revísalos en Inventario.`}
-            </span>
-          </div>
-        ) : null}
-
-        {loading ? (
-          <p className="text-sm text-slate-300">Cargando panel de administración...</p>
-        ) : null}
-
-        {error ? (
-          <p className="rounded-xl border border-rose-400/40 bg-rose-400/10 p-3 text-sm text-rose-100">{error}</p>
-        ) : null}
-
-        <KeepAlive active={section === 'inventory'} visited={visited.has('inventory')}>
-          <AdminInventorySection products={products} categories={categories} onRefreshProducts={refreshProducts} />
-        </KeepAlive>
-
-        <KeepAlive active={section === 'categories'} visited={visited.has('categories')}>
-          <AdminCategoriesSection categories={categories} products={products} onRefresh={refreshCategories} />
-        </KeepAlive>
-
-        <KeepAlive active={section === 'reviews'} visited={visited.has('reviews')}>
-          <AdminReviewsSection />
-        </KeepAlive>
-
-        <KeepAlive active={section === 'audit'} visited={visited.has('audit')}>
-          <AdminAuditSection active={section === 'audit'} />
-        </KeepAlive>
-
-        {(section === 'overview' || section === 'orders') && (
-          <AdminOrdersSection
-            orders={orders}
-            loading={loading}
-            onSelectOrder={setSelectedOrderId}
-            variant={section === 'orders' ? 'full' : 'overview'}
-            onViewAll={() => setSection('orders')}
-          />
-        )}
-
-        {section === 'overview' ? (
-          <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-lg font-semibold text-white">
-                Usuarios registrados
-                <span className="ml-2 text-sm font-normal text-slate-500">
-                  últimos {Math.min(USERS_OVERVIEW_LIMIT, users.length)}
-                </span>
-              </h3>
-
-              {users.length > USERS_OVERVIEW_LIMIT ? (
-                <button
-                  type="button"
-                  onClick={() => setSection('users')}
-                  className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5"
-                >
-                  Ver todos ({users.length})
-                </button>
-              ) : null}
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-140 text-left text-sm text-slate-300">
-                <thead className="text-slate-400">
-                  <tr>
-                    <th className="pb-2">Nombre</th>
-                    <th className="pb-2">Email</th>
-                    <th className="pb-2">Rol</th>
-                    <th className="pb-2">Estado</th>
-                    <th className="pb-2">Fecha de registro</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.slice(0, USERS_OVERVIEW_LIMIT).map((user) => (
-                    <tr key={user.id} className="border-t border-white/10">
-                      <td className="py-2">{user.fullName}</td>
-                      <td>{user.email}</td>
-                      <td className="capitalize">{user.role.toLowerCase()}</td>
-                      <td>{user.isActive ? 'Activo' : 'Inactivo'}</td>
-                      <td>{formatDate(user.createdAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        ) : null}
-
-        <KeepAlive active={section === 'users'} visited={visited.has('users')}>
-          <AdminUsersSection
+          <AdminOverviewPanel
+            section={section}
+            metrics={metrics}
+            lowStockCount={lowStockCount}
             users={users}
-            currentUserId={backendUser?.id}
-            onRefresh={refreshProducts}
+            onViewAllUsers={() => setSection('users')}
           />
-        </KeepAlive>
+
+          {loading ? (
+            <div className="flex items-center gap-2.5 text-sm text-slate-500">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-600" aria-hidden />
+              <span>Cargando tu panel...</span>
+            </div>
+          ) : null}
+
+          {error ? (
+            <p className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</p>
+          ) : null}
+
+          <KeepAlive active={section === 'inventory'} visited={visited.has('inventory')}>
+            <AdminInventorySection products={products} categories={categories} onRefreshProducts={refreshProducts} />
+          </KeepAlive>
+
+          <KeepAlive active={section === 'categories'} visited={visited.has('categories')}>
+            <AdminCategoriesSection categories={categories} products={products} onRefresh={refreshCategories} />
+          </KeepAlive>
+
+          <KeepAlive active={section === 'reviews'} visited={visited.has('reviews')}>
+            <AdminReviewsSection />
+          </KeepAlive>
+
+          <KeepAlive active={section === 'audit'} visited={visited.has('audit')}>
+            <AdminAuditSection active={section === 'audit'} />
+          </KeepAlive>
+
+          {(section === 'overview' || section === 'orders') && (
+            <AdminOrdersSection
+              orders={orders}
+              loading={loading}
+              onSelectOrder={setSelectedOrderId}
+              variant={section === 'orders' ? 'full' : 'overview'}
+              onViewAll={() => setSection('orders')}
+            />
+          )}
+
+          <KeepAlive active={section === 'users'} visited={visited.has('users')}>
+            <AdminUsersSection
+              users={users}
+              currentUserId={backendUser?.id}
+              onRefresh={refreshProducts}
+            />
+          </KeepAlive>
+        </div>
       </div>
 
       {selectedOrder ? (

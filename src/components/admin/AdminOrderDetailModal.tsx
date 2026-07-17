@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getOrderHistory, refundOrder, updateOrderStatus } from '../../api/fitgearApi'
 import type { BackendOrder, OrderEvent, OrderStatus } from '../../types'
 import { formatCurrency, formatDate } from '../../utils/format'
+import { ORDER_STATUS_META } from '../../utils/orderStatusStyle'
 
 interface AdminOrderDetailModalProps {
   order: BackendOrder
@@ -26,17 +27,233 @@ const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   REFUNDED: [],
 }
 
-const STATUS_BADGE: Record<OrderStatus, string> = {
-  PENDING: 'bg-amber-400/15 text-amber-300',
-  PAID: 'bg-lime-400/15 text-lime-300',
-  SHIPPED: 'bg-sky-400/15 text-sky-300',
-  DELIVERED: 'bg-emerald-400/15 text-emerald-300',
-  CANCELLED: 'bg-slate-400/15 text-slate-300',
-  FAILED: 'bg-rose-400/15 text-rose-300',
-  REFUNDED: 'bg-fuchsia-400/15 text-fuchsia-300',
+interface StatusChangeSectionProps {
+  order: BackendOrder
+  nextStatuses: OrderStatus[]
+  targetStatus: OrderStatus | ''
+  onTargetStatusChange: (status: OrderStatus | '') => void
+  statusTracking: string
+  onStatusTrackingChange: (value: string) => void
+  statusCancelReason: string
+  onStatusCancelReasonChange: (value: string) => void
+  updatingStatus: boolean
+  onSubmit: () => void
 }
 
-export function AdminOrderDetailModal({ order, onClose, onUpdated }: AdminOrderDetailModalProps) {
+// "Cambiar estado" panel, pulled out of AdminOrderDetailModal so its own
+// nested transition-specific fields (tracking number, cancel reason) don't
+// add to the parent's cognitive complexity.
+function StatusChangeSection({
+  order,
+  nextStatuses,
+  targetStatus,
+  onTargetStatusChange,
+  statusTracking,
+  onStatusTrackingChange,
+  statusCancelReason,
+  onStatusCancelReasonChange,
+  updatingStatus,
+  onSubmit,
+}: Readonly<StatusChangeSectionProps>) {
+  return (
+    <div className="mt-5 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+      <h4 className="text-sm font-semibold text-slate-900">Cambiar estado</h4>
+      {nextStatuses.length > 0 ? (
+        <div className="mt-3 space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={targetStatus}
+              onChange={(event) => onTargetStatusChange(event.target.value as OrderStatus | '')}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-emerald-500/60 focus:outline-none"
+            >
+              <option value="">Selecciona un estado…</option>
+              {nextStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {ORDER_STATUS_META[status].label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={onSubmit}
+              disabled={!targetStatus || updatingStatus}
+              className="rounded-full bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {updatingStatus ? 'Actualizando…' : 'Actualizar estado'}
+            </button>
+          </div>
+          {targetStatus === 'SHIPPED' ? (
+            <>
+              <input
+                type="text"
+                value={statusTracking}
+                onChange={(event) => onStatusTrackingChange(event.target.value)}
+                placeholder="Nº de rastreo (opcional)"
+                maxLength={64}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500/60 focus:outline-none"
+              />
+              <p className="text-xs text-slate-500">Se enviará un email de notificación al cliente.</p>
+            </>
+          ) : null}
+          {targetStatus === 'CANCELLED' && order.status === 'PAID' ? (
+            <>
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                Esta orden ya está pagada — cancelarla reembolsa el total al cliente por Stripe y repone
+                el stock automáticamente. La orden quedará como "Devuelto", no "Cancelado".
+              </p>
+              <textarea
+                value={statusCancelReason}
+                onChange={(event) => onStatusCancelReasonChange(event.target.value)}
+                placeholder="Motivo de la cancelación (opcional)"
+                rows={2}
+                maxLength={500}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500/60 focus:outline-none"
+              />
+            </>
+          ) : null}
+        </div>
+      ) : (
+        <p className="mt-2 text-sm text-slate-500">Esta orden no admite más cambios de estado.</p>
+      )}
+    </div>
+  )
+}
+
+interface RefundSectionProps {
+  order: BackendOrder
+  isRefundable: boolean
+  confirming: boolean
+  onStartConfirm: () => void
+  reason: string
+  onReasonChange: (value: string) => void
+  reasonRequired: boolean
+  refunding: boolean
+  canConfirmRefund: boolean
+  onCancelConfirm: () => void
+  onConfirmRefund: () => void
+}
+
+// "Reembolso" panel — same reasoning as StatusChangeSection above: its own
+// confirm/cancel sub-flow was a big share of the parent's branching.
+function RefundSection({
+  order,
+  isRefundable,
+  confirming,
+  onStartConfirm,
+  reason,
+  onReasonChange,
+  reasonRequired,
+  refunding,
+  canConfirmRefund,
+  onCancelConfirm,
+  onConfirmRefund,
+}: Readonly<RefundSectionProps>) {
+  return (
+    <div className="mt-5 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+      <h4 className="text-sm font-semibold text-slate-900">Reembolso</h4>
+      {isRefundable ? (
+        !confirming ? (
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <p className="text-sm text-slate-500">Reembolsa el total de esta orden a través de Stripe.</p>
+            <button
+              type="button"
+              onClick={onStartConfirm}
+              className="shrink-0 rounded-full bg-fuchsia-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-fuchsia-500"
+            >
+              Reembolsar
+            </button>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-3">
+            <p className="text-sm text-slate-600">
+              Vas a reembolsar <span className="font-semibold text-slate-900">{formatCurrency(order.totalAmount)}</span> al
+              cliente. Esta acción no se puede deshacer.
+            </p>
+            <div>
+              <textarea
+                value={reason}
+                onChange={(event) => onReasonChange(event.target.value)}
+                placeholder={
+                  reasonRequired
+                    ? 'Motivo del reembolso (obligatorio para órdenes enviadas)'
+                    : 'Motivo del reembolso (opcional)'
+                }
+                rows={2}
+                maxLength={500}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-fuchsia-500/60 focus:outline-none"
+              />
+              {reasonRequired ? (
+                <p className="mt-1.5 text-xs text-amber-600">
+                  Esta orden ya fue enviada — es una devolución real, así que el motivo es obligatorio.
+                </p>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                onClick={onCancelConfirm}
+                disabled={refunding}
+                className="rounded-full border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={onConfirmRefund}
+                disabled={!canConfirmRefund}
+                className="rounded-full bg-fuchsia-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-fuchsia-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {refunding ? 'Procesando...' : 'Confirmar reembolso'}
+              </button>
+            </div>
+          </div>
+        )
+      ) : (
+        <p className="mt-2 text-sm text-slate-500">
+          {order.status === 'REFUNDED'
+            ? 'Esta orden ya fue reembolsada.'
+            : 'Solo se pueden reembolsar órdenes pagadas, enviadas o entregadas.'}
+        </p>
+      )}
+    </div>
+  )
+}
+
+interface OrderHistoryListProps {
+  loadingHistory: boolean
+  history: OrderEvent[]
+}
+
+// "Historial" panel — isolates its own loading/empty/list branching.
+function OrderHistoryList({ loadingHistory, history }: Readonly<OrderHistoryListProps>) {
+  return (
+    <div className="mt-5">
+      <h4 className="mb-2 text-sm font-semibold text-slate-900">Historial</h4>
+      {loadingHistory ? (
+        <p className="text-sm text-slate-500">Cargando historial...</p>
+      ) : history.length === 0 ? (
+        <p className="text-sm text-slate-500">Sin eventos registrados.</p>
+      ) : (
+        <ul className="space-y-2">
+          {history.map((event) => (
+            <li key={event.id} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-semibold text-slate-900">{event.type}</span>
+                <span className="text-xs text-slate-500">{formatDate(event.createdAt)}</span>
+              </div>
+              {event.reason ? <p className="mt-1 text-slate-500">Motivo: {event.reason}</p> : null}
+              {event.actorClerkId ? (
+                <p className="mt-0.5 text-xs text-slate-500">Por: {event.actorClerkId}</p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+export function AdminOrderDetailModal({ order, onClose, onUpdated }: Readonly<AdminOrderDetailModalProps>) {
   const [history, setHistory] = useState<OrderEvent[]>([])
   const [loadingHistory, setLoadingHistory] = useState(true)
   const [confirming, setConfirming] = useState(false)
@@ -117,17 +334,17 @@ export function AdminOrderDetailModal({ order, onClose, onUpdated }: AdminOrderD
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-white/[0.08] bg-slate-900 p-6 shadow-2xl shadow-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-lime-400">Detalle de orden</p>
-            <h3 className="mt-2 break-all text-2xl font-bold tracking-tight text-white">#{order.id}</h3>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Detalle de orden</p>
+            <h3 className="mt-2 break-all text-2xl font-bold tracking-tight text-slate-900">#{order.id}</h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-white/12 p-2 text-slate-300 transition hover:border-white/30 hover:bg-white/5"
+            className="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50"
             aria-label="Cerrar"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -137,36 +354,36 @@ export function AdminOrderDetailModal({ order, onClose, onUpdated }: AdminOrderD
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-            <p className="text-xs text-slate-400">Cliente</p>
-            <p className="text-sm font-semibold text-white">{order.customerName ?? order.userId}</p>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+            <p className="text-xs text-slate-500">Cliente</p>
+            <p className="text-sm font-semibold text-slate-900">{order.customerName ?? order.userId}</p>
           </div>
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-            <p className="text-xs text-slate-400">Fecha</p>
-            <p className="text-sm font-semibold text-white">{formatDate(order.createdAt)}</p>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+            <p className="text-xs text-slate-500">Fecha</p>
+            <p className="text-sm font-semibold text-slate-900">{formatDate(order.createdAt)}</p>
           </div>
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-            <p className="text-xs text-slate-400">Estado</p>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+            <p className="text-xs text-slate-500">Estado</p>
             <span
-              className={`mt-1 inline-flex rounded-full px-3 py-1 text-xs font-bold ${STATUS_BADGE[order.status]}`}
+              className={`mt-1 inline-flex rounded-full px-3 py-1 text-xs font-bold ${ORDER_STATUS_META[order.status].badge}`}
             >
-              {order.status}
+              {ORDER_STATUS_META[order.status].label}
             </span>
           </div>
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-            <p className="text-xs text-slate-400">Total</p>
-            <p className="text-sm font-semibold text-white">{formatCurrency(order.totalAmount)}</p>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+            <p className="text-xs text-slate-500">Total</p>
+            <p className="text-sm font-semibold text-slate-900">{formatCurrency(order.totalAmount)}</p>
           </div>
         </div>
 
         {order.shippingAddress ? (
-          <div className="mt-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-            <p className="text-xs text-slate-400">Dirección de envío</p>
-            <p className="text-sm font-semibold text-white">{order.shippingAddress.name}</p>
-            <p className="text-sm text-slate-300">
+          <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+            <p className="text-xs text-slate-500">Dirección de envío</p>
+            <p className="text-sm font-semibold text-slate-900">{order.shippingAddress.name}</p>
+            <p className="text-sm text-slate-600">
               {[order.shippingAddress.line1, order.shippingAddress.line2].filter(Boolean).join(', ')}
             </p>
-            <p className="text-sm text-slate-300">
+            <p className="text-sm text-slate-600">
               {[order.shippingAddress.city, order.shippingAddress.state, order.shippingAddress.postalCode]
                 .filter(Boolean)
                 .join(', ')}
@@ -176,10 +393,10 @@ export function AdminOrderDetailModal({ order, onClose, onUpdated }: AdminOrderD
         ) : null}
 
         <div className="mt-4">
-          <h4 className="mb-2 text-sm font-semibold text-white">Productos</h4>
-          <div className="overflow-hidden rounded-2xl border border-white/[0.06]">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-white/[0.03] text-xs text-slate-400">
+          <h4 className="mb-2 text-sm font-semibold text-slate-900">Productos</h4>
+          <div className="overflow-hidden rounded-2xl border border-slate-100">
+            <table className="w-full text-left text-sm text-slate-600">
+              <thead className="bg-slate-50 text-xs text-slate-500">
                 <tr>
                   <th className="px-4 py-2">Producto</th>
                   <th className="px-4 py-2 text-center">Cant.</th>
@@ -188,7 +405,7 @@ export function AdminOrderDetailModal({ order, onClose, onUpdated }: AdminOrderD
               </thead>
               <tbody>
                 {order.items.map((item) => (
-                  <tr key={item.id} className="border-t border-white/[0.06]">
+                  <tr key={item.id} className="border-t border-slate-100">
                     <td className="px-4 py-2">
                       {item.productName}
                       {item.size ? <span className="text-slate-500"> · Talla {item.size}</span> : null}
@@ -203,180 +420,49 @@ export function AdminOrderDetailModal({ order, onClose, onUpdated }: AdminOrderD
         </div>
 
         {/* Status change (HU-42) */}
-        <div className="mt-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
-          <h4 className="text-sm font-semibold text-white">Cambiar estado</h4>
-          {nextStatuses.length > 0 ? (
-            <div className="mt-3 space-y-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <select
-                  value={targetStatus}
-                  onChange={(event) => setTargetStatus(event.target.value as OrderStatus | '')}
-                  className="rounded-2xl border border-white/12 bg-slate-950/60 px-4 py-2.5 text-sm text-slate-100 focus:border-lime-400/50 focus:outline-none"
-                >
-                  <option value="">Selecciona un estado…</option>
-                  {nextStatuses.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={handleStatusChange}
-                  disabled={!targetStatus || updatingStatus}
-                  className="rounded-full bg-lime-400 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {updatingStatus ? 'Actualizando…' : 'Actualizar estado'}
-                </button>
-              </div>
-              {targetStatus === 'SHIPPED' ? (
-                <>
-                  <input
-                    type="text"
-                    value={statusTracking}
-                    onChange={(event) => setStatusTracking(event.target.value)}
-                    placeholder="Nº de rastreo (opcional)"
-                    maxLength={64}
-                    className="w-full rounded-2xl border border-white/12 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-lime-400/50 focus:outline-none"
-                  />
-                  <p className="text-xs text-slate-500">Se enviará un email de notificación al cliente.</p>
-                </>
-              ) : null}
-              {targetStatus === 'CANCELLED' && order.status === 'PAID' ? (
-                <>
-                  <p className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
-                    Esta orden ya está pagada — cancelarla reembolsa el total al cliente por Stripe y
-                    repone el stock automáticamente. La orden quedará como "Devuelto", no "Cancelado".
-                  </p>
-                  <textarea
-                    value={statusCancelReason}
-                    onChange={(event) => setStatusCancelReason(event.target.value)}
-                    placeholder="Motivo de la cancelación (opcional)"
-                    rows={2}
-                    maxLength={500}
-                    className="w-full rounded-2xl border border-white/12 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-lime-400/50 focus:outline-none"
-                  />
-                </>
-              ) : null}
-            </div>
-          ) : (
-            <p className="mt-2 text-sm text-slate-400">Esta orden no admite más cambios de estado.</p>
-          )}
-        </div>
+        <StatusChangeSection
+          order={order}
+          nextStatuses={nextStatuses}
+          targetStatus={targetStatus}
+          onTargetStatusChange={setTargetStatus}
+          statusTracking={statusTracking}
+          onStatusTrackingChange={setStatusTracking}
+          statusCancelReason={statusCancelReason}
+          onStatusCancelReasonChange={setStatusCancelReason}
+          updatingStatus={updatingStatus}
+          onSubmit={handleStatusChange}
+        />
 
         {/* Refund action */}
-        <div className="mt-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
-          <h4 className="text-sm font-semibold text-white">Reembolso</h4>
-          {isRefundable ? (
-            !confirming ? (
-              <div className="mt-2 flex items-center justify-between gap-3">
-                <p className="text-sm text-slate-400">
-                  Reembolsa el total de esta orden a través de Stripe.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setConfirming(true)
-                    setError(null)
-                  }}
-                  className="shrink-0 rounded-full bg-fuchsia-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-fuchsia-400"
-                >
-                  Reembolsar
-                </button>
-              </div>
-            ) : (
-              <div className="mt-3 space-y-3">
-                <p className="text-sm text-slate-300">
-                  Vas a reembolsar <span className="font-semibold text-white">{formatCurrency(order.totalAmount)}</span> al
-                  cliente. Esta acción no se puede deshacer.
-                </p>
-                <div>
-                  <textarea
-                    value={reason}
-                    onChange={(event) => setReason(event.target.value)}
-                    placeholder={
-                      reasonRequired
-                        ? 'Motivo del reembolso (obligatorio para órdenes enviadas)'
-                        : 'Motivo del reembolso (opcional)'
-                    }
-                    rows={2}
-                    maxLength={500}
-                    className="w-full rounded-2xl border border-white/12 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-fuchsia-400/50 focus:outline-none"
-                  />
-                  {reasonRequired ? (
-                    <p className="mt-1.5 text-xs text-amber-300">
-                      Esta orden ya fue enviada — es una devolución real, así que el motivo es obligatorio.
-                    </p>
-                  ) : null}
-                </div>
-                <div className="flex flex-wrap justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setConfirming(false)
-                      setReason('')
-                    }}
-                    disabled={refunding}
-                    className="rounded-full border border-white/12 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:opacity-60"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRefund}
-                    disabled={!canConfirmRefund}
-                    className="rounded-full bg-fuchsia-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-fuchsia-400 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {refunding ? 'Procesando...' : 'Confirmar reembolso'}
-                  </button>
-                </div>
-              </div>
-            )
-          ) : (
-            <p className="mt-2 text-sm text-slate-400">
-              {order.status === 'REFUNDED'
-                ? 'Esta orden ya fue reembolsada.'
-                : 'Solo se pueden reembolsar órdenes pagadas, enviadas o entregadas.'}
-            </p>
-          )}
-        </div>
+        <RefundSection
+          order={order}
+          isRefundable={isRefundable}
+          confirming={confirming}
+          onStartConfirm={() => {
+            setConfirming(true)
+            setError(null)
+          }}
+          reason={reason}
+          onReasonChange={setReason}
+          reasonRequired={reasonRequired}
+          refunding={refunding}
+          canConfirmRefund={canConfirmRefund}
+          onCancelConfirm={() => {
+            setConfirming(false)
+            setReason('')
+          }}
+          onConfirmRefund={handleRefund}
+        />
 
         {/* Shared error for status-change and refund actions */}
         {error ? (
-          <p className="mt-4 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+          <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
           </p>
         ) : null}
 
         {/* Order history */}
-        <div className="mt-5">
-          <h4 className="mb-2 text-sm font-semibold text-white">Historial</h4>
-          {loadingHistory ? (
-            <p className="text-sm text-slate-400">Cargando historial...</p>
-          ) : history.length === 0 ? (
-            <p className="text-sm text-slate-500">Sin eventos registrados.</p>
-          ) : (
-            <ul className="space-y-2">
-              {history.map((event) => (
-                <li
-                  key={event.id}
-                  className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 text-sm"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-semibold text-white">{event.type}</span>
-                    <span className="text-xs text-slate-400">{formatDate(event.createdAt)}</span>
-                  </div>
-                  {event.reason ? (
-                    <p className="mt-1 text-slate-400">Motivo: {event.reason}</p>
-                  ) : null}
-                  {event.actorClerkId ? (
-                    <p className="mt-0.5 text-xs text-slate-500">Por: {event.actorClerkId}</p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <OrderHistoryList loadingHistory={loadingHistory} history={history} />
       </div>
     </div>
   )

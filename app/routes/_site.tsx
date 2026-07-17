@@ -65,8 +65,20 @@ function SiteChrome() {
   }, [location.pathname, closeCart])
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100">
-      {isPostLogin || isAdminBooting ? null : <Navbar minimal={isCheckoutPage} />}
+    <div
+      className={
+        // `flex-1` on the admin <main> below relies on `flex-basis: 0` to size
+        // itself via flex-grow — which means its own `h-dvh` is ignored by the
+        // flex algorithm unless THIS container has a definite height (not just
+        // a min-height floor) to distribute. Without a real ceiling here, main
+        // — and the whole document — just grows to fit content, and the
+        // "only the white pane scrolls" shell silently stops working.
+        isAdminPage
+          ? 'flex min-h-screen flex-col bg-slate-950 text-slate-100 sm:h-dvh sm:overflow-hidden'
+          : 'flex min-h-screen flex-col bg-slate-950 text-slate-100'
+      }
+    >
+      {isPostLogin || isAdminBooting || isAdminPage ? null : <Navbar minimal={isCheckoutPage} />}
 
       {isAdminBooting ? (
         <main className="flex flex-1 items-center justify-center">
@@ -96,12 +108,19 @@ function SiteChrome() {
           </ErrorBoundary>
         </main>
       ) : (
-        // Every other page: contained, dark surface.
-        <main className="flex-1">
+        // Every other page: contained, dark surface. Admin is the one
+        // exception — no shared Navbar (AdminSidebar owns its own logo/account
+        // instead, see AdminSidebar.tsx), height-capped to the full viewport
+        // and non-scrolling from sm+, so the sidebar can stay fixed while only
+        // its own content pane scrolls. Below sm (narrow phones) it falls back
+        // to normal document flow (stacked sidebar + content, whole page
+        // scrolls) — the fixed-shell pattern is desktop-oriented by nature,
+        // same as the reference dashboard this was modeled on.
+        <main className={isAdminPage ? 'flex-1 sm:h-dvh sm:overflow-hidden' : 'flex-1'}>
           <div
             className={
               isAdminPage
-                ? 'w-full px-4 py-8 sm:px-6 lg:px-8 lg:py-10'
+                ? 'w-full sm:h-full'
                 : 'mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10'
             }
           >

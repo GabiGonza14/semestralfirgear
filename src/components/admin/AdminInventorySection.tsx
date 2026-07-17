@@ -110,10 +110,10 @@ export function AdminInventorySection({ products, categories, onRefreshProducts 
     try {
       if (editingProduct) {
         await updateProduct(editingProduct.id, payload)
-        setSuccessMessage(`"${payload.name}" se actualizo correctamente.`)
+        setSuccessMessage(`"${payload.name}" se actualizó correctamente.`)
       } else {
         await createProduct(payload)
-        setSuccessMessage(`"${payload.name}" se agrego correctamente.`)
+        setSuccessMessage(`"${payload.name}" se agregó correctamente.`)
       }
 
       await onRefreshProducts()
@@ -141,7 +141,7 @@ export function AdminInventorySection({ products, categories, onRefreshProducts 
     try {
       await deleteProduct(deletingProduct.id)
       await onRefreshProducts()
-      setSuccessMessage(`"${deletingProduct.name}" se elimino correctamente.`)
+      setSuccessMessage(`"${deletingProduct.name}" se eliminó correctamente.`)
       setDeletingProduct(null)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo eliminar el producto.'
@@ -168,21 +168,21 @@ export function AdminInventorySection({ products, categories, onRefreshProducts 
       <InventoryExportControls />
 
       {successMessage ? (
-        <p className="rounded-2xl border border-lime-400/20 bg-lime-400/10 px-4 py-3 text-sm text-lime-300">
+        <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           {successMessage}
         </p>
       ) : null}
 
       {mutationError ? (
-        <p className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {mutationError}
         </p>
       ) : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
         <div className="flex flex-wrap items-center gap-3">
           <span>{filteredProducts.length} productos encontrados</span>
-          {categoryNameById.size > 0 ? <span>{categoryNameById.size} categorias disponibles</span> : null}
+          {categoryNameById.size > 0 ? <span>{categoryNameById.size} categorías disponibles</span> : null}
         </div>
 
         {lowStockCount > 0 ? (
@@ -191,8 +191,8 @@ export function AdminInventorySection({ products, categories, onRefreshProducts 
             onClick={() => setLowStockOnly((value) => !value)}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition ${
               lowStockOnly
-                ? 'bg-amber-400 text-slate-950'
-                : 'border border-amber-400/30 text-amber-300 hover:border-amber-400/60 hover:bg-amber-400/10'
+                ? 'bg-amber-700 text-white'
+                : 'border border-amber-200 text-amber-700 hover:border-amber-300 hover:bg-amber-50'
             }`}
           >
             <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -207,7 +207,7 @@ export function AdminInventorySection({ products, categories, onRefreshProducts 
             Stock bajo
             <span
               className={`rounded-full px-1.5 text-[10px] ${
-                lowStockOnly ? 'bg-slate-950/20 text-slate-900' : 'bg-amber-400/15 text-amber-300'
+                lowStockOnly ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-700'
               }`}
             >
               {lowStockCount}
@@ -219,7 +219,7 @@ export function AdminInventorySection({ products, categories, onRefreshProducts 
       <ProductTable products={pagedProducts} onEdit={handleEdit} onDelete={handleDelete} />
 
       {filteredProducts.length > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
           <span>
             Página {currentPage} de {totalPages}
           </span>
@@ -228,7 +228,7 @@ export function AdminInventorySection({ products, categories, onRefreshProducts 
               type="button"
               onClick={() => setPage((value) => Math.max(1, value - 1))}
               disabled={currentPage === 1}
-              className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Anterior
             </button>
@@ -236,7 +236,7 @@ export function AdminInventorySection({ products, categories, onRefreshProducts 
               type="button"
               onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
               disabled={currentPage === totalPages}
-              className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Siguiente
             </button>
