@@ -96,12 +96,18 @@ function SiteChrome() {
           </ErrorBoundary>
         </main>
       ) : (
-        // Every other page: contained, dark surface.
-        <main className="flex-1">
+        // Every other page: contained, dark surface. Admin is the one
+        // exception — height-capped to the viewport (minus the h-16 navbar)
+        // and non-scrolling at lg+, so AdminSidebar can stay fixed while only
+        // its own content pane scrolls. Below lg it falls back to normal
+        // document flow (stacked sidebar + content, whole page scrolls) —
+        // the fixed-shell pattern is desktop-oriented by nature, same as the
+        // reference dashboard this was modeled on.
+        <main className={isAdminPage ? 'flex-1 lg:h-[calc(100dvh-4rem)] lg:overflow-hidden' : 'flex-1'}>
           <div
             className={
               isAdminPage
-                ? 'w-full px-4 py-8 sm:px-6 lg:px-8 lg:py-10'
+                ? 'w-full lg:h-full'
                 : 'mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10'
             }
           >

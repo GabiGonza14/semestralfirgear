@@ -35,10 +35,10 @@ export function InventoryExportControls() {
   const busy = exporting !== null
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-slate-900/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <p className="text-sm font-semibold text-white">Exportar Inventario</p>
-        <p className="text-xs text-slate-400">
+        <p className="text-sm font-semibold text-slate-900">Exportar inventario</p>
+        <p className="text-xs text-slate-500">
           Descarga el estado actual del inventario (stock, valor y stock bajo) en CSV o PDF.
         </p>
       </div>
@@ -48,7 +48,7 @@ export function InventoryExportControls() {
           type="button"
           onClick={handleCsv}
           disabled={busy}
-          className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-4 py-2 text-sm font-bold text-slate-900 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-full bg-emerald-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {exporting === 'csv' ? 'Generando...' : 'Exportar CSV'}
         </button>
@@ -56,14 +56,14 @@ export function InventoryExportControls() {
           type="button"
           onClick={handlePdf}
           disabled={busy}
-          className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {exporting === 'pdf' ? 'Generando...' : 'Exportar PDF'}
         </button>
       </div>
 
       {error ? (
-        <p className="w-full rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-300 sm:order-last">
+        <p className="w-full rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 sm:order-last">
           {error}
         </p>
       ) : null}

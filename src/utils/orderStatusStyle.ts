@@ -3,13 +3,13 @@ import type { OrderStatus } from '../types'
 // Spanish label + badge color per order status. Colors mirror the palette used in
 // AdminOrderDetailModal so a status looks identical in the list and the detail.
 export const ORDER_STATUS_META: Record<OrderStatus, { label: string; badge: string }> = {
-  PENDING: { label: 'Pendiente', badge: 'bg-amber-400/15 text-amber-300 ring-amber-400/30' },
-  PAID: { label: 'Pagado', badge: 'bg-lime-400/15 text-lime-300 ring-lime-400/30' },
-  SHIPPED: { label: 'Enviado', badge: 'bg-sky-400/15 text-sky-300 ring-sky-400/30' },
-  DELIVERED: { label: 'Entregado', badge: 'bg-emerald-400/15 text-emerald-300 ring-emerald-400/30' },
-  CANCELLED: { label: 'Cancelado', badge: 'bg-slate-400/15 text-slate-300 ring-slate-400/30' },
-  FAILED: { label: 'Fallido', badge: 'bg-rose-400/15 text-rose-300 ring-rose-400/30' },
-  REFUNDED: { label: 'Reembolsado', badge: 'bg-fuchsia-400/15 text-fuchsia-300 ring-fuchsia-400/30' },
+  PENDING: { label: 'Pendiente', badge: 'bg-amber-50 text-amber-700 ring-amber-200' },
+  PAID: { label: 'Pagado', badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
+  SHIPPED: { label: 'Enviado', badge: 'bg-sky-50 text-sky-700 ring-sky-200' },
+  DELIVERED: { label: 'Entregado', badge: 'bg-teal-50 text-teal-700 ring-teal-200' },
+  CANCELLED: { label: 'Cancelado', badge: 'bg-slate-100 text-slate-600 ring-slate-200' },
+  FAILED: { label: 'Fallido', badge: 'bg-rose-50 text-rose-700 ring-rose-200' },
+  REFUNDED: { label: 'Reembolsado', badge: 'bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200' },
 }
 
 // Filter/display order for status chips.

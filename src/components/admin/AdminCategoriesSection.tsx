@@ -4,7 +4,7 @@ import type { Category, Product } from '../../types'
 import { DeleteConfirmModal } from './DeleteConfirmModal'
 
 const fieldClass =
-  'rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-slate-100 outline-none transition focus:border-lime-400/60 focus:ring-2 focus:ring-lime-400/30 placeholder:text-slate-500'
+  'rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-700 outline-none transition focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20 placeholder:text-slate-400'
 
 // Product counts drive the delete guard: a category with associated products
 // cannot be removed, so we surface that count in the UI upfront.
@@ -22,7 +22,7 @@ interface AdminCategoriesSectionProps {
   onRefresh: () => Promise<void>
 }
 
-export function AdminCategoriesSection({ categories, products, onRefresh }: AdminCategoriesSectionProps) {
+export function AdminCategoriesSection({ categories, products, onRefresh }: Readonly<AdminCategoriesSectionProps>) {
   const productCountByCategory = useMemo(() => countProductsByCategory(products), [products])
   const [error, setError] = useState<string | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
@@ -46,7 +46,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
       await updateCategory(category.id, { requiresSizes: !category.requiresSizes })
       await onRefresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar la categoria.')
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar la categoría.')
     } finally {
       setTogglingId(null)
     }
@@ -85,7 +85,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
       cancelEdit()
       await onRefresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo renombrar la categoria.')
+      setError(err instanceof Error ? err.message : 'No se pudo renombrar la categoría.')
     } finally {
       setSavingEdit(false)
     }
@@ -101,7 +101,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
       setDeletingCategory(null)
       await onRefresh()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'No se pudo eliminar la categoria.'
+      const message = err instanceof Error ? err.message : 'No se pudo eliminar la categoría.'
       throw new Error(message)
     }
   }
@@ -123,7 +123,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
       setRequiresSizes(false)
       await onRefresh()
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'No se pudo crear la categoria.')
+      setFormError(err instanceof Error ? err.message : 'No se pudo crear la categoría.')
     } finally {
       setCreating(false)
     }
@@ -137,26 +137,26 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
     if (count === 0) {
       return undefined
     }
-    return `${deletingCategory.name} tiene ${count} ${count === 1 ? 'producto asociado' : 'productos asociados'}. Reasigna o elimina esos productos antes de borrar la categoria.`
+    return `${deletingCategory.name} tiene ${count} ${count === 1 ? 'producto asociado' : 'productos asociados'}. Reasigna o elimina esos productos antes de borrar la categoría.`
   }, [deletingCategory, productCountByCategory])
 
   return (
     <div className="space-y-5">
-      <section className="rounded-3xl border border-white/[0.08] bg-slate-900 p-5 sm:p-6">
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-lime-400">Categorias</p>
-        <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">Gestion de categorias</h2>
-        <p className="mt-1 text-sm text-slate-400">
-          Renombra, elimina o marca que categorias piden talla (Guantes, Ropa...) para que el
+      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-700">Categorías</p>
+        <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">Gestión de categorías</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Renombra, elimina o marca qué categorías piden talla (Guantes, Ropa...) para que el
           formulario de productos muestre el selector de tallas en vez del stock plano.
         </p>
 
         {error ? (
-          <p className="mt-4 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+          <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
           </p>
         ) : null}
 
-        <ul className="mt-5 divide-y divide-white/[0.06]">
+        <ul className="mt-5 divide-y divide-slate-100">
             {categories.map((category) => {
               const productCount = productCountByCategory[category.id] ?? 0
               const isEditing = editingId === category.id
@@ -165,7 +165,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
                 <li key={category.id} className="py-3">
                   {isEditing ? (
                     <form onSubmit={handleSaveEdit} className="grid gap-3 md:grid-cols-2">
-                      <label className="grid gap-1.5 text-xs font-medium text-slate-400">
+                      <label className="grid gap-1.5 text-xs font-medium text-slate-500">
                         <span>Nombre</span>
                         <input
                           value={editName}
@@ -173,8 +173,8 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
                           className={fieldClass}
                         />
                       </label>
-                      <label className="grid gap-1.5 text-xs font-medium text-slate-400">
-                        <span>Descripcion</span>
+                      <label className="grid gap-1.5 text-xs font-medium text-slate-500">
+                        <span>Descripción</span>
                         <input
                           value={editDescription}
                           onChange={(event) => setEditDescription(event.target.value)}
@@ -186,14 +186,14 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
                         <button
                           type="submit"
                           disabled={savingEdit}
-                          className="rounded-full bg-lime-400 px-5 py-2 text-sm font-bold text-slate-900 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="rounded-full bg-emerald-700 px-5 py-2 text-sm font-bold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {savingEdit ? 'Guardando...' : 'Guardar'}
                         </button>
                         <button
                           type="button"
                           onClick={cancelEdit}
-                          className="rounded-full border border-white/12 px-5 py-2 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5"
+                          className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
                         >
                           Cancelar
                         </button>
@@ -202,9 +202,9 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
                   ) : (
                     <div className="flex items-center justify-between gap-4">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-white">{category.name}</p>
+                        <p className="truncate text-sm font-semibold text-slate-900">{category.name}</p>
                         {category.description ? (
-                          <p className="truncate text-xs text-slate-400">{category.description}</p>
+                          <p className="truncate text-xs text-slate-500">{category.description}</p>
                         ) : null}
                         <p className="mt-0.5 text-xs text-slate-500">
                           {productCount} {productCount === 1 ? 'producto' : 'productos'}
@@ -214,9 +214,9 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
                       <div className="flex shrink-0 items-center gap-2">
                         <div
                           className="flex items-center gap-2"
-                          title="Si esta activo, el formulario de productos de esta categoria muestra el selector de tallas (XS - XXL) en vez del stock plano."
+                          title="Si está activo, el formulario de productos de esta categoría muestra el selector de tallas (XS - XXL) en vez del stock plano."
                         >
-                          <span className="hidden text-xs font-medium text-slate-400 sm:inline">
+                          <span className="hidden text-xs font-medium text-slate-500 sm:inline">
                             Requiere talla
                           </span>
                           <button
@@ -226,11 +226,11 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
                             aria-pressed={category.requiresSizes}
                             aria-label={`Requiere tallas: ${category.name}`}
                             className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full transition disabled:opacity-50 ${
-                              category.requiresSizes ? 'bg-lime-400' : 'bg-white/15'
+                              category.requiresSizes ? 'bg-emerald-600' : 'bg-slate-200'
                             }`}
                           >
                             <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-slate-950 transition ${
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
                                 category.requiresSizes ? 'translate-x-6' : 'translate-x-1'
                               }`}
                             />
@@ -240,7 +240,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
                         <button
                           type="button"
                           onClick={() => startEdit(category)}
-                          className="rounded-full border border-white/12 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5"
+                          className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
                         >
                           Renombrar
                         </button>
@@ -248,7 +248,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
                         <button
                           type="button"
                           onClick={() => setDeletingCategory(category)}
-                          className="rounded-full border border-rose-400/30 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:border-rose-400/60 hover:bg-rose-500/10"
+                          className="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50"
                         >
                           Eliminar
                         </button>
@@ -260,22 +260,22 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
             })}
 
             {categories.length === 0 ? (
-              <li className="py-3 text-sm text-slate-400">Todavia no hay categorias.</li>
+              <li className="py-3 text-sm text-slate-500">Todavía no hay categorías.</li>
             ) : null}
         </ul>
       </section>
 
-      <section className="rounded-3xl border border-white/[0.08] bg-slate-900 p-5 sm:p-6">
-        <h3 className="text-lg font-bold text-white">Nueva categoria</h3>
+      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <h3 className="text-lg font-bold text-slate-900">Nueva categoría</h3>
 
         {formError ? (
-          <p className="mt-3 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+          <p className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {formError}
           </p>
         ) : null}
 
         <form onSubmit={handleCreate} className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2 text-sm font-medium text-slate-300">
+          <label className="grid gap-2 text-sm font-medium text-slate-600">
             <span>Nombre</span>
             <input
               value={name}
@@ -285,8 +285,8 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
             />
           </label>
 
-          <label className="grid gap-2 text-sm font-medium text-slate-300">
-            <span>Descripcion</span>
+          <label className="grid gap-2 text-sm font-medium text-slate-600">
+            <span>Descripción</span>
             <input
               value={description}
               onChange={(event) => setDescription(event.target.value)}
@@ -295,23 +295,23 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
             />
           </label>
 
-          <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm font-medium text-slate-300 md:col-span-2">
+          <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 md:col-span-2">
             <input
               type="checkbox"
               checked={requiresSizes}
               onChange={(event) => setRequiresSizes(event.target.checked)}
-              className="h-4 w-4 rounded border-white/20 bg-slate-950 text-lime-500 accent-lime-400 focus:ring-lime-400"
+              className="h-4 w-4 rounded border-slate-300 text-emerald-600 accent-emerald-600 focus:ring-emerald-500"
             />
-            <span>Esta categoria requiere talla (XS - XXL)</span>
+            <span>Esta categoría requiere talla (XS - XXL)</span>
           </label>
 
           <div className="md:col-span-2">
             <button
               type="submit"
               disabled={creating}
-              className="rounded-full bg-lime-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-full bg-emerald-700 px-6 py-3 text-sm font-bold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {creating ? 'Creando...' : 'Crear categoria'}
+              {creating ? 'Creando...' : 'Crear categoría'}
             </button>
           </div>
         </form>
@@ -320,7 +320,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Admi
       <DeleteConfirmModal
         isOpen={Boolean(deletingCategory)}
         itemName={deletingCategory?.name ?? ''}
-        entityLabel="categoria"
+        entityLabel="categoría"
         blockedMessage={deleteBlockedMessage}
         onClose={() => setDeletingCategory(null)}
         onConfirm={confirmDelete}

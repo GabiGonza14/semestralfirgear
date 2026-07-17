@@ -6,7 +6,7 @@ interface OrderStatusBadgeProps {
 }
 
 // Small colored pill showing a localized order status. Shared by the orders list.
-export function OrderStatusBadge({ status }: OrderStatusBadgeProps) {
+export function OrderStatusBadge({ status }: Readonly<OrderStatusBadgeProps>) {
   const meta = ORDER_STATUS_META[status]
 
   return (

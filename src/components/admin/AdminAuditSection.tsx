@@ -10,7 +10,7 @@ const PAGE_SIZE = 20
 // the table has no row actions.
 
 const fieldClass =
-  'w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-slate-200 outline-none transition focus:border-lime-400/60 focus:ring-2 focus:ring-lime-400/30 placeholder:text-slate-500'
+  'w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20 placeholder:text-slate-400'
 
 // Human-readable Spanish labels for each recorded action. Falls back to the raw
 // code for any future action not yet mapped here.
@@ -24,9 +24,9 @@ const ACTION_LABELS: Record<string, string> = {
   PRODUCT_UPDATED: 'Producto actualizado',
   PRODUCT_STOCK_UPDATED: 'Stock actualizado',
   PRODUCT_DELETED: 'Producto eliminado',
-  CATEGORY_CREATED: 'Categoria creada',
-  CATEGORY_UPDATED: 'Categoria actualizada',
-  CATEGORY_DELETED: 'Categoria eliminada',
+  CATEGORY_CREATED: 'Categoría creada',
+  CATEGORY_UPDATED: 'Categoría actualizada',
+  CATEGORY_DELETED: 'Categoría eliminada',
   REVIEW_STATUS_CHANGED: 'Cambio de estado de reseña',
 }
 
@@ -34,16 +34,16 @@ const ENTITY_LABELS: Record<AuditEntityType, string> = {
   ORDER: 'Orden',
   USER: 'Usuario',
   PRODUCT: 'Producto',
-  CATEGORY: 'Categoria',
+  CATEGORY: 'Categoría',
   REVIEW: 'Reseña',
 }
 
 const ENTITY_BADGE: Record<AuditEntityType, string> = {
-  ORDER: 'bg-sky-400/15 text-sky-300',
-  USER: 'bg-violet-400/15 text-violet-300',
-  PRODUCT: 'bg-lime-400/15 text-lime-300',
-  CATEGORY: 'bg-amber-400/15 text-amber-300',
-  REVIEW: 'bg-rose-400/15 text-rose-300',
+  ORDER: 'bg-sky-50 text-sky-700',
+  USER: 'bg-violet-50 text-violet-700',
+  PRODUCT: 'bg-emerald-50 text-emerald-700',
+  CATEGORY: 'bg-amber-50 text-amber-700',
+  REVIEW: 'bg-rose-50 text-rose-700',
 }
 
 // Spanish labels for order lifecycle statuses, so "Cambios" reads naturally
@@ -147,7 +147,7 @@ const EMPTY_FILTERS: Filters = {
 // instant, but the audit trail aggregates actions from every other section —
 // so unlike the other tabs it must re-fetch each time it's reopened, otherwise
 // e.g. a role change made in Usuarios wouldn't appear until a full page reload.
-export function AdminAuditSection({ active = true }: { active?: boolean }) {
+export function AdminAuditSection({ active = true }: Readonly<{ active?: boolean }>) {
   const [events, setEvents] = useState<AuditLogEntry[]>([])
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [loading, setLoading] = useState(true)
@@ -176,7 +176,7 @@ export function AdminAuditSection({ active = true }: { active?: boolean }) {
       })
       setEvents(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo cargar el historial de auditoria.')
+      setError(err instanceof Error ? err.message : 'No se pudo cargar el historial de auditoría.')
     } finally {
       setLoading(false)
     }
@@ -210,15 +210,15 @@ export function AdminAuditSection({ active = true }: { active?: boolean }) {
 
   return (
     <section className="space-y-4">
-      <div className="rounded-3xl border border-white/[0.08] bg-slate-900 p-5 sm:p-6">
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-lime-400">Auditoria</p>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-700">Auditoría</p>
+          <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
             Historial de acciones admin
           </h2>
-          <p className="mt-1 text-sm text-slate-400">
-            Registro de solo lectura de cada accion realizada en el panel. Filtra por tipo de
-            accion, usuario o rango de fechas.
+          <p className="mt-1 text-sm text-slate-500">
+            Registro de solo lectura de cada acción realizada en el panel. Filtra por tipo de
+            acción, usuario o rango de fechas.
           </p>
         </div>
 
@@ -233,7 +233,7 @@ export function AdminAuditSection({ active = true }: { active?: boolean }) {
           <input
             value={filters.action}
             onChange={(event) => setFilters((prev) => ({ ...prev, action: event.target.value }))}
-            placeholder="Accion (ej. ORDER_REFUNDED)"
+            placeholder="Acción (ej. ORDER_REFUNDED)"
             className={fieldClass}
           />
 
@@ -246,10 +246,10 @@ export function AdminAuditSection({ active = true }: { active?: boolean }) {
             aria-label="Tipo de entidad"
           >
             <option value="">Todas las entidades</option>
-            <option value="ORDER">Ordenes</option>
+            <option value="ORDER">Órdenes</option>
             <option value="USER">Usuarios</option>
             <option value="PRODUCT">Productos</option>
-            <option value="CATEGORY">Categorias</option>
+            <option value="CATEGORY">Categorías</option>
             <option value="REVIEW">Reseñas</option>
           </select>
 
@@ -272,14 +272,14 @@ export function AdminAuditSection({ active = true }: { active?: boolean }) {
           <div className="flex items-center gap-2">
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-full bg-lime-400 px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-lime-300"
+              className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-600"
             >
               Filtrar
             </button>
             <button
               type="button"
               onClick={handleReset}
-              className="inline-flex items-center justify-center rounded-full border border-white/12 px-4 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
             >
               Limpiar
             </button>
@@ -287,37 +287,37 @@ export function AdminAuditSection({ active = true }: { active?: boolean }) {
         </form>
       </div>
 
-      <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         {error ? (
-          <p className="mb-4 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+          <p className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
           </p>
         ) : null}
 
         {loading ? (
-          <p className="py-6 text-center text-sm text-slate-300">Cargando historial...</p>
+          <p className="py-6 text-center text-sm text-slate-500">Cargando historial...</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-200 text-left text-sm text-slate-300">
-              <thead className="text-slate-400">
+            <table className="w-full min-w-200 text-left text-sm text-slate-600">
+              <thead className="text-slate-500">
                 <tr>
-                  <th className="pb-2">Fecha</th>
-                  <th className="pb-2">Usuario</th>
-                  <th className="pb-2">Accion</th>
-                  <th className="pb-2">Entidad</th>
-                  <th className="pb-2">Cambios</th>
+                  <th className="pb-2 font-medium">Fecha</th>
+                  <th className="pb-2 font-medium">Usuario</th>
+                  <th className="pb-2 font-medium">Acción</th>
+                  <th className="pb-2 font-medium">Entidad</th>
+                  <th className="pb-2 font-medium">Cambios</th>
                 </tr>
               </thead>
               <tbody>
                 {pagedEvents.map((entry) => (
-                  <tr key={entry.id} className="border-t border-white/10 align-top">
-                    <td className="py-2.5 whitespace-nowrap text-slate-400">
+                  <tr key={entry.id} className="border-t border-slate-100 align-top">
+                    <td className="py-2.5 whitespace-nowrap text-slate-500">
                       {formatDateTime(entry.createdAt)}
                     </td>
                     <td className="py-2.5">
                       {entry.actorEmail ?? entry.actorClerkId ?? 'Sistema'}
                     </td>
-                    <td className="py-2.5 font-medium text-slate-100">{actionLabel(entry.action)}</td>
+                    <td className="py-2.5 font-medium text-slate-900">{actionLabel(entry.action)}</td>
                     <td className="py-2.5">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${ENTITY_BADGE[entry.entityType]}`}
@@ -334,17 +334,17 @@ export function AdminAuditSection({ active = true }: { active?: boolean }) {
                       {(() => {
                         const items = describeChanges(entry.changes, entry.entityType)
                         if (items.length === 0) {
-                          return <span className="text-slate-600">—</span>
+                          return <span className="text-slate-300">—</span>
                         }
                         return (
                           <div className="flex max-w-md flex-wrap gap-1.5">
                             {items.map((item) => (
                               <span
                                 key={item.key}
-                                className="inline-flex items-center gap-1 rounded-lg bg-white/5 px-2 py-0.5 text-xs"
+                                className="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-2 py-0.5 text-xs"
                               >
                                 <span className="text-slate-500">{item.label}:</span>
-                                <span className="font-medium text-slate-200">{item.value}</span>
+                                <span className="font-medium text-slate-700">{item.value}</span>
                               </span>
                             ))}
                           </div>
@@ -356,8 +356,8 @@ export function AdminAuditSection({ active = true }: { active?: boolean }) {
 
                 {events.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-6 text-center text-slate-400">
-                      No hay registros de auditoria para los filtros seleccionados.
+                    <td colSpan={5} className="py-6 text-center text-slate-500">
+                      No hay registros de auditoría para los filtros seleccionados.
                     </td>
                   </tr>
                 ) : null}
@@ -367,7 +367,7 @@ export function AdminAuditSection({ active = true }: { active?: boolean }) {
         )}
 
         {totalPages > 1 ? (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
             <span>
               Página {currentPage} de {totalPages}
             </span>
@@ -376,7 +376,7 @@ export function AdminAuditSection({ active = true }: { active?: boolean }) {
                 type="button"
                 onClick={() => setPage((value) => Math.max(1, value - 1))}
                 disabled={currentPage === 1}
-                className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Anterior
               </button>
@@ -384,7 +384,7 @@ export function AdminAuditSection({ active = true }: { active?: boolean }) {
                 type="button"
                 onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
                 disabled={currentPage === totalPages}
-                className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Siguiente
               </button>

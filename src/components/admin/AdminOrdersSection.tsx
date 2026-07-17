@@ -33,7 +33,7 @@ export function AdminOrdersSection({
   onSelectOrder,
   variant,
   onViewAll,
-}: AdminOrdersSectionProps) {
+}: Readonly<AdminOrdersSectionProps>) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
   const [page, setPage] = useState(1)
   const isOverview = variant === 'overview'
@@ -74,10 +74,10 @@ export function AdminOrdersSection({
   const availableStatuses = ORDER_STATUS_ORDER.filter((status) => (counts.get(status) ?? 0) > 0)
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-4 sm:p-5">
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-white">
+          <h3 className="text-lg font-semibold text-slate-900">
             {isOverview ? 'Órdenes recientes' : 'Órdenes'}
             <span className="ml-2 text-sm font-normal text-slate-500">
               {isOverview
@@ -96,7 +96,7 @@ export function AdminOrdersSection({
           <button
             type="button"
             onClick={onViewAll}
-            className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5"
+            className="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
           >
             Ver todas ({orders.length})
           </button>
@@ -140,15 +140,15 @@ export function AdminOrdersSection({
           <tbody>
             {loading && orders.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-sm text-slate-400">
+                <td colSpan={6} className="py-8 text-center text-sm text-slate-500">
                   Cargando órdenes…
                 </td>
               </tr>
             ) : visibleOrders.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-sm text-slate-400">
+                <td colSpan={6} className="py-8 text-center text-sm text-slate-500">
                   {orders.length === 0
-                    ? 'Aún no hay órdenes.'
+                    ? 'Todavía no hay órdenes. Van a aparecer aquí en cuanto un cliente compre.'
                     : 'No hay órdenes con este estado.'}
                 </td>
               </tr>
@@ -157,11 +157,11 @@ export function AdminOrdersSection({
                 <tr
                   key={order.id}
                   onClick={() => onSelectOrder(order.id)}
-                  className="group cursor-pointer transition hover:bg-white/[0.04]"
+                  className="group cursor-pointer transition hover:bg-slate-50"
                 >
-                  <td className="border-t border-white/[0.06] py-3">
+                  <td className="border-t border-slate-100 py-3">
                     <span
-                      className="font-mono font-semibold text-white"
+                      className="font-mono font-semibold text-slate-900"
                       title={order.id}
                     >
                       {shortId(order.id)}
@@ -170,20 +170,20 @@ export function AdminOrdersSection({
                       {itemCount(order)} art.
                     </span>
                   </td>
-                  <td className="border-t border-white/[0.06] py-3 text-slate-300">
+                  <td className="border-t border-slate-100 py-3 text-slate-600">
                     {order.customerName ?? order.userId}
                   </td>
-                  <td className="border-t border-white/[0.06] py-3 text-slate-400">
+                  <td className="border-t border-slate-100 py-3 text-slate-500">
                     {formatDate(order.createdAt)}
                   </td>
-                  <td className="border-t border-white/[0.06] py-3">
+                  <td className="border-t border-slate-100 py-3">
                     <OrderStatusBadge status={order.status} />
                   </td>
-                  <td className="border-t border-white/[0.06] py-3 text-right font-semibold text-white">
+                  <td className="border-t border-slate-100 py-3 text-right font-semibold text-slate-900">
                     {formatCurrency(order.totalAmount)}
                   </td>
-                  <td className="border-t border-white/[0.06] py-3 pl-2 text-right">
-                    <span className="text-slate-600 transition group-hover:text-slate-300">›</span>
+                  <td className="border-t border-slate-100 py-3 pl-2 text-right">
+                    <span className="text-slate-300 transition group-hover:text-slate-500">›</span>
                   </td>
                 </tr>
               ))
@@ -193,7 +193,7 @@ export function AdminOrdersSection({
       </div>
 
       {!isOverview && visibleOrders.length > 0 ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
           <span>
             Página {currentPage} de {totalPages}
           </span>
@@ -202,7 +202,7 @@ export function AdminOrdersSection({
               type="button"
               onClick={() => setPage((value) => Math.max(1, value - 1))}
               disabled={currentPage === 1}
-              className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Anterior
             </button>
@@ -210,7 +210,7 @@ export function AdminOrdersSection({
               type="button"
               onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
               disabled={currentPage === totalPages}
-              className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Siguiente
             </button>
@@ -228,21 +228,21 @@ interface FilterChipProps {
   onClick: () => void
 }
 
-function FilterChip({ label, count, active, onClick }: FilterChipProps) {
+function FilterChip({ label, count, active, onClick }: Readonly<FilterChipProps>) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition ${
         active
-          ? 'bg-lime-400 text-slate-950'
-          : 'border border-white/12 text-slate-300 hover:border-white/30 hover:bg-white/5'
+          ? 'bg-emerald-700 text-white'
+          : 'border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
       }`}
     >
       {label}
       <span
         className={`rounded-full px-1.5 text-[10px] ${
-          active ? 'bg-slate-950/20 text-slate-900' : 'bg-white/10 text-slate-400'
+          active ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'
         }`}
       >
         {count}

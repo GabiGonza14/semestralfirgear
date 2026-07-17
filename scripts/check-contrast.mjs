@@ -28,6 +28,42 @@ const palette = {
   'amber-300': '#fcd34d',
   'rose-300': '#fda4af',
   'sky-300': '#7dd3fc',
+
+  // --- Paleta clara del panel admin (dashboard ejecutivo) ---
+  'white-bg': '#ffffff',
+  'slate-50': '#f8fafc',
+  'slate-200': '#e2e8f0',
+  'slate-600': '#475569',
+  'slate-700': '#334155',
+  'emerald-50': '#ecfdf5',
+  'emerald-100': '#d1fae5',
+  'emerald-500': '#10b981',
+  'emerald-600': '#059669',
+  'emerald-700': '#047857',
+  'emerald-950': '#022c22',
+  // text-emerald-100/70 sobre bg-emerald-950: color ya compuesto (alpha-blend
+  // manual, 70% opacidad de #d1fae5 sobre #022c22) porque el script no
+  // resuelve alpha — la clase real del sidebar es la de arriba, esto es solo
+  // el resultado plano para poder medirlo.
+  'emerald-100/70-flat': '#93bcab',
+  'amber-50': '#fffbeb',
+  'amber-500': '#f59e0b',
+  'amber-600': '#d97706',
+  'amber-700': '#b45309',
+  'amber-800': '#92400e',
+  'amber-900': '#78350f',
+  'rose-50': '#fff1f2',
+  'rose-600': '#e11d48',
+  'rose-700': '#be123c',
+  'sky-50': '#f0f9ff',
+  'sky-700': '#0369a1',
+  'teal-50': '#f0fdfa',
+  'teal-700': '#0f766e',
+  'fuchsia-50': '#fdf4ff',
+  'fuchsia-600': '#c026d3',
+  'fuchsia-700': '#a21caf',
+  'violet-50': '#f5f3ff',
+  'violet-700': '#6d28d9',
 }
 
 // [texto, fondo, ¿es texto grande? (>=18.66px bold / 24px)]
@@ -51,6 +87,35 @@ const pairs = [
   ['amber-300', 'slate-900', true], // badge PENDING
   ['rose-300', 'slate-900', true], // badge error/eliminar
   ['sky-300', 'slate-900', true], // badge SHIPPED
+
+  // --- Panel admin: paleta clara ---
+  // slate-400 sobre blanco/slate-50 (2.56:1) NO pasa ni como texto grande — se
+  // reserva solo para placeholder:text-slate-400 (no evaluado aquí, mismo
+  // criterio que el resto del script no audita placeholders). Todo texto real
+  // usa slate-500 como mínimo.
+  ['slate-900', 'white-bg'], // títulos/valores principales
+  ['slate-700', 'white-bg'], // texto de formularios
+  ['slate-600', 'white-bg'], // texto de tabla/cuerpo
+  ['slate-500', 'white-bg'], // texto secundario/terciario (reemplaza a slate-400)
+  ['slate-600', 'slate-50'], // texto de tabla sobre fila con fondo sutil
+  ['slate-500', 'slate-50'], // texto secundario sobre fondo sutil
+  ['white-bg', 'emerald-700'], // botones primarios (texto blanco) — emerald-600 no pasa (3.77:1), se usa 700
+  ['white-bg', 'rose-600'], // botones destructivos
+  ['white-bg', 'fuchsia-600'], // botón reembolsar
+  ['white-bg', 'amber-700'], // botón acceso denegado / chip stock bajo activo — amber-500/600 no pasan
+  ['emerald-700', 'emerald-50'], // texto de éxito / badge PAID / precio final
+  ['emerald-700', 'white-bg'], // eyebrow labels — texto xs/sm, NO es "grande" pese al uppercase+bold
+  ['amber-700', 'amber-50'], // badge PENDING / stock bajo
+  ['amber-800', 'amber-50'], // texto dentro de aviso amber
+  ['amber-900', 'amber-50'], // heading "Necesitas acceso de administrador"
+  ['rose-700', 'rose-50'], // badge FAILED / error boxes
+  ['rose-600', 'white-bg'], // links "Eliminar"/"Rechazar"
+  ['sky-700', 'sky-50'], // badge SHIPPED
+  ['teal-700', 'teal-50'], // badge DELIVERED
+  ['fuchsia-700', 'fuchsia-50'], // badge REFUNDED
+  ['violet-700', 'violet-50'], // badge USER (auditoría)
+  ['emerald-950', 'emerald-500'], // sidebar: item activo
+  ['emerald-100/70-flat', 'emerald-950'], // sidebar: item inactivo
 ]
 
 // --- WCAG 2.1 relative luminance + contrast ratio ---
