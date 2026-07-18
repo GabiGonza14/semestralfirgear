@@ -39,7 +39,7 @@ test.describe('Checkout success page', () => {
 
     await expect(page.getByRole('heading', { name: 'Gracias por tu compra' })).toBeVisible()
     await expect(page.getByText('Pago confirmado')).toBeVisible()
-    await expect(page.getByText('Orden: order-paid')).toBeVisible()
+    await expect(page.getByText('Pedido: order-paid')).toBeVisible()
     await expect(page.getByRole('link', { name: `Reseñar ${PRODUCT_DUMBBELL.name}` })).toBeVisible()
 
     await page.getByRole('button', { name: 'Ver mis pedidos' }).click()
@@ -61,7 +61,7 @@ test.describe('Checkout success page', () => {
     await mockCheckout(page)
     await page.goto('/checkout/success')
 
-    await expect(page.getByText('No se encontro la orden para confirmar el pago.')).toBeVisible()
+    await expect(page.getByText('No encontramos el pedido para confirmar el pago.')).toBeVisible()
   })
 })
 
@@ -82,10 +82,10 @@ test.describe('Checkout cancel page', () => {
 
     await page.goto('/checkout/cancel?orderId=order-pending')
 
-    await expect(page.getByRole('heading', { name: 'No se completo el pago' })).toBeVisible()
-    await expect(page.getByText('Orden pendiente: order-pending')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'No se completó el pago' })).toBeVisible()
+    await expect(page.getByText('Pedido pendiente: order-pending')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Reintentar pago' })).toBeEnabled()
-    await expect(page.getByRole('button', { name: 'Cancelar orden' })).toBeEnabled()
+    await expect(page.getByRole('button', { name: 'Cancelar pedido' })).toBeEnabled()
   })
 
   test('disables retry/cancel once the order is no longer pending', async ({ page }) => {
@@ -104,8 +104,8 @@ test.describe('Checkout cancel page', () => {
 
     await page.goto('/checkout/cancel?orderId=order-cancelled')
 
-    await expect(page.getByText('Esta orden ya fue cancelada.')).toBeVisible()
+    await expect(page.getByText('Este pedido ya fue cancelado.')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Reintentar pago' })).toBeDisabled()
-    await expect(page.getByRole('button', { name: 'Cancelar orden' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Cancelar pedido' })).toBeDisabled()
   })
 })

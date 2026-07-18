@@ -16,24 +16,20 @@ test.describe('Cart', () => {
     await page.goto('/shop')
     const drawer = page.getByRole('dialog', { name: 'Carrito de compras' })
 
-    // addItem() auto-opens the drawer (CartContext), and its backdrop then
-    // covers the shop grid — close it between adds so the next product card
-    // is clickable again.
+    // addItem() no longer auto-opens the drawer — adding doesn't touch the
+    // drawer's open state at all, so the shop grid stays clickable and we
+    // only open it once via the navbar button to check the result.
     await page
       .locator('article')
       .filter({ hasText: PRODUCT_DUMBBELL.name })
       .getByRole('button', { name: 'Agregar' })
       .click()
-    await expect(drawer).toBeVisible()
-    await page.keyboard.press('Escape')
-    await expect(drawer).toBeHidden()
 
     const bandCard = page.locator('article').filter({ hasText: PRODUCT_BAND.name })
     await bandCard.getByRole('button', { name: 'Agregar' }).click()
-    await page.keyboard.press('Escape')
-    await expect(drawer).toBeHidden()
     await bandCard.getByRole('button', { name: 'Agregar' }).click()
 
+    await page.getByRole('button', { name: 'Ver carrito' }).click()
     await expect(drawer).toBeVisible()
     await expect(drawer.getByText('Tu carrito (3)')).toBeVisible()
 
@@ -57,7 +53,8 @@ test.describe('Cart', () => {
       .getByRole('button', { name: 'Agregar' })
       .click()
 
-    // addItem() auto-opens the drawer — no need to click "Ver carrito" too.
+    // addItem() no longer auto-opens the drawer — open it explicitly.
+    await page.getByRole('button', { name: 'Ver carrito' }).click()
     const drawer = page.getByRole('dialog', { name: 'Carrito de compras' })
     await expect(drawer).toBeVisible()
     const line = drawer.locator('article').filter({ hasText: PRODUCT_DUMBBELL.name })
@@ -66,7 +63,7 @@ test.describe('Cart', () => {
     await expect(line.locator('span.text-center')).toHaveText('2')
 
     await line.getByRole('button', { name: 'Eliminar del carrito' }).click()
-    await expect(drawer.getByText('Tu carrito esta vacio')).toBeVisible()
+    await expect(drawer.getByText('Tu carrito está vacío')).toBeVisible()
   })
 
   test('shows a login-required error when checking out while signed out', async ({ page }) => {
@@ -77,11 +74,12 @@ test.describe('Cart', () => {
       .getByRole('button', { name: 'Agregar' })
       .click()
 
-    // addItem() auto-opens the drawer — no need to click "Ver carrito" too.
+    // addItem() no longer auto-opens the drawer — open it explicitly.
+    await page.getByRole('button', { name: 'Ver carrito' }).click()
     const drawer = page.getByRole('dialog', { name: 'Carrito de compras' })
     await drawer.getByRole('button', { name: 'Pagar con tarjeta' }).click()
 
-    await expect(drawer.getByText('Debes iniciar sesion para crear una orden.')).toBeVisible()
+    await expect(drawer.getByText('Debes iniciar sesión para crear una orden.')).toBeVisible()
   })
 
   test('cart persists across a page reload', async ({ page }) => {
@@ -102,6 +100,6 @@ test.describe('Cart', () => {
 
     await page.getByRole('button', { name: 'Ver carrito' }).click()
     const drawer = page.getByRole('dialog', { name: 'Carrito de compras' })
-    await expect(drawer.getByText(PRODUCT_DUMBBELL.name)).toBeVisible()
+    await expect(drawer.getByRole('heading', { name: PRODUCT_DUMBBELL.name })).toBeVisible()
   })
 })

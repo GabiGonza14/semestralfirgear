@@ -36,7 +36,10 @@ test.describe('Shop catalog', () => {
     await mockCatalog(page)
     await page.goto('/shop')
 
-    await page.getByLabel('Filtrar por precio').selectOption('under20')
+    // Custom listbox (Select component), not a native <select>: open it via
+    // its trigger button, then click the desired option.
+    await page.getByRole('button', { name: 'Filtrar por precio' }).click()
+    await page.getByRole('option', { name: 'Menos de $20' }).click()
 
     await expect(page.locator('article')).toHaveCount(1)
     await expect(page.getByRole('heading', { name: PRODUCT_BAND.name })).toBeVisible()
@@ -51,12 +54,14 @@ test.describe('Shop catalog', () => {
     // client re-applies its own sort — wait for that round-trip explicitly
     // rather than relying on the assertion's retry window to outrun it.
     const refetch = page.waitForResponse((response) => response.url().includes('/api/products?'))
-    await page.getByLabel('Ordenar productos').selectOption('priceAsc')
+    await page.getByRole('button', { name: 'Ordenar productos' }).click()
+    await page.getByRole('option', { name: 'Precio: menor a mayor' }).click()
     await refetch
     await expect(page.locator('article h3').first()).toHaveText(PRODUCT_BAND.name)
 
     const refetch2 = page.waitForResponse((response) => response.url().includes('/api/products?'))
-    await page.getByLabel('Ordenar productos').selectOption('priceDesc')
+    await page.getByRole('button', { name: 'Ordenar productos' }).click()
+    await page.getByRole('option', { name: 'Precio: mayor a menor' }).click()
     await refetch2
     await expect(page.locator('article h3').first()).toHaveText(PRODUCT_DUMBBELL.name)
   })
@@ -127,11 +132,11 @@ test.describe('Shop catalog pagination', () => {
     await page.goto('/shop')
 
     await expect(page.locator('article')).toHaveCount(30)
-    await expect(page.getByText('pagina 1 de 2')).toBeVisible()
+    await expect(page.getByText('página 1 de 2')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Pagina siguiente' }).click()
+    await page.getByRole('button', { name: 'Página siguiente' }).click()
 
     await expect(page.locator('article')).toHaveCount(2)
-    await expect(page.getByText('pagina 2 de 2')).toBeVisible()
+    await expect(page.getByText('página 2 de 2')).toBeVisible()
   })
 })

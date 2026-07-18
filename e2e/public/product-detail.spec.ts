@@ -10,7 +10,9 @@ test.describe('Product detail page', () => {
     await page.goto(`/product/${PRODUCT_DUMBBELL._id}`)
 
     await expect(page.getByRole('heading', { name: PRODUCT_DUMBBELL.name })).toBeVisible()
-    await expect(page.getByText(formatCurrency(PRODUCT_DUMBBELL.price), { exact: true })).toBeVisible()
+    // The price also appears in the mobile sticky add-to-cart bar — scope to
+    // the first (main) occurrence to avoid a strict-mode multi-match.
+    await expect(page.getByText(formatCurrency(PRODUCT_DUMBBELL.price), { exact: true }).first()).toBeVisible()
 
     const qty = page.locator('span[aria-live="polite"]')
     await expect(qty).toHaveText('1')
@@ -22,7 +24,8 @@ test.describe('Product detail page', () => {
 
     await page.getByRole('button', { name: 'Agregar al carrito' }).click()
 
-    // addItem() auto-opens the drawer — no need to click "Ver carrito" too.
+    // addItem() no longer auto-opens the drawer — open it explicitly.
+    await page.getByRole('button', { name: 'Ver carrito' }).click()
     const drawer = page.getByRole('dialog', { name: 'Carrito de compras' })
     const cartLine = drawer.locator('article').filter({ hasText: PRODUCT_DUMBBELL.name })
     await expect(cartLine).toBeVisible()
@@ -33,8 +36,10 @@ test.describe('Product detail page', () => {
     await mockCatalog(page)
     await page.goto(`/product/${PRODUCT_BAND._id}`)
 
-    await expect(page.getByText(formatCurrency(PRODUCT_BAND.finalPrice), { exact: true })).toBeVisible()
-    await expect(page.getByText(formatCurrency(PRODUCT_BAND.price), { exact: true })).toBeVisible()
+    // Both prices also appear in the mobile sticky add-to-cart bar — scope to
+    // the first (main) occurrence to avoid a strict-mode multi-match.
+    await expect(page.getByText(formatCurrency(PRODUCT_BAND.finalPrice), { exact: true }).first()).toBeVisible()
+    await expect(page.getByText(formatCurrency(PRODUCT_BAND.price), { exact: true }).first()).toBeVisible()
     await expect(page.getByText(`-${PRODUCT_BAND.discountPercentage}%`)).toBeVisible()
   })
 
@@ -67,7 +72,7 @@ test.describe('Product detail page', () => {
     await page.goto('/product/does-not-exist')
 
     await expect(page.getByRole('heading', { name: 'Producto no encontrado' })).toBeVisible()
-    await page.getByRole('link', { name: 'Volver al catalogo' }).click()
+    await page.getByRole('link', { name: 'Volver al catálogo' }).click()
     await expect(page).toHaveURL(/\/shop/)
   })
 })

@@ -16,7 +16,7 @@ test.describe('Landing page', () => {
     // page's further-down CTA banner, which sits inside a GSAP scroll-reveal
     // section — data-reveal in src/hooks/useReveal.ts — and was flaky here
     // depending on animation/hydration timing).
-    await page.getByRole('link', { name: 'Tienda' }).click()
+    await page.getByRole('link', { name: 'Tienda', exact: true }).click()
 
     await expect(page).toHaveURL(/\/shop/)
   })
@@ -24,10 +24,12 @@ test.describe('Landing page', () => {
   test('opens the cart drawer from the navbar', async ({ page }) => {
     await page.goto('/')
 
-    await page.getByRole('button', { name: 'Ver carrito' }).click()
+    // The landing page also has its own "Ver carrito" CTA further down —
+    // scope to the navbar (role="banner") to target the icon button.
+    await page.getByRole('banner').getByRole('button', { name: 'Ver carrito' }).click()
 
     const drawer = page.getByRole('dialog', { name: 'Carrito de compras' })
     await expect(drawer).toBeVisible()
-    await expect(drawer.getByText('Tu carrito esta vacio')).toBeVisible()
+    await expect(drawer.getByText('Tu carrito está vacío')).toBeVisible()
   })
 })
