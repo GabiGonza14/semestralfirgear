@@ -81,8 +81,11 @@ jobs:
     name: Playwright (e2e/authenticated, requiere secrets)
     runs-on: ubuntu-latest
     needs: frontend
-    # Se salta solo (test.skip) si faltan los secrets E2E_*; ver docs/e2e-testing.md.
-    if: ${{ vars.E2E_ADMIN_EMAIL != '' || secrets.CLERK_SECRET_KEY != '' }}
+    # jobs.<job_id>.if solo tiene acceso a github/needs/vars/inputs -- el
+    # contexto secrets no esta permitido ahi (rompe el workflow entero al
+    # parsearlo). vars.E2E_ADMIN_EMAIL alcanza como gate: si esta seteada, se
+    # asume que tambien se configuraron los secrets necesarios.
+    if: ${{ vars.E2E_ADMIN_EMAIL != '' }}
     env:
       E2E_CUSTOMER_EMAIL: ${{ vars.E2E_CUSTOMER_EMAIL }}
       E2E_ADMIN_EMAIL: ${{ vars.E2E_ADMIN_EMAIL }}
