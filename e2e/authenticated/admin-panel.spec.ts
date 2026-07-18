@@ -17,14 +17,14 @@ test.describe('Admin panel', () => {
     await signInAs(page, adminEmail()!)
     await page.goto('/admin')
     // ProtectedGuard withholds AdminDashboardPage until isAdmin resolves true.
-    await expect(page.getByText('Admin', { exact: true })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('heading', { name: 'Administración de FITGEAR' })).toBeVisible({ timeout: 15_000 })
   })
 
   test('navigates every sidebar section without error', async ({ page }) => {
     const pageErrors: Error[] = []
     page.on('pageerror', (error) => pageErrors.push(error))
 
-    for (const label of ['Resumen', 'Inventario', 'Categorias', 'Ordenes', 'Usuarios', 'Reseñas', 'Auditoria']) {
+    for (const label of ['Resumen', 'Inventario', 'Categorías', 'Órdenes', 'Usuarios', 'Reseñas', 'Auditoría']) {
       await page.getByRole('button', { name: label, exact: true }).click()
       // No client-side routing between sections — give React a beat to render.
       await page.waitForTimeout(150)
@@ -35,16 +35,16 @@ test.describe('Admin panel', () => {
 
   test('inventory section renders product management and export controls', async ({ page }) => {
     await page.getByRole('button', { name: 'Inventario', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Gestion de productos' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Gestión de productos' })).toBeVisible()
   })
 
   test('categories section renders category management', async ({ page }) => {
-    await page.getByRole('button', { name: 'Categorias', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Gestion de categorias' })).toBeVisible()
+    await page.getByRole('button', { name: 'Categorías', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Gestión de categorías' })).toBeVisible()
   })
 
   test('orders section renders the orders table', async ({ page }) => {
-    await page.getByRole('button', { name: 'Ordenes', exact: true }).click()
+    await page.getByRole('button', { name: 'Órdenes', exact: true }).click()
     await expect(page.getByText('Cliente', { exact: true })).toBeVisible()
     await expect(page.getByText('Estado', { exact: true }).first()).toBeVisible()
   })
@@ -63,7 +63,7 @@ test.describe('Admin panel', () => {
   })
 
   test('audit log section renders the admin action history', async ({ page }) => {
-    await page.getByRole('button', { name: 'Auditoria', exact: true }).click()
+    await page.getByRole('button', { name: 'Auditoría', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Historial de acciones admin' })).toBeVisible()
   })
 
