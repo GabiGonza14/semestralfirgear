@@ -154,7 +154,17 @@ export function CheckoutForm({ orderId, paymentIntentId }: CheckoutFormProps) {
           </span>
           <h2 className="text-sm font-bold uppercase tracking-[0.18em] text-lime-400">Contacto</h2>
         </div>
-        <p className="mt-4 text-base text-slate-300">{backendUser?.email}</p>
+        {/* Read-only: this is the signed-in account's own email, not an
+            editable field — styled like a disabled input so it still reads
+            as "a value that lives here", not just a stray line of text. */}
+        <input
+          type="email"
+          value={backendUser?.email ?? ''}
+          disabled
+          readOnly
+          aria-label="Correo de la cuenta"
+          className="mt-4 w-full cursor-not-allowed rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-base text-slate-300"
+        />
       </div>
 
       <div className="flex items-center gap-4 px-1">
