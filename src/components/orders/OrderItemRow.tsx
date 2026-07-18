@@ -18,7 +18,9 @@ export function OrderItemRow({ item }: OrderItemRowProps) {
 
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-white">{item.productName}</p>
-        <p className="truncate font-mono text-xs text-slate-400">ID: {item.productId}</p>
+        {item.size ? (
+          <p className="truncate text-xs text-slate-400">Talla: {item.size}</p>
+        ) : null}
       </div>
 
       <p className="text-xs text-slate-400 sm:text-sm">Cant: {item.quantity}</p>

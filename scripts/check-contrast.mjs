@@ -108,6 +108,7 @@ const pairs = [
   ['teal-700', 'teal-50'], // badge DELIVERED
   ['fuchsia-700', 'fuchsia-50'], // badge REFUNDED
   ['violet-700', 'violet-50'], // badge USER (auditoría)
+  ['slate-700', 'emerald-50'], // Select.tsx tone="light": opción activa/hover en el listbox del admin
   // Sidebar del admin: azul oscuro + verde neón — reusa la paleta dark+lima
   // de siempre (slate-950/lime-400), ya cubierta arriba (lime-400 sobre
   // slate-950, slate-900 sobre lime-400). Solo falta el ítem activo con

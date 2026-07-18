@@ -181,7 +181,7 @@ export function CartDrawer() {
         onClick={closeCart}
         aria-label="Cerrar carrito"
         tabIndex={isCartOpen ? 0 : -1}
-        initial={false}
+        initial={{ opacity: 0 }}
         animate={{ opacity: isCartOpen ? 1 : 0 }}
         transition={{ duration: MOTION_DURATION.slow, ease: EASE_OUT_ATHLETIC }}
         className={`absolute inset-0 h-full w-full cursor-default bg-slate-950/70 backdrop-blur-sm ${
@@ -194,7 +194,7 @@ export function CartDrawer() {
         aria-modal="true"
         aria-hidden={!isCartOpen}
         aria-label="Carrito de compras"
-        initial={false}
+        initial={{ x: '100%' }}
         animate={{ x: isCartOpen ? 0 : '100%' }}
         transition={{ duration: MOTION_DURATION.slow, ease: EASE_OUT_ATHLETIC }}
         onAnimationComplete={() => {

@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
+import { AnimatePresence, motion } from 'framer-motion'
 import { cancelOrder, selfRefundOrder } from '../../api/fitgearApi'
 import { useAuth } from '../../context/AuthContext'
+import { EASE_OUT_ATHLETIC, MOTION_DURATION } from '../../lib/motion'
 import { queryKeys } from '../../lib/queryKeys'
 import type { BackendOrder } from '../../types'
 import { formatCurrency } from '../../utils/format'
@@ -74,6 +76,89 @@ function formatDate(value: string) {
     month: '2-digit',
     year: 'numeric',
   }).format(new Date(value))
+}
+
+// Plain-language explanation of what's actually going on with the order right
+// now — the status badge alone ("Pagado", "En camino") names the state but
+// doesn't say what it means or what happens next.
+function statusExplanation(order: BackendOrder): string {
+  switch (order.status) {
+    case 'PENDING':
+      return 'Estamos esperando que se confirme el pago. Si ya pagaste, esto se actualiza en unos minutos.'
+    case 'PAID':
+      return 'Confirmamos tu pago y estamos preparando tu pedido para el envío.'
+    case 'SHIPPED':
+      return order.shippedAt
+        ? `Tu pedido salió el ${formatDate(order.shippedAt)} y va en camino.`
+        : 'Tu pedido ya salió y va en camino.'
+    case 'DELIVERED':
+      return 'Tu pedido fue entregado. ¡Gracias por tu compra!'
+    case 'CANCELLED':
+      return 'Este pedido fue cancelado antes de procesarse el pago.'
+    case 'FAILED':
+      return 'El pago de este pedido no se pudo completar.'
+    case 'REFUNDED':
+      return order.shippedAt
+        ? 'Este pedido fue devuelto y el pago ya fue reembolsado.'
+        : 'Este pedido fue cancelado después del pago y ya fue reembolsado.'
+    default:
+      return ''
+  }
+}
+
+function formatShippingAddress(address: NonNullable<BackendOrder['shippingAddress']>): string {
+  return [address.line1, address.line2, address.city, address.state, address.postalCode, address.country]
+    .filter(Boolean)
+    .join(', ')
+}
+
+interface OrderDetailPanelProps {
+  order: BackendOrder
+  expanded: boolean
+}
+
+// Inline accordion, not a fixed overlay — safe to animate its exit (unlike
+// the cart drawer/modals, there's no backdrop here that could get stuck
+// blocking clicks if a transition doesn't finish cleanly). Pulled out of
+// OrderCard so its own conditionals (shipping address, item list) don't count
+// against OrderCard's cognitive complexity.
+function OrderDetailPanel({ order, expanded }: Readonly<OrderDetailPanelProps>) {
+  return (
+    <AnimatePresence initial={false}>
+      {expanded ? (
+        <motion.div
+          key="detail"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: MOTION_DURATION.base, ease: EASE_OUT_ATHLETIC }}
+          className="overflow-hidden"
+        >
+          <div className="mt-4 space-y-4 border-t border-white/[0.07] pt-4">
+            <p className="text-sm text-slate-300">{statusExplanation(order)}</p>
+
+            {order.shippingAddress ? (
+              <div className="rounded-xl border border-white/[0.06] bg-slate-950/40 p-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Dirección de envío
+                </p>
+                <p className="mt-1 text-sm text-slate-300">
+                  {order.shippingAddress.name ? `${order.shippingAddress.name} · ` : ''}
+                  {formatShippingAddress(order.shippingAddress)}
+                </p>
+              </div>
+            ) : null}
+
+            <div className="space-y-3">
+              {order.items.map((item) => (
+                <OrderItemRow key={item.id} item={item} />
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  )
 }
 
 export function OrderCard({ order }: OrderCardProps) {
@@ -211,13 +296,7 @@ export function OrderCard({ order }: OrderCardProps) {
         </div>
       ) : null}
 
-      {expanded ? (
-        <div className="mt-4 space-y-3 border-t border-white/[0.07] pt-4">
-          {order.items.map((item) => (
-            <OrderItemRow key={item.id} item={item} />
-          ))}
-        </div>
-      ) : null}
+      <OrderDetailPanel order={order} expanded={expanded} />
 
       <OrderCancelConfirmModal
         isOpen={confirmOpen}

@@ -4,6 +4,7 @@ import type { Product, SizeLabel } from '../../types'
 import { SIZE_OPTIONS } from '../../utils/sizes'
 import { formatCurrency } from '../../utils/format'
 import type { CategoryOption } from './InventoryFilters'
+import { Select } from '../ui/Select'
 
 interface ProductFormModalProps {
   isOpen: boolean
@@ -415,21 +416,20 @@ export function ProductFormModal({
                 <p className="mt-2 text-xs text-slate-500">JPG, PNG, WEBP o GIF. Máximo 5MB por foto, hasta {MAX_IMAGES} fotos.</p>
               </div>
 
-              <label className="grid gap-2 text-sm font-medium text-slate-600">
-                Categoría
-                <select
+              <div className="grid gap-2 text-sm font-medium text-slate-600">
+                <span>Categoría</span>
+                <Select
+                  tone="light"
+                  fullWidth
+                  label="Categoría"
                   value={form.categoryId}
-                  onChange={(event) => handleChange('categoryId', event.target.value)}
-                  className={fieldClass}
-                >
-                  <option value="">Selecciona una categoría</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  onChange={(next) => handleChange('categoryId', next)}
+                  options={[
+                    { value: '', label: 'Selecciona una categoría' },
+                    ...categories.map((category) => ({ value: category.id, label: category.name })),
+                  ]}
+                />
+              </div>
 
               {requiresSizes ? (
                 <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2">

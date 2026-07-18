@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getAuditLog } from '../../api/fitgearApi'
 import type { AuditEntityType, AuditLogEntry } from '../../types'
+import { Select } from '../ui/Select'
 
 const PAGE_SIZE = 20
 
@@ -246,21 +247,21 @@ export function AdminAuditSection({ active = true }: Readonly<{ active?: boolean
             className={fieldClass}
           />
 
-          <select
+          <Select
+            tone="light"
+            fullWidth
+            label="Tipo de entidad"
             value={filters.entityType}
-            onChange={(event) =>
-              setFilters((prev) => ({ ...prev, entityType: event.target.value as '' | AuditEntityType }))
-            }
-            className={fieldClass}
-            aria-label="Tipo de entidad"
-          >
-            <option value="">Todas las entidades</option>
-            <option value="ORDER">Órdenes</option>
-            <option value="USER">Usuarios</option>
-            <option value="PRODUCT">Productos</option>
-            <option value="CATEGORY">Categorías</option>
-            <option value="REVIEW">Reseñas</option>
-          </select>
+            onChange={(next) => setFilters((prev) => ({ ...prev, entityType: next }))}
+            options={[
+              { value: '', label: 'Todas las entidades' },
+              { value: 'ORDER', label: 'Órdenes' },
+              { value: 'USER', label: 'Usuarios' },
+              { value: 'PRODUCT', label: 'Productos' },
+              { value: 'CATEGORY', label: 'Categorías' },
+              { value: 'REVIEW', label: 'Reseñas' },
+            ]}
+          />
 
           <input
             type="date"

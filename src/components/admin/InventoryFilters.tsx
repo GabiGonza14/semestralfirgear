@@ -1,3 +1,5 @@
+import { Select } from '../ui/Select'
+
 export interface CategoryOption {
   id: string
   name: string
@@ -63,44 +65,47 @@ export function InventoryFilters({
           className={fieldClass}
         />
 
-        <select
+        <Select
+          tone="light"
+          fullWidth
+          label="Categoría"
           value={categoryId}
-          onChange={(event) => onCategoryChange(event.target.value)}
-          className={fieldClass}
-        >
-          <option value="all">Todas las categorías</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
+          onChange={onCategoryChange}
+          options={[
+            { value: 'all', label: 'Todas las categorías' },
+            ...categories.map((category) => ({ value: category.id, label: category.name })),
+          ]}
+        />
 
-        <select
+        <Select
+          tone="light"
+          fullWidth
+          label="Estado"
           value={status}
-          onChange={(event) => onStatusChange(event.target.value as 'all' | 'active' | 'inactive')}
-          className={fieldClass}
-        >
-          <option value="all">Todos los estados</option>
-          <option value="active">Activos</option>
-          <option value="inactive">Inactivos</option>
-        </select>
+          onChange={(next) => onStatusChange(next as 'all' | 'active' | 'inactive')}
+          options={[
+            { value: 'all', label: 'Todos los estados' },
+            { value: 'active', label: 'Activos' },
+            { value: 'inactive', label: 'Inactivos' },
+          ]}
+        />
 
-        <select
+        <Select
+          tone="light"
+          fullWidth
+          label="Ordenar por"
           value={sortBy}
-          onChange={(event) =>
-            onSortChange(
-              event.target.value as 'nameAsc' | 'priceAsc' | 'priceDesc' | 'stockAsc' | 'stockDesc',
-            )
+          onChange={(next) =>
+            onSortChange(next as 'nameAsc' | 'priceAsc' | 'priceDesc' | 'stockAsc' | 'stockDesc')
           }
-          className={fieldClass}
-        >
-          <option value="nameAsc">Nombre A-Z</option>
-          <option value="priceAsc">Precio: menor a mayor</option>
-          <option value="priceDesc">Precio: mayor a menor</option>
-          <option value="stockAsc">Stock: menor a mayor</option>
-          <option value="stockDesc">Stock: mayor a menor</option>
-        </select>
+          options={[
+            { value: 'nameAsc', label: 'Nombre A-Z' },
+            { value: 'priceAsc', label: 'Precio: menor a mayor' },
+            { value: 'priceDesc', label: 'Precio: mayor a menor' },
+            { value: 'stockAsc', label: 'Stock: menor a mayor' },
+            { value: 'stockDesc', label: 'Stock: mayor a menor' },
+          ]}
+        />
       </div>
     </section>
   )
