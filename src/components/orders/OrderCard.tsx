@@ -112,6 +112,55 @@ function formatShippingAddress(address: NonNullable<BackendOrder['shippingAddres
     .join(', ')
 }
 
+interface OrderDetailPanelProps {
+  order: BackendOrder
+  expanded: boolean
+}
+
+// Inline accordion, not a fixed overlay — safe to animate its exit (unlike
+// the cart drawer/modals, there's no backdrop here that could get stuck
+// blocking clicks if a transition doesn't finish cleanly). Pulled out of
+// OrderCard so its own conditionals (shipping address, item list) don't count
+// against OrderCard's cognitive complexity.
+function OrderDetailPanel({ order, expanded }: Readonly<OrderDetailPanelProps>) {
+  return (
+    <AnimatePresence initial={false}>
+      {expanded ? (
+        <motion.div
+          key="detail"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: MOTION_DURATION.base, ease: EASE_OUT_ATHLETIC }}
+          className="overflow-hidden"
+        >
+          <div className="mt-4 space-y-4 border-t border-white/[0.07] pt-4">
+            <p className="text-sm text-slate-300">{statusExplanation(order)}</p>
+
+            {order.shippingAddress ? (
+              <div className="rounded-xl border border-white/[0.06] bg-slate-950/40 p-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Dirección de envío
+                </p>
+                <p className="mt-1 text-sm text-slate-300">
+                  {order.shippingAddress.name ? `${order.shippingAddress.name} · ` : ''}
+                  {formatShippingAddress(order.shippingAddress)}
+                </p>
+              </div>
+            ) : null}
+
+            <div className="space-y-3">
+              {order.items.map((item) => (
+                <OrderItemRow key={item.id} item={item} />
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  )
+}
+
 export function OrderCard({ order }: OrderCardProps) {
   const [expanded, setExpanded] = useState(false)
   const { backendUser } = useAuth()
@@ -247,43 +296,7 @@ export function OrderCard({ order }: OrderCardProps) {
         </div>
       ) : null}
 
-      {/* Inline accordion, not a fixed overlay — safe to animate its exit
-          (unlike the cart drawer/modals, there's no backdrop here that could
-          get stuck blocking clicks if a transition doesn't finish cleanly). */}
-      <AnimatePresence initial={false}>
-        {expanded ? (
-          <motion.div
-            key="detail"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: MOTION_DURATION.base, ease: EASE_OUT_ATHLETIC }}
-            className="overflow-hidden"
-          >
-            <div className="mt-4 space-y-4 border-t border-white/[0.07] pt-4">
-              <p className="text-sm text-slate-300">{statusExplanation(order)}</p>
-
-              {order.shippingAddress ? (
-                <div className="rounded-xl border border-white/[0.06] bg-slate-950/40 p-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Dirección de envío
-                  </p>
-                  <p className="mt-1 text-sm text-slate-300">
-                    {order.shippingAddress.name ? `${order.shippingAddress.name} · ` : ''}
-                    {formatShippingAddress(order.shippingAddress)}
-                  </p>
-                </div>
-              ) : null}
-
-              <div className="space-y-3">
-                {order.items.map((item) => (
-                  <OrderItemRow key={item.id} item={item} />
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+      <OrderDetailPanel order={order} expanded={expanded} />
 
       <OrderCancelConfirmModal
         isOpen={confirmOpen}
