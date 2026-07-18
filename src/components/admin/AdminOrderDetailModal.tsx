@@ -4,6 +4,14 @@ import type { BackendOrder, OrderEvent, OrderStatus } from '../../types'
 import { formatCurrency, formatDate } from '../../utils/format'
 import { ORDER_STATUS_META } from '../../utils/orderStatusStyle'
 
+// Human-readable Spanish labels for each recorded order event. Falls back to
+// the raw code for any future event type not yet mapped here.
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  STATUS_CHANGED: 'Cambio de estado',
+  ORDER_SHIPPED: 'Orden enviada',
+  REFUNDED: 'Reembolso procesado',
+}
+
 interface AdminOrderDetailModalProps {
   order: BackendOrder
   onClose: () => void
@@ -238,12 +246,14 @@ function OrderHistoryList({ loadingHistory, history }: Readonly<OrderHistoryList
           {history.map((event) => (
             <li key={event.id} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm">
               <div className="flex items-center justify-between gap-3">
-                <span className="font-semibold text-slate-900">{event.type}</span>
+                <span className="font-semibold text-slate-900">
+                  {EVENT_TYPE_LABELS[event.type] ?? event.type}
+                </span>
                 <span className="text-xs text-slate-500">{formatDate(event.createdAt)}</span>
               </div>
               {event.reason ? <p className="mt-1 text-slate-500">Motivo: {event.reason}</p> : null}
               {event.actorClerkId ? (
-                <p className="mt-0.5 text-xs text-slate-500">Por: {event.actorClerkId}</p>
+                <p className="mt-0.5 text-xs text-slate-500">Realizado por un administrador</p>
               ) : null}
             </li>
           ))}
