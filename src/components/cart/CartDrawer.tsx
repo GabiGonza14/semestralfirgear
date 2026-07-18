@@ -12,6 +12,46 @@ function lineKey(productId: string, size?: string) {
   return `${productId}-${size ?? ''}`
 }
 
+interface CartSelectionToolbarProps {
+  selectedCount: number
+  allSelected: boolean
+  onToggleSelectAll: () => void
+  onRemoveSelected: () => void
+}
+
+// "Seleccionar todo" + bulk-delete bar, pulled out of CartDrawer so its own
+// conditional (the button only shows once something's selected) doesn't
+// count against the drawer's own cognitive complexity.
+function CartSelectionToolbar({
+  selectedCount,
+  allSelected,
+  onToggleSelectAll,
+  onRemoveSelected,
+}: Readonly<CartSelectionToolbarProps>) {
+  return (
+    <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.07] px-5 py-2.5">
+      <label className="flex items-center gap-2 text-xs font-medium text-slate-300">
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={onToggleSelectAll}
+          className="h-4 w-4 rounded border-white/20 bg-slate-950/50 text-lime-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40"
+        />
+        <span>Seleccionar todo</span>
+      </label>
+      {selectedCount > 0 ? (
+        <button
+          type="button"
+          onClick={onRemoveSelected}
+          className="inline-flex items-center gap-1.5 rounded-full border border-rose-400/30 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:border-rose-400/60 hover:bg-rose-500/10"
+        >
+          Eliminar seleccionados ({selectedCount})
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 export function CartDrawer() {
   const {
     items,
@@ -233,26 +273,12 @@ export function CartDrawer() {
           </div>
         ) : (
           <>
-            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.07] px-5 py-2.5">
-              <label className="flex items-center gap-2 text-xs font-medium text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={toggleSelectAll}
-                  className="h-4 w-4 rounded border-white/20 bg-slate-950/50 text-lime-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40"
-                />
-                Seleccionar todo
-              </label>
-              {selectedCount > 0 ? (
-                <button
-                  type="button"
-                  onClick={removeSelected}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-rose-400/30 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:border-rose-400/60 hover:bg-rose-500/10"
-                >
-                  Eliminar seleccionados ({selectedCount})
-                </button>
-              ) : null}
-            </div>
+            <CartSelectionToolbar
+              selectedCount={selectedCount}
+              allSelected={allSelected}
+              onToggleSelectAll={toggleSelectAll}
+              onRemoveSelected={removeSelected}
+            />
 
             {/* No AnimatePresence on individual rows either — same reasoning
                 as the drawer shell above. `layout` on CartItem still animates
