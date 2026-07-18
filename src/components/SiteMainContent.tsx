@@ -38,7 +38,7 @@ export function SiteMainContent({ isAdminPage, isShopPage, pathname }: Readonly<
             : 'relative z-10 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10'
         }
       >
-        <RouteTransition routeKey={pathname}>
+        <RouteTransition routeKey={pathname} className={isAdminPage ? 'h-full' : undefined}>
           <ErrorBoundary resetKey={pathname}>
             <Outlet />
           </ErrorBoundary>

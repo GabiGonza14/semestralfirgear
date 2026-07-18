@@ -6,6 +6,10 @@ interface RouteTransitionProps {
   /** Usually the route pathname — changing it replays the entrance. */
   routeKey: string
   children: ReactNode
+  /** Passed straight to the underlying motion.div — e.g. `h-full` so a page
+   *  that needs to fill its parent's height (like the admin shell) isn't
+   *  broken by this wrapper defaulting to a plain, content-sized block. */
+  className?: string
 }
 
 // Hydration-safe "are we past the first client paint?" flag. `useSyncExternalStore`
@@ -36,7 +40,7 @@ function useHydrated() {
  * one. Reduced motion is handled centrally by `<MotionConfig reducedMotion="user">`
  * (see app/routes/_site.tsx); we also skip the entrance entirely here.
  */
-export function RouteTransition({ routeKey, children }: Readonly<RouteTransitionProps>) {
+export function RouteTransition({ routeKey, children, className }: Readonly<RouteTransitionProps>) {
   const hydrated = useHydrated()
   const reduceMotion = useReducedMotion()
   const animate = hydrated && !reduceMotion
@@ -44,6 +48,7 @@ export function RouteTransition({ routeKey, children }: Readonly<RouteTransition
   return (
     <motion.div
       key={routeKey}
+      className={className}
       initial={animate ? { opacity: 0, y: 8 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: MOTION_DURATION.base, ease: EASE_OUT_ATHLETIC }}
