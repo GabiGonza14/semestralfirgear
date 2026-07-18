@@ -8,6 +8,10 @@ import { getButtonClassName } from '../ui/Button'
 import { CartItem } from '../CartItem'
 import { OrderSummary } from './OrderSummary'
 
+function lineKey(productId: string, size?: string) {
+  return `${productId}-${size ?? ''}`
+}
+
 export function CartDrawer() {
   const {
     items,
@@ -20,14 +24,64 @@ export function CartDrawer() {
     increase,
     decrease,
     removeItem,
+    removeMany,
     removedOnRestore,
     dismissRemovedNotice,
   } = useCart()
   const { backendUser } = useAuth()
   const navigate = useNavigate()
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
+
+  // Keeps the drawer mounted for the duration of the close transition (driven
+  // below by `animate`, not AnimatePresence's own mount/exit choreography —
+  // that combination once left a stuck, invisible-but-clickable backdrop
+  // after closing, see the pointer-events note below). Once the transition
+  // finishes, onAnimationComplete unmounts it for real.
+  //
+  // Adjusted directly during render (not in an effect): React's own recipe
+  // for "reset/derive state when a prop changes" — a guarded setState call in
+  // the render body, tracking the previous isCartOpen to detect the actual
+  // transition rather than re-running on every render.
+  const [shouldRender, setShouldRender] = useState(isCartOpen)
+  const [prevIsCartOpen, setPrevIsCartOpen] = useState(isCartOpen)
+  if (isCartOpen !== prevIsCartOpen) {
+    setPrevIsCartOpen(isCartOpen)
+    if (isCartOpen) {
+      setShouldRender(true)
+    } else {
+      setSelectedKeys(new Set())
+    }
+  }
 
   const lineCount = useMemo(() => items.reduce((acc, item) => acc + item.quantity, 0), [items])
+
+  const selectedCount = selectedKeys.size
+  const allSelected = items.length > 0 && selectedCount === items.length
+
+  const toggleSelectAll = () => {
+    setSelectedKeys(allSelected ? new Set() : new Set(items.map((item) => lineKey(item.product.id, item.size))))
+  }
+
+  const toggleSelect = (key: string) => {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
+  const removeSelected = () => {
+    const lines = items
+      .filter((item) => selectedKeys.has(lineKey(item.product.id, item.size)))
+      .map((item) => ({ productId: item.product.id, size: item.size }))
+    removeMany(lines)
+    setSelectedKeys(new Set())
+  }
 
   // Order creation + PaymentIntent setup now happen on the /checkout page
   // itself — this only needs to guard signed-out clicks (same inline message
@@ -71,35 +125,46 @@ export function CartDrawer() {
     }
   }, [isCartOpen])
 
-  // No AnimatePresence here: this is enter-only. AnimatePresence + exit left a
-  // stuck, invisible-but-clickable backdrop after closing (verified in the
-  // browser — it silently ate the next click on the page), so closing just
-  // unmounts immediately instead of animating out. Same call as
-  // QuickViewModal / ProductGallery's lightbox.
-  if (!isCartOpen) {
+  if (!shouldRender) {
     return null
   }
 
+  // `pointer-events` is driven directly by `isCartOpen` (real state), not by
+  // whether the animation has visually finished — so even if a slow/paused
+  // tab leaves the slide-out mid-flight, the backdrop/panel can never eat a
+  // click behind them. That's what previously went wrong with a plain
+  // AnimatePresence + exit here.
   return (
-    <div className="fixed inset-0 z-[60]">
+    <div className={`fixed inset-0 z-[60] ${isCartOpen ? '' : 'pointer-events-none'}`}>
       <motion.button
         type="button"
         onClick={closeCart}
         aria-label="Cerrar carrito"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        tabIndex={isCartOpen ? 0 : -1}
+        initial={false}
+        animate={{ opacity: isCartOpen ? 1 : 0 }}
         transition={{ duration: MOTION_DURATION.slow, ease: EASE_OUT_ATHLETIC }}
-        className="absolute inset-0 h-full w-full cursor-default bg-slate-950/70 backdrop-blur-sm"
+        className={`absolute inset-0 h-full w-full cursor-default bg-slate-950/70 backdrop-blur-sm ${
+          isCartOpen ? '' : 'pointer-events-none'
+        }`}
       />
 
       <motion.aside
         role="dialog"
         aria-modal="true"
+        aria-hidden={!isCartOpen}
         aria-label="Carrito de compras"
-        initial={{ x: '100%' }}
-        animate={{ x: 0 }}
+        initial={false}
+        animate={{ x: isCartOpen ? 0 : '100%' }}
         transition={{ duration: MOTION_DURATION.slow, ease: EASE_OUT_ATHLETIC }}
-        className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-white/[0.08] bg-slate-950"
+        onAnimationComplete={() => {
+          if (!isCartOpen) {
+            setShouldRender(false)
+          }
+        }}
+        className={`absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-white/[0.08] bg-slate-950 ${
+          isCartOpen ? '' : 'pointer-events-none'
+        }`}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-white/[0.07] px-5 py-4">
           <h2 className="text-lg font-bold text-white">
@@ -168,22 +233,47 @@ export function CartDrawer() {
           </div>
         ) : (
           <>
-            {/* No AnimatePresence here either — same stuck-exit issue as the
-                drawer shell (see the note above): removing an item left both
-                it and its sibling stuck invisible-but-clickable. `layout` on
-                CartItem still animates the reflow when a sibling disappears. */}
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
-              {items.map((item) => (
-                <CartItem
-                  key={`${item.product.id}-${item.size ?? ''}`}
-                  product={item.product}
-                  quantity={item.quantity}
-                  size={item.size}
-                  onIncrease={() => increase(item.product.id, item.size)}
-                  onDecrease={() => decrease(item.product.id, item.size)}
-                  onRemove={() => removeItem(item.product.id, item.size)}
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.07] px-5 py-2.5">
+              <label className="flex items-center gap-2 text-xs font-medium text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 rounded border-white/20 bg-slate-950/50 text-lime-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40"
                 />
-              ))}
+                Seleccionar todo
+              </label>
+              {selectedCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={removeSelected}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-rose-400/30 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:border-rose-400/60 hover:bg-rose-500/10"
+                >
+                  Eliminar seleccionados ({selectedCount})
+                </button>
+              ) : null}
+            </div>
+
+            {/* No AnimatePresence on individual rows either — same reasoning
+                as the drawer shell above. `layout` on CartItem still animates
+                the reflow when a sibling disappears. */}
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
+              {items.map((item) => {
+                const key = lineKey(item.product.id, item.size)
+                return (
+                  <CartItem
+                    key={key}
+                    product={item.product}
+                    quantity={item.quantity}
+                    size={item.size}
+                    selected={selectedKeys.has(key)}
+                    onToggleSelect={() => toggleSelect(key)}
+                    onIncrease={() => increase(item.product.id, item.size)}
+                    onDecrease={() => decrease(item.product.id, item.size)}
+                    onRemove={() => removeItem(item.product.id, item.size)}
+                  />
+                )
+              })}
             </div>
 
             <div className="shrink-0 p-4">

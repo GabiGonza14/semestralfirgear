@@ -61,6 +61,7 @@ interface CartContextValue {
   closeCart: () => void
   addItem: (product: Product, quantity?: number, size?: SizeLabel) => void
   removeItem: (productId: string, size?: SizeLabel) => void
+  removeMany: (lines: Array<{ productId: string; size?: SizeLabel }>) => void
   increase: (productId: string, size?: SizeLabel) => void
   decrease: (productId: string, size?: SizeLabel) => void
   clearCart: () => void
@@ -160,11 +161,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = useCallback((product: Product, quantity = 1, size?: SizeLabel) => {
     dispatch({ type: 'add', product, quantity, size })
-    setIsCartOpen(true)
   }, [])
 
   const removeItem = useCallback((productId: string, size?: SizeLabel) => {
     dispatch({ type: 'remove', productId, size })
+  }, [])
+
+  const removeMany = useCallback((lines: Array<{ productId: string; size?: SizeLabel }>) => {
+    dispatch({ type: 'removeMany', lines })
   }, [])
 
   const increase = useCallback((productId: string, size?: SizeLabel) => {
@@ -191,6 +195,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       closeCart,
       addItem,
       removeItem,
+      removeMany,
       increase,
       decrease,
       clearCart,
@@ -208,6 +213,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       closeCart,
       addItem,
       removeItem,
+      removeMany,
       increase,
       decrease,
       clearCart,

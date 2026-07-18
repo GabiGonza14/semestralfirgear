@@ -3,6 +3,7 @@ import type { CartItemModel, Product, SizeLabel } from '../types'
 export type CartAction =
   | { type: 'add'; product: Product; quantity: number; size?: SizeLabel }
   | { type: 'remove'; productId: string; size?: SizeLabel }
+  | { type: 'removeMany'; lines: Array<{ productId: string; size?: SizeLabel }> }
   | { type: 'increase'; productId: string; size?: SizeLabel }
   | { type: 'decrease'; productId: string; size?: SizeLabel }
   | { type: 'restore'; items: CartItemModel[] }
@@ -46,6 +47,10 @@ export function cartReducer(state: CartItemModel[], action: CartAction): CartIte
     }
     case 'remove':
       return state.filter((item) => !isSameLine(item, action.productId, action.size))
+    case 'removeMany':
+      return state.filter(
+        (item) => !action.lines.some((line) => isSameLine(item, line.productId, line.size)),
+      )
     case 'increase':
       return state.map((item) =>
         isSameLine(item, action.productId, action.size)
