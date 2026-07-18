@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { gsap, useGSAP, prefersReducedMotion } from '../lib/gsap'
+import { useStaggerIn } from '../hooks/useStaggerIn'
 import { ApiError } from '../api/apiClient'
 import { getCategories, getProducts } from '../api/fitgearApi'
 import { CategoryFilter } from '../components/CategoryFilter'
 import { ProductAutocomplete } from '../components/ProductAutocomplete'
 import { ProductCard } from '../components/ProductCard'
+import { Select, type SelectOption } from '../components/ui/Select'
 import { categories as fallbackCategoryNames } from '../data/categories'
 import { products as fallbackProducts } from '../data/products'
 import type { Product } from '../types'
@@ -26,6 +27,21 @@ const PAGE_SIZE = 30
 const SEARCH_DEBOUNCE_MS = 350
 
 type PriceRange = 'all' | 'under20' | '20to50' | '50to100' | 'over100'
+type SortBy = 'featured' | 'priceAsc' | 'priceDesc'
+
+const PRICE_OPTIONS: ReadonlyArray<SelectOption<PriceRange>> = [
+  { value: 'all', label: 'Todos los precios' },
+  { value: 'under20', label: 'Menos de $20' },
+  { value: '20to50', label: '$20 - $50' },
+  { value: '50to100', label: '$50 - $100' },
+  { value: 'over100', label: 'Más de $100' },
+]
+
+const SORT_OPTIONS: ReadonlyArray<SelectOption<SortBy>> = [
+  { value: 'featured', label: 'Más nuevos' },
+  { value: 'priceAsc', label: 'Precio: menor a mayor' },
+  { value: 'priceDesc', label: 'Precio: mayor a menor' },
+]
 
 export function ShopPage() {
   const search = useSearch({ strict: false }) as { category?: string; search?: string }
@@ -35,7 +51,7 @@ export function ShopPage() {
   )
   const [query, setQuery] = useState(search.search ?? '')
   const [debouncedQuery, setDebouncedQuery] = useState(query)
-  const [sortBy, setSortBy] = useState<'featured' | 'priceAsc' | 'priceDesc'>('featured')
+  const [sortBy, setSortBy] = useState<SortBy>('featured')
   const [priceRange, setPriceRange] = useState<PriceRange>('all')
   const [categories, setCategories] = useState<Array<{ value: string; label: string }>>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -298,45 +314,36 @@ export function ShopPage() {
     gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  // Gentle stagger when the result set changes by filter/sort (not per keystroke).
-  // Plain `from` with no ScrollTrigger always settles to the visible state.
-  useGSAP(
-    () => {
-      if (prefersReducedMotion()) return
-      if (!gridRef.current) return
-      const cards = gridRef.current.children
-      if (cards.length === 0) return
-      gsap.from(cards, {
-        y: 18,
-        autoAlpha: 0,
-        duration: 0.45,
-        ease: 'power2.out',
-        stagger: 0.05,
-        overwrite: true,
-        // Drop the inline transform/opacity once settled — leaving it keeps
-        // each card (and its product photo) on a GPU-composited layer, which
-        // Windows renders at a blurry, non-native resolution on scaled displays.
-        clearProps: 'transform,opacity,visibility',
-      })
-    },
-    { scope: gridRef, dependencies: [resolvedCategory, sortBy, loading, page], revertOnUpdate: true },
-  )
+  // Gentle stagger when the result set changes by filter/sort/page (not per
+  // keystroke). Shared pattern — see src/hooks/useStaggerIn.ts.
+  useStaggerIn(gridRef, { deps: [resolvedCategory, sortBy, loading, page] })
 
   return (
+    // Both `isolate` and `overflow-x-hidden` used to guard a full-bleed
+    // 100vw dot backdrop that lived directly in this page — that decor moved
+    // up into SiteMainContent (app/routes/_site.tsx's isShopPage branch), so
+    // neither is load-bearing here anymore. Dropped: overflow-x-hidden was
+    // also clipping the "Catálogo FITGEAR" badge's skewed corners.
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">Tienda</p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">Catalogo FITGEAR</h1>
+          {/* Rounded rhomboid badge: skew the box, counter-skew the text so
+              it stays upright — clip-path can't do rounded corners, so the
+              parallelogram comes from the skew instead. */}
+          <div className="inline-block -skew-x-12 rounded-xl bg-lime-400 px-2 py-2">
+            <h1 className="skew-x-12 px-3 text-3xl font-black uppercase leading-none tracking-tight text-slate-950 sm:text-4xl">
+              Catálogo FITGEAR
+            </h1>
+          </div>
           <p className="mt-3 max-w-xl text-slate-400">
-            Filtra por categoria, busca productos y ordena para encontrar el accesorio ideal.
+            Todo tu equipo de entrenamiento, en un solo lugar.
           </p>
         </div>
 
         <Link
           to="/"
-          className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/12 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/5"
+          className="inline-flex shrink-0 items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-5 py-2.5 text-sm font-semibold text-slate-100 transition hover:border-slate-500 hover:bg-slate-800"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -346,7 +353,7 @@ export function ShopPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="space-y-5 rounded-3xl border border-white/[0.08] bg-slate-900/60 p-5 sm:p-6">
+      <div className="space-y-5 rounded-3xl border border-slate-700 bg-slate-900 p-5 sm:p-6">
         <ProductAutocomplete value={query} onChange={setQuery} />
 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -356,57 +363,39 @@ export function ShopPage() {
             onSelect={setSelectedCategory}
           />
           <div className="flex shrink-0 flex-wrap gap-3">
-            <label className="relative shrink-0">
-              <span className="sr-only">Filtrar por precio</span>
-              <select
-                value={priceRange}
-                onChange={(event) => setPriceRange(event.target.value as PriceRange)}
-                className="cursor-pointer appearance-none rounded-full border border-white/10 bg-slate-950/60 py-2.5 pl-4 pr-10 text-sm font-medium text-slate-200 outline-none transition focus:border-lime-400/60 focus:ring-2 focus:ring-lime-400/30"
-              >
-                <option value="all">Todos los precios</option>
-                <option value="under20">Menos de $20</option>
-                <option value="20to50">$20 - $50</option>
-                <option value="50to100">$50 - $100</option>
-                <option value="over100">Mas de $100</option>
-              </select>
-              <svg className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </label>
-            <label className="relative shrink-0">
-              <span className="sr-only">Ordenar productos</span>
-              <select
-                value={sortBy}
-                onChange={(event) =>
-                  setSortBy(event.target.value as 'featured' | 'priceAsc' | 'priceDesc')
-                }
-                className="cursor-pointer appearance-none rounded-full border border-white/10 bg-slate-950/60 py-2.5 pl-4 pr-10 text-sm font-medium text-slate-200 outline-none transition focus:border-lime-400/60 focus:ring-2 focus:ring-lime-400/30"
-              >
-                <option value="featured">Más nuevos</option>
-                <option value="priceAsc">Precio: menor a mayor</option>
-                <option value="priceDesc">Precio: mayor a menor</option>
-              </select>
-              <svg className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </label>
+            <Select
+              tone="solid"
+              label="Filtrar por precio"
+              value={priceRange}
+              onChange={setPriceRange}
+              options={PRICE_OPTIONS}
+            />
+            <Select
+              tone="solid"
+              label="Ordenar productos"
+              value={sortBy}
+              onChange={setSortBy}
+              options={SORT_OPTIONS}
+            />
           </div>
         </div>
       </div>
 
       {/* Result count */}
       {!loading && !error && hasProducts ? (
-        <p className="text-sm text-slate-400">
-          <span className="font-bold text-white">{displayedProducts.length}</span>{' '}
-          {displayedProducts.length === 1 ? 'producto' : 'productos'}
-          {pageCount > 1 ? (
-            <span>
-              {' '}
-              &middot; pagina <span className="font-bold text-white">{page}</span> de{' '}
-              <span className="font-bold text-white">{pageCount}</span>
-            </span>
-          ) : null}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-slate-400">
+            <span className="font-bold text-white">{displayedProducts.length}</span>{' '}
+            {displayedProducts.length === 1 ? 'producto' : 'productos'}
+            {pageCount > 1 ? (
+              <span>
+                {' '}
+                &middot; página <span className="font-bold text-white">{page}</span> de{' '}
+                <span className="font-bold text-white">{pageCount}</span>
+              </span>
+            ) : null}
+          </p>
+        </div>
       ) : null}
 
       {/* Loading */}
@@ -448,7 +437,7 @@ export function ShopPage() {
           <div>
             <p className="text-lg font-bold text-white">Sin resultados</p>
             <p className="mt-1 text-sm text-slate-400">
-              No se encontraron productos con esos filtros. Prueba ajustar la busqueda o la categoria.
+              No encontramos productos con esos filtros. Prueba con otra búsqueda o categoría, o limpia los filtros para ver todo.
             </p>
           </div>
           <button
@@ -481,7 +470,7 @@ export function ShopPage() {
             type="button"
             onClick={() => goToPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            aria-label="Pagina anterior"
+            aria-label="Página anterior"
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -509,7 +498,7 @@ export function ShopPage() {
             type="button"
             onClick={() => goToPage(Math.min(pageCount, page + 1))}
             disabled={page === pageCount}
-            aria-label="Pagina siguiente"
+            aria-label="Página siguiente"
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 text-slate-200 transition hover:border-white/30 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>

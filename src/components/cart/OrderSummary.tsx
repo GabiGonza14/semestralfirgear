@@ -1,4 +1,5 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
+import { EASE_OUT_ATHLETIC, MOTION_DURATION } from '../../lib/motion'
 import { formatCurrency } from '../../utils/format'
 
 interface OrderSummaryProps {
@@ -19,14 +20,14 @@ export function OrderSummary({
   total,
   checkoutError,
   onCheckout,
-}: OrderSummaryProps) {
+}: Readonly<OrderSummaryProps>) {
   return (
     <aside className="h-fit rounded-3xl border border-white/[0.08] bg-slate-900 p-6 lg:sticky lg:top-24">
       <h2 className="text-xl font-bold text-white">Resumen de compra</h2>
 
-      <div className="mt-5 space-y-3 text-sm text-slate-400">
+      <div className="mt-5 space-y-3 border-b border-white/[0.07] pb-5 text-sm text-slate-400">
         <p className="flex justify-between">
-          <span>Items</span>
+          <span>Artículos</span>
           <span className="font-medium text-slate-200">{lineCount}</span>
         </p>
         <p className="flex justify-between">
@@ -38,8 +39,8 @@ export function OrderSummary({
           <span className="font-medium text-slate-200">{formatCurrency(taxAmount)}</span>
         </p>
         <p className="flex justify-between">
-          <span>Envio</span>
-          <span className="font-medium text-slate-200">
+          <span>Envío</span>
+          <span className={`font-medium ${shippingAmount > 0 ? 'text-slate-200' : 'text-lime-400'}`}>
             {shippingAmount > 0 ? formatCurrency(shippingAmount) : 'Gratis'}
           </span>
         </p>
@@ -47,18 +48,18 @@ export function OrderSummary({
 
       <div className="mt-4 flex items-center justify-between rounded-2xl border border-lime-400/20 bg-lime-400/[0.08] px-4 py-3">
         <span className="text-base font-bold text-white">Total</span>
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.span
-            key={total}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="text-lg font-bold text-lime-400"
-          >
-            {formatCurrency(total)}
-          </motion.span>
-        </AnimatePresence>
+        {/* No AnimatePresence: same stuck-exit issue as the drawer shell and
+            the item list (see CartDrawer.tsx). The key change alone still
+            replays the enter animation on every total change. */}
+        <motion.span
+          key={total}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: MOTION_DURATION.fast, ease: EASE_OUT_ATHLETIC }}
+          className="text-lg font-bold text-lime-400"
+        >
+          {formatCurrency(total)}
+        </motion.span>
       </div>
 
       <button
@@ -69,18 +70,16 @@ export function OrderSummary({
         Pagar con tarjeta
       </button>
 
-      <AnimatePresence>
-        {checkoutError ? (
-          <motion.p
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 6 }}
-            className="mt-3 rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-300"
-          >
-            {checkoutError}
-          </motion.p>
-        ) : null}
-      </AnimatePresence>
+      {checkoutError ? (
+        <motion.p
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: MOTION_DURATION.base, ease: EASE_OUT_ATHLETIC }}
+          className="mt-3 rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-sm text-rose-300"
+        >
+          {checkoutError}
+        </motion.p>
+      ) : null}
     </aside>
   )
 }

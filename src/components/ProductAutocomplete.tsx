@@ -120,7 +120,7 @@ export function ProductAutocomplete({ value, onChange }: ProductAutocompleteProp
         aria-expanded={showDropdown}
         aria-autocomplete="list"
         aria-controls="product-suggestions"
-        className="w-full rounded-full border border-white/10 bg-slate-950/60 py-3 pl-12 pr-10 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-lime-400/60 focus:ring-2 focus:ring-lime-400/30"
+        className="w-full rounded-full border border-slate-700 bg-slate-900 py-3 pl-12 pr-10 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-lime-400/60 focus:ring-2 focus:ring-lime-400/30"
       />
       {value ? (
         <button
@@ -129,7 +129,7 @@ export function ProductAutocomplete({ value, onChange }: ProductAutocompleteProp
             onChange('')
             setOpen(false)
           }}
-          aria-label="Limpiar busqueda"
+          aria-label="Limpiar búsqueda"
           className="absolute right-3 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition hover:bg-white/10 hover:text-white"
         >
           <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -142,7 +142,7 @@ export function ProductAutocomplete({ value, onChange }: ProductAutocompleteProp
         <ul
           id="product-suggestions"
           role="listbox"
-          className="absolute z-30 mt-2 w-full overflow-hidden rounded-2xl border border-white/10 bg-slate-900/95 py-1.5 shadow-xl backdrop-blur-md"
+          className="absolute z-30 mt-2 w-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 py-1.5 shadow-xl shadow-black/50"
         >
           {suggestions.map((suggestion, index) => (
             <li key={suggestion.id} role="option" aria-selected={index === activeIndex}>

@@ -6,6 +6,9 @@ import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { useOrderDetailQuery } from '../hooks/useOrdersQueries'
 import { queryKeys } from '../lib/queryKeys'
+import { getButtonClassName } from '../components/ui/Button'
+import { CheckoutStatusHeader } from '../components/checkout/CheckoutStatusHeader'
+import { sectionEnter } from '../lib/motion'
 
 export function CheckoutCancelPage() {
   const search = useSearch({ strict: false }) as { orderId?: string }
@@ -21,6 +24,9 @@ export function CheckoutCancelPage() {
 
   const canRetryPayment = orderQuery.data?.status === 'PENDING'
 
+  // Order creation + PaymentIntent setup live on the /checkout page itself
+  // (Stripe Elements, embedded) — retrying just navigates back there with the
+  // same orderId instead of minting a new hosted Checkout session.
   const handleRetryPayment = () => {
     if (orderId) {
       void navigate({ to: '/checkout', search: { orderId } })
@@ -30,11 +36,11 @@ export function CheckoutCancelPage() {
   const cancelOrderMutation = useMutation({
     mutationFn: async () => {
       if (!orderId) {
-        throw new Error('No se encontro la orden para cancelar.')
+        throw new Error('No encontramos el pedido para cancelar.')
       }
 
       if (orderQuery.data?.status !== 'PENDING') {
-        throw new Error('Solo se puede cancelar una orden en estado PENDING.')
+        throw new Error('Solo puedes cancelar un pedido pendiente.')
       }
 
       return cancelOrder(orderId)
@@ -58,16 +64,16 @@ export function CheckoutCancelPage() {
     cancelOrderMutation.error instanceof Error
       ? cancelOrderMutation.error.message
       : cancelOrderMutation.error
-        ? 'No se pudo cancelar la orden.'
+        ? 'No pudimos cancelar el pedido.'
         : null
 
   const orderStatusMessage =
     orderQuery.isLoading || orderQuery.isFetching
-      ? 'Validando estado de la orden...'
+      ? 'Validando el estado de tu pedido...'
       : orderQuery.data && orderQuery.data.status !== 'PENDING'
         ? orderQuery.data.status === 'CANCELLED'
-          ? 'Esta orden ya fue cancelada.'
-          : `La orden esta en estado ${orderQuery.data.status}. No se puede reintentar ni cancelar el checkout.`
+          ? 'Este pedido ya fue cancelado.'
+          : `Tu pedido está en estado ${orderQuery.data.status}. Ya no se puede reintentar ni cancelar el pago.`
         : null
 
   const retryDisabled =
@@ -86,9 +92,7 @@ export function CheckoutCancelPage() {
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: 'easeOut' }}
+      {...sectionEnter}
       className="mx-auto max-w-xl rounded-3xl border border-white/[0.08] bg-slate-900 p-10 text-center"
     >
       <div className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-300">
@@ -97,16 +101,13 @@ export function CheckoutCancelPage() {
         </svg>
       </div>
 
-      <p className="mt-6 text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Pago cancelado</p>
-      <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">No se completo el pago</h1>
-      <p className="mt-3 text-slate-400">
-        Tu orden sigue en estado pendiente. Puedes volver al carrito y reintentar cuando quieras.
-      </p>
-      {orderId ? (
-        <p className="mt-3 inline-block rounded-full bg-white/[0.04] px-3 py-1 font-mono text-xs text-slate-400">
-          Orden pendiente: {orderId}
-        </p>
-      ) : null}
+      <CheckoutStatusHeader
+        badge="Pago cancelado"
+        badgeClassName="text-slate-400"
+        title="No se completó el pago"
+        description="Tu pedido sigue pendiente. Puedes volver al carrito y reintentar cuando quieras."
+        pillLabel={orderId ? `Pedido pendiente: ${orderId}` : undefined}
+      />
       {cancelError ? (
         <p className="mt-5 rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
           {cancelError}
@@ -122,7 +123,7 @@ export function CheckoutCancelPage() {
           type="button"
           disabled={retryDisabled}
           onClick={handleRetryPayment}
-          className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-6 py-3 text-sm font-bold text-slate-900 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+          className={getButtonClassName({ variant: 'primary' })}
         >
           Reintentar pago
         </button>
@@ -132,19 +133,12 @@ export function CheckoutCancelPage() {
           onClick={() => cancelOrderMutation.mutate()}
           className="inline-flex items-center gap-2 rounded-full border border-rose-400/30 px-6 py-3 text-sm font-semibold text-rose-300 transition hover:border-rose-400/60 hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:border-white/10 disabled:text-slate-500"
         >
-          {cancelOrderMutation.isPending ? 'Cancelando orden...' : 'Cancelar orden'}
+          {cancelOrderMutation.isPending ? 'Cancelando pedido...' : 'Cancelar pedido'}
         </button>
-        <button
-          type="button"
-          onClick={openCart}
-          className="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5"
-        >
+        <button type="button" onClick={openCart} className={getButtonClassName({ variant: 'ghost' })}>
           Volver al carrito
         </button>
-        <Link
-          to="/shop"
-          className="inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5"
-        >
+        <Link to="/shop" className={getButtonClassName({ variant: 'ghost' })}>
           Ir al shop
         </Link>
       </div>

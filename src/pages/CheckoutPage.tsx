@@ -130,15 +130,15 @@ export function CheckoutPage() {
   )
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="mb-6 flex items-center gap-3">
+    <div className="mx-auto max-w-6xl">
+      <div className="mb-8 flex items-center gap-4">
         <button
           type="button"
           onClick={() => navigate({ to: '/shop' })}
           aria-label="Volver a la tienda"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:border-white/30 hover:bg-white/5"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:border-white/30 hover:bg-white/5"
         >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path
               d="M15 6l-6 6 6 6"
               stroke="currentColor"
@@ -148,23 +148,29 @@ export function CheckoutPage() {
             />
           </svg>
         </button>
-        <h1 className="text-2xl font-bold tracking-tight text-white">Completar compra</h1>
+        {/* Rounded rhomboid badge: skew the box, counter-skew the text so it
+            stays upright — same treatment as Shop's "Catálogo FITGEAR" title. */}
+        <div className="inline-block -skew-x-12 rounded-xl bg-lime-400 px-2 py-2">
+          <h1 className="skew-x-12 px-3 text-3xl font-black uppercase leading-none tracking-tight text-slate-950 sm:text-4xl">
+            Completar compra
+          </h1>
+        </div>
       </div>
 
       {error ? (
         <div className="rounded-3xl border border-rose-400/20 bg-slate-900 p-10 text-center">
-          <p className="text-sm text-rose-300">{error}</p>
+          <p className="text-base text-rose-300">{error}</p>
         </div>
       ) : !paymentIntent || !orderId ? (
-        <div className="flex items-center gap-3 rounded-2xl border border-lime-400/20 bg-lime-400/10 px-5 py-4 text-sm font-semibold text-lime-200">
+        <div className="flex items-center gap-3 rounded-2xl border border-lime-400/20 bg-lime-400/10 px-6 py-5 text-base font-semibold text-lime-200">
           <span
-            className="h-4 w-4 animate-spin rounded-full border-2 border-lime-400/30 border-t-lime-400"
+            className="h-5 w-5 animate-spin rounded-full border-2 border-lime-400/30 border-t-lime-400"
             aria-hidden
           />
           Preparando tu pago...
         </div>
       ) : (
-        <div ref={contentRef} className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div ref={contentRef} className="grid gap-8 lg:grid-cols-[1fr_420px]">
           <Elements
             stripe={stripePromise}
             options={{
@@ -176,27 +182,27 @@ export function CheckoutPage() {
             <CheckoutForm orderId={orderId} paymentIntentId={paymentIntent.paymentIntentId} />
           </Elements>
 
-          <aside className="h-fit rounded-3xl border border-white/[0.08] bg-slate-900 p-6 shadow-[0_0_60px_-25px_rgba(163,230,53,0.4)] lg:sticky lg:top-20">
-            <h2 className="text-lg font-bold text-white">
+          <aside className="h-fit rounded-3xl border border-white/[0.08] bg-slate-900 p-8 shadow-[0_0_60px_-25px_rgba(163,230,53,0.4)] lg:sticky lg:top-20">
+            <h2 className="text-xl font-bold text-white">
               Resumen del pedido{lineCount > 0 ? ` (${lineCount})` : ''}
             </h2>
-            <div className="mt-4 space-y-3">
+            <div className="mt-5 space-y-4">
               {order?.items.map((item) => (
-                <div key={item.id} className="flex items-start gap-3 text-sm">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gradient-to-b from-white to-slate-100">
+                <div key={item.id} className="flex items-start gap-4 text-base">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-b from-white to-slate-100">
                     {item.productImage ? (
                       <img
                         src={item.productImage}
                         alt={item.productName}
-                        className="max-h-full max-w-full object-contain p-1"
+                        className="max-h-full max-w-full object-contain p-1.5"
                       />
                     ) : (
-                      <span className="text-[9px] text-slate-400">Sin imagen</span>
+                      <span className="text-[10px] text-slate-400">Sin imagen</span>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-slate-200">{item.productName}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="mt-0.5 text-sm text-slate-500">
                       Cant: {item.quantity}
                       {item.size ? ` · Talla ${item.size}` : ''}
                     </p>
@@ -205,7 +211,7 @@ export function CheckoutPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-4 space-y-2 border-t border-white/[0.08] pt-4 text-sm text-slate-400">
+            <div className="mt-5 space-y-2.5 border-t border-white/[0.08] pt-5 text-base text-slate-400">
               <div className="flex items-center justify-between">
                 <span>Subtotal</span>
                 <span>{formatCurrency(paymentIntent.subtotal / 100)}</span>
@@ -219,14 +225,14 @@ export function CheckoutPage() {
                 <span>{formatCurrency(paymentIntent.shippingAmount / 100)}</span>
               </div>
             </div>
-            <div className="mt-4 flex items-center justify-between rounded-2xl bg-lime-400/10 px-4 py-3">
-              <span className="text-sm font-semibold text-lime-200">Total a pagar</span>
-              <span className="text-lg font-bold text-lime-300">
+            <div className="mt-5 flex items-center justify-between rounded-2xl bg-lime-400/10 px-5 py-4">
+              <span className="text-base font-semibold text-lime-200">Total a pagar</span>
+              <span className="text-2xl font-bold text-lime-300">
                 {formatCurrency(paymentIntent.amount / 100)}
               </span>
             </div>
-            <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-500">
-              <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-500">
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <rect x="3" y="11" width="18" height="10" rx="2" stroke="currentColor" strokeWidth="2" />
                 <path
                   d="M7 11V7a5 5 0 0 1 10 0v4"

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { prefersReducedMotion } from '../lib/gsap'
+import { gsap, useGSAP, prefersReducedMotion } from '../lib/gsap'
 
 export interface HeroCarouselSlide {
   id: string
@@ -23,7 +23,7 @@ const SLIDES: HeroCarouselSlide[] = [
     // Pesas
     image:
       'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=1920&q=80',
-    title: 'Pesas para tu mejor version',
+    title: 'Pesas para tu mejor versión',
     subtitle: 'Mancuernas y barras de alto rendimiento para ganar fuerza real.',
     // Categoria destino del slide — ajusta el nombre si usas otra categoria.
     category: 'Pesas',
@@ -33,7 +33,7 @@ const SLIDES: HeroCarouselSlide[] = [
     // Botellas
     image:
       'https://images.unsplash.com/photo-1764426445457-59169e244cce?auto=format&fit=crop&w=1920&q=80',
-    title: 'Hidratacion que no te frena',
+    title: 'Hidratación que no te frena',
     subtitle: 'Botellas deportivas para acompañarte en cada entrenamiento.',
     category: 'Botellas',
   },
@@ -42,8 +42,8 @@ const SLIDES: HeroCarouselSlide[] = [
     // Bandas
     image:
       'https://images.pexels.com/photos/863977/pexels-photo-863977.jpeg?auto=compress&cs=tinysrgb&w=1920',
-    title: 'Resistencia que se adapta a vos',
-    subtitle: 'Bandas elasticas para fuerza, movilidad y recuperacion.',
+    title: 'Resistencia que se adapta a ti',
+    subtitle: 'Bandas elásticas para fuerza, movilidad y recuperación.',
     category: 'Bandas',
   },
 ]
@@ -52,7 +52,41 @@ export function HeroCarousel() {
   const [index, setIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const heroContentRef = useRef<HTMLDivElement>(null)
   const count = SLIDES.length
+
+  // Athletic text entrance for the active slide: the copy rises + fades in on
+  // first load and again on every slide change (keyed to `index`). The slide
+  // track itself still cross-slides via CSS; this animates only the text on top.
+  // GSAP runs client-side after hydration (no inline styles server-side, so no
+  // FOUC / hydration mismatch), and MotionConfig doesn't cover GSAP — so we gate
+  // on prefersReducedMotion() ourselves, same as useReveal.
+  useGSAP(
+    () => {
+      if (prefersReducedMotion()) return
+      const root = heroContentRef.current
+      if (!root) return
+      const items = root.querySelectorAll('[data-hero-animate]')
+      if (items.length === 0) return
+
+      gsap.from(items, {
+        y: 24,
+        autoAlpha: 0,
+        duration: 0.55,
+        ease: 'power3.out',
+        stagger: 0.08,
+        overwrite: true,
+        clearProps: 'transform,opacity,visibility',
+      })
+    },
+    // revertOnUpdate: the GreenSock-documented way to make useGSAP revert +
+    // recreate its context on every dependency change instead of only on
+    // unmount. Without it, each slide change just adds another tween to the
+    // same long-lived context rather than tearing the previous run down
+    // first — the recommended pattern here since we want the exact same
+    // clean-slate entrance every time `index` changes.
+    { dependencies: [index], revertOnUpdate: true },
+  )
 
   const goTo = useCallback(
     (next: number) => {
@@ -99,7 +133,7 @@ export function HeroCarousel() {
               className="group relative block h-full w-full shrink-0"
               aria-hidden={i !== index}
               tabIndex={i === index ? 0 : -1}
-              aria-label={`Ver categoria ${slide.category}`}
+              aria-label={`Ver categoría ${slide.category}`}
             >
               <div
                 className="absolute inset-0 bg-slate-900 bg-cover bg-center transition-transform duration-[1200ms] ease-out group-hover:scale-105"
@@ -109,15 +143,20 @@ export function HeroCarousel() {
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-slate-950/10" />
               <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/10 to-transparent" />
 
-              <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-6 pb-20 sm:px-10 sm:pb-24 lg:px-16 lg:pb-28">
-                <span className="mb-4 h-1 w-12 bg-lime-400" />
-                <h2 className="font-display max-w-3xl text-4xl font-black uppercase leading-[0.95] tracking-tight text-white sm:text-6xl lg:text-7xl">
+              <div
+                ref={i === index ? heroContentRef : undefined}
+                className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-6 pb-20 sm:px-10 sm:pb-24 lg:px-16 lg:pb-28"
+              >
+                <span data-hero-animate className="mb-4 h-1 w-12 bg-lime-400" />
+                {/* Display tier (Parte 1): fluid clamp 48→96px via text-display-lg.
+                    Line-height + tracking come from the token — see src/index.css. */}
+                <h2 data-hero-animate className="font-display max-w-3xl text-display-lg font-black uppercase text-white">
                   {slide.title}
                 </h2>
                 {slide.subtitle && (
-                  <p className="mt-4 max-w-xl text-base text-slate-200 sm:text-lg">{slide.subtitle}</p>
+                  <p data-hero-animate className="mt-4 max-w-xl text-base text-slate-200 sm:text-lg">{slide.subtitle}</p>
                 )}
-                <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-lime-400 transition group-hover:gap-3">
+                <span data-hero-animate className="mt-6 inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-lime-400 transition group-hover:gap-3">
                   Ver {slide.category}
                   <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />

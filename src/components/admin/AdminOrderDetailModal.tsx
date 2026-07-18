@@ -3,6 +3,15 @@ import { getOrderHistory, refundOrder, updateOrderStatus } from '../../api/fitge
 import type { BackendOrder, OrderEvent, OrderStatus } from '../../types'
 import { formatCurrency, formatDate } from '../../utils/format'
 import { ORDER_STATUS_META } from '../../utils/orderStatusStyle'
+import { Select } from '../ui/Select'
+
+// Human-readable Spanish labels for each recorded order event. Falls back to
+// the raw code for any future event type not yet mapped here.
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  STATUS_CHANGED: 'Cambio de estado',
+  ORDER_SHIPPED: 'Orden enviada',
+  REFUNDED: 'Reembolso procesado',
+}
 
 interface AdminOrderDetailModalProps {
   order: BackendOrder
@@ -61,18 +70,16 @@ function StatusChangeSection({
       {nextStatuses.length > 0 ? (
         <div className="mt-3 space-y-3">
           <div className="flex flex-wrap items-center gap-3">
-            <select
+            <Select
+              tone="light"
+              label="Nuevo estado"
               value={targetStatus}
-              onChange={(event) => onTargetStatusChange(event.target.value as OrderStatus | '')}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-emerald-500/60 focus:outline-none"
-            >
-              <option value="">Selecciona un estado…</option>
-              {nextStatuses.map((status) => (
-                <option key={status} value={status}>
-                  {ORDER_STATUS_META[status].label}
-                </option>
-              ))}
-            </select>
+              onChange={onTargetStatusChange}
+              options={[
+                { value: '', label: 'Selecciona un estado…' },
+                ...nextStatuses.map((status) => ({ value: status, label: ORDER_STATUS_META[status].label })),
+              ]}
+            />
             <button
               type="button"
               onClick={onSubmit}
@@ -238,12 +245,14 @@ function OrderHistoryList({ loadingHistory, history }: Readonly<OrderHistoryList
           {history.map((event) => (
             <li key={event.id} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm">
               <div className="flex items-center justify-between gap-3">
-                <span className="font-semibold text-slate-900">{event.type}</span>
+                <span className="font-semibold text-slate-900">
+                  {EVENT_TYPE_LABELS[event.type] ?? event.type}
+                </span>
                 <span className="text-xs text-slate-500">{formatDate(event.createdAt)}</span>
               </div>
               {event.reason ? <p className="mt-1 text-slate-500">Motivo: {event.reason}</p> : null}
               {event.actorClerkId ? (
-                <p className="mt-0.5 text-xs text-slate-500">Por: {event.actorClerkId}</p>
+                <p className="mt-0.5 text-xs text-slate-500">Realizado por un administrador</p>
               ) : null}
             </li>
           ))}

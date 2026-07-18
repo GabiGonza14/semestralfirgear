@@ -18,8 +18,9 @@ export const clerkDarkAppearance: ClerkAppearance = {
     fontFamily: 'Inter, "Segoe UI", sans-serif',
   },
   elements: {
-    rootBox: 'w-full',
-    card: 'bg-slate-900 border border-white/[0.08] shadow-2xl shadow-black/40',
+    rootBox: '!w-full',
+    cardBox: '!w-full',
+    card: '!w-full bg-slate-900 border border-white/[0.08] shadow-2xl shadow-black/40',
     headerTitle: 'text-white',
     headerSubtitle: 'text-slate-400',
     socialButtonsBlockButton:
@@ -30,6 +31,8 @@ export const clerkDarkAppearance: ClerkAppearance = {
     formFieldLabel: 'text-slate-300',
     formButtonPrimary:
       'bg-lime-400 text-slate-900 hover:bg-lime-300 normal-case font-bold',
+    footer: '!gap-1 !pt-2',
+    footerAction: '!py-2',
     footerActionText: 'text-slate-400',
     footerActionLink: 'text-lime-400 hover:text-lime-300',
     identityPreviewText: 'text-slate-200',

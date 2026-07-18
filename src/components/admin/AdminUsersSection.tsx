@@ -3,6 +3,7 @@ import { updateUserRole, updateUserStatus } from '../../api/fitgearApi'
 import type { BackendUser, UserRole } from '../../types'
 import { formatDate } from '../../utils/format'
 import { ROLE_LABELS } from '../../utils/userRoleLabels'
+import { Select } from '../ui/Select'
 
 interface AdminUsersSectionProps {
   users: BackendUser[]
@@ -94,11 +95,12 @@ export function AdminUsersSection({ users, currentUserId, onRefresh }: Readonly<
                   <td className="py-2.5 font-medium text-slate-900">{user.fullName}</td>
                   <td>{user.email}</td>
                   <td>
-                    <select
+                    <Select
+                      tone="light"
+                      label={`Rol de ${user.fullName}`}
                       value={user.role}
-                      onChange={(event) => handleRoleChange(user, event.target.value as UserRole)}
+                      onChange={(next) => handleRoleChange(user, next as UserRole)}
                       disabled={roleLocked}
-                      aria-label={`Rol de ${user.fullName}`}
                       title={
                         isSelf
                           ? 'No puedes cambiar tu propio rol'
@@ -106,11 +108,11 @@ export function AdminUsersSection({ users, currentUserId, onRefresh }: Readonly<
                             ? 'No puedes cambiar el rol de otro administrador'
                             : undefined
                       }
-                      className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 outline-none transition focus:border-emerald-500/60 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="CUSTOMER">{ROLE_LABELS.CUSTOMER}</option>
-                      <option value="ADMIN">{ROLE_LABELS.ADMIN}</option>
-                    </select>
+                      options={[
+                        { value: 'CUSTOMER', label: ROLE_LABELS.CUSTOMER },
+                        { value: 'ADMIN', label: ROLE_LABELS.ADMIN },
+                      ]}
+                    />
                   </td>
                   <td>
                     <span

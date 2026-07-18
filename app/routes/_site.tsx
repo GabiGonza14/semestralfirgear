@@ -1,12 +1,14 @@
 import { useEffect } from 'react'
 import { Outlet, createFileRoute, useLocation } from '@tanstack/react-router'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { MotionConfig } from 'framer-motion'
 import { AuthProvider, useAuth } from '../../src/context/AuthContext'
 import { CartProvider, useCart } from '../../src/context/CartContext'
 import { Navbar } from '../../src/components/Navbar'
 import { Footer } from '../../src/components/Footer'
 import { CartDrawer } from '../../src/components/cart/CartDrawer'
 import { ErrorBoundary } from '../../src/components/ErrorBoundary'
+import { SiteMainContent } from '../../src/components/SiteMainContent'
 import { queryClient } from '../../src/lib/queryClient'
 
 // Pathless layout route (migrated from src/layouts/SiteLayout.tsx): wraps every
@@ -44,6 +46,7 @@ function SiteChrome() {
   // scoped to exactly /checkout (not /checkout/success or /checkout/cancel,
   // which aren't "the moment of paying").
   const isCheckoutPage = location.pathname === '/checkout'
+  const isShopPage = location.pathname === '/shop'
   const { isLoaded: authLoaded, isAdmin } = useAuth()
   // Admin role sync (backend) resolves after Clerk itself, so /admin briefly
   // renders with no known role yet — and after a logout, isAdmin flips false
@@ -65,6 +68,7 @@ function SiteChrome() {
   }, [location.pathname, closeCart])
 
   return (
+    <MotionConfig reducedMotion="user">
     <div
       className={
         // `flex-1` on the admin <main> below relies on `flex-basis: 0` to size
@@ -116,23 +120,17 @@ function SiteChrome() {
         // to normal document flow (stacked sidebar + content, whole page
         // scrolls) — the fixed-shell pattern is desktop-oriented by nature,
         // same as the reference dashboard this was modeled on.
-        <main className={isAdminPage ? 'flex-1 sm:h-dvh sm:overflow-hidden' : 'flex-1'}>
-          <div
-            className={
-              isAdminPage
-                ? 'w-full sm:h-full'
-                : 'mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10'
-            }
-          >
-            <ErrorBoundary resetKey={location.pathname}>
-              <Outlet />
-            </ErrorBoundary>
-          </div>
-        </main>
+        <SiteMainContent
+          isAdminPage={isAdminPage}
+          isShopPage={isShopPage}
+          isCheckoutPage={isCheckoutPage}
+          pathname={location.pathname}
+        />
       )}
 
       {isPostLogin || isAdminPage || isCheckoutPage ? null : <Footer />}
       <CartDrawer />
     </div>
+    </MotionConfig>
   )
 }

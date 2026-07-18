@@ -1,10 +1,13 @@
 import { useRef, type ReactElement } from 'react'
 import { Link } from '@tanstack/react-router'
 import { CategoryShowcase } from '../components/CategoryShowcase'
+import { FloatingShapes } from '../components/FloatingShapes'
 import { GiftFinder } from '../components/GiftFinder'
 import { HeroCarousel } from '../components/HeroCarousel'
 import { Marquee } from '../components/Marquee'
 import { SectionDecor } from '../components/SectionDecor'
+import { SolidSeam } from '../components/SolidSeam'
+import { Button, getButtonClassName } from '../components/ui/Button'
 import { useCart } from '../context/CartContext'
 import { useReveal } from '../hooks/useReveal'
 
@@ -17,7 +20,7 @@ const iconClass = 'h-5 w-5'
 
 const trustItems: TrustItem[] = [
   {
-    label: 'Envio rapido',
+    label: 'Envío rápido',
     icon: (
       <svg className={iconClass} viewBox="0 0 24 24" fill="none" aria-hidden>
         <path d="M3 7h11v8H3zM14 10h4l3 3v2h-7z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
@@ -36,7 +39,7 @@ const trustItems: TrustItem[] = [
     ),
   },
   {
-    label: 'Devoluciones faciles',
+    label: 'Devoluciones fáciles',
     icon: (
       <svg className={iconClass} viewBox="0 0 24 24" fill="none" aria-hidden>
         <path d="M4 9a8 8 0 0 1 14-3M20 6v4h-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -75,14 +78,28 @@ export function LandingPage() {
       {/* Gift finder — browse by budget tier, below the featured section */}
       <GiftFinder />
 
+      <SolidSeam />
+
       {/* CTA banner */}
       <section className="relative overflow-hidden">
-        <SectionDecor pattern="grid" glowA="bg-violet-500/10" glowB="bg-cyan-500/10" />
+        <SectionDecor pattern="stripes" glowA="bg-violet-500/10" glowB="bg-cyan-500/10" animated />
+        <FloatingShapes variant="cta" />
         <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <div
           data-reveal
-          className="relative overflow-hidden rounded-[2rem] border border-lime-400/20 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 px-6 py-14 text-center sm:px-12"
+          className="relative overflow-hidden rounded-[2rem] border border-lime-400/20 px-6 py-14 text-center sm:px-12"
         >
+          {/* Gym photo fill — see public/hero/README.md to swap for owned photography. */}
+          <div
+            className="absolute inset-0 bg-slate-900 bg-cover bg-center"
+            style={{
+              backgroundImage:
+                'url(https://images.unsplash.com/photo-1545612036-2872840642dc?auto=format&fit=crop&w=1600&q=80)',
+            }}
+          />
+          {/* Dark wash so the copy stays legible over the photo */}
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-950/95 via-slate-900/90 to-slate-950/85" />
+
           {/* Lime glow accents */}
           <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-lime-400/10 blur-[90px]" />
           <div className="pointer-events-none absolute -bottom-24 -right-20 h-72 w-72 rounded-full bg-lime-400/10 blur-[90px]" />
@@ -91,32 +108,30 @@ export function LandingPage() {
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-lime-400">
               FITGEAR Store
             </p>
-            <h2 className="mx-auto mt-4 max-w-2xl text-3xl font-bold tracking-tight text-white md:text-5xl">
+            <h2 className="font-display mx-auto mt-4 max-w-2xl text-display-md font-black text-white">
               Todo para tu entrenamiento,
               <br />
               <span className="text-lime-400">en un solo lugar</span>
             </h2>
             <p className="mx-auto mt-5 max-w-md text-slate-400">
               Mancuernas, accesorios de cardio y herramientas de movilidad con compra
-              simple y entrega rapida.
+              simple y entrega rápida.
             </p>
             <div className="mt-9 flex flex-wrap justify-center gap-3">
               <Link
                 to="/shop"
-                className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-8 py-3.5 text-sm font-bold text-slate-900 transition hover:bg-lime-300 hover:shadow-[0_0_32px_-4px_rgba(163,230,53,0.55)]"
+                className={getButtonClassName({
+                  className: 'px-8 hover:shadow-[0_0_32px_-4px_rgba(163,230,53,0.55)]',
+                })}
               >
                 Ir a la tienda
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
                   <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </Link>
-              <button
-                type="button"
-                onClick={openCart}
-                className="inline-flex rounded-full border border-white/15 px-8 py-3.5 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/5"
-              >
+              <Button variant="ghost" onClick={openCart} className="px-8">
                 Ver carrito
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -124,8 +139,9 @@ export function LandingPage() {
       </section>
 
       {/* Trust strip — right above the footer */}
-      <div className="border-y border-white/[0.06] bg-slate-900/40">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="relative overflow-hidden border-y border-white/[0.06] bg-slate-900/40">
+        <FloatingShapes variant="trust" />
+        <div className="relative mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-4 py-6 sm:px-6 lg:px-8">
           {trustItems.map((item) => (
             <div
               key={item.label}

@@ -113,7 +113,7 @@ export function Navbar({ minimal = false }: NavbarProps = {}) {
             <button
               type="button"
               onClick={() => navigateTo('/login')}
-              aria-label="Iniciar sesion"
+              aria-label="Iniciar sesión"
               className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/10 text-slate-300 transition hover:border-lime-400/40 hover:text-white hover:bg-white/5"
             >
               <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" aria-hidden>

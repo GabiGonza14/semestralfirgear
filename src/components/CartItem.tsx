@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { Link } from '@tanstack/react-router'
+import { EASE_OUT_ATHLETIC, MOTION_DURATION } from '../lib/motion'
 import type { Product, SizeLabel } from '../types'
 import { formatCurrency } from '../utils/format'
 
@@ -7,12 +8,23 @@ interface CartItemProps {
   product: Product
   quantity: number
   size?: SizeLabel
+  selected: boolean
+  onToggleSelect: () => void
   onIncrease: () => void
   onDecrease: () => void
   onRemove: () => void
 }
 
-export function CartItem({ product, quantity, size, onIncrease, onDecrease, onRemove }: Readonly<CartItemProps>) {
+export function CartItem({
+  product,
+  quantity,
+  size,
+  selected,
+  onToggleSelect,
+  onIncrease,
+  onDecrease,
+  onRemove,
+}: Readonly<CartItemProps>) {
   const unitPrice = product.hasDiscount ? product.finalPrice : product.price
   const subtotal = quantity * unitPrice
   const availableStock = size
@@ -25,10 +37,19 @@ export function CartItem({ product, quantity, size, onIncrease, onDecrease, onRe
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.24, ease: 'easeOut' }}
+      transition={{ duration: MOTION_DURATION.base, ease: EASE_OUT_ATHLETIC }}
       className="flex gap-3 rounded-2xl border border-white/[0.08] bg-slate-900 p-3"
     >
+      <label className="flex shrink-0 items-center">
+        <span className="sr-only">Seleccionar {product.name}</span>
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelect}
+          className="h-4 w-4 rounded border-white/20 bg-slate-950/50 text-lime-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-400/40"
+        />
+      </label>
+
       <Link
         to="/product/$id"
         params={{ id: product.id }}
