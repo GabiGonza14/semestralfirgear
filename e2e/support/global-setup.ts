@@ -28,15 +28,26 @@ function loadEnvVar(name: string): string | undefined {
 // specs can sign in deterministically via clerk.signIn({ page, emailAddress })
 // (ticket-based, no password/UI interaction, no bot-detection prompts). Public
 // specs under e2e/public/** don't need this — they never touch a real Clerk
-// session — so a missing key here only skips the authenticated tier, it never
-// fails the run. See docs/e2e-testing.md.
+// session — so this is skipped whenever no test account is configured, it
+// never fails the run. See docs/e2e-testing.md.
+//
+// Gated on E2E_ADMIN_EMAIL/E2E_CUSTOMER_EMAIL (not just the Clerk API keys):
+// the app itself needs *a* CLERK_SECRET_KEY present just to let its SSR
+// middleware boot (@clerk/tanstack-react-start throws "no secret key
+// provided" otherwise) — that's true even for e2e/public, and even a
+// syntactically-fake key satisfies it. But clerkSetup() below makes a real
+// call to Clerk's Backend API to mint a testing token, which needs a *valid*
+// key. Without a configured test account, no spec calls clerk.signIn() and
+// that token is never used — so skip the real API call entirely rather than
+// fail the whole suite on an intentionally-fake CI key.
 export default async function globalSetup() {
   const publishableKey = loadEnvVar('CLERK_PUBLISHABLE_KEY') ?? loadEnvVar('VITE_CLERK_PUBLISHABLE_KEY')
   const secretKey = loadEnvVar('CLERK_SECRET_KEY')
+  const hasTestAccount = Boolean(loadEnvVar('E2E_ADMIN_EMAIL') || loadEnvVar('E2E_CUSTOMER_EMAIL'))
 
-  if (!publishableKey || !secretKey) {
+  if (!publishableKey || !secretKey || !hasTestAccount) {
     console.warn(
-      '[e2e] CLERK_PUBLISHABLE_KEY/CLERK_SECRET_KEY not found in env or .env — ' +
+      '[e2e] E2E_ADMIN_EMAIL/E2E_CUSTOMER_EMAIL not set — ' +
         'skipping Clerk testing-token setup. Specs in e2e/authenticated/ will be skipped.',
     )
     return
