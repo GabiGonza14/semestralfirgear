@@ -46,20 +46,20 @@ export function CheckoutForm({ orderId, paymentIntentId }: CheckoutFormProps) {
   >(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Address first, payment second: PaymentElement only needs to mount once the
-  // shipping step is done, so it's kept out of the initial render entirely.
-  // AddressElement instead stays mounted the whole time (just hidden via CSS)
-  // so going back to "Editar dirección" doesn't lose what was already typed.
-  const [step, setStep] = useState<'address' | 'payment'>('address')
+  // Payment first, address second (reordered per request): PaymentElement
+  // mounts immediately since it's the first thing shown. AddressElement stays
+  // mounted the whole time once reached (just hidden via CSS) so going back
+  // to "Editar tarjeta" doesn't lose what was already typed there.
+  const [step, setStep] = useState<'payment' | 'address'>('payment')
   const formRef = useRef<HTMLFormElement>(null)
   // CheckoutPage already eases the whole form in on first mount — this ref
   // skips that initial run so the panel transition below only plays on an
-  // actual step change (a "Siguiente"/"Editar dirección" click), not layered
+  // actual step change (a "Siguiente"/"Editar tarjeta" click), not layered
   // on top of the page's own entrance animation.
   const isFirstStepRender = useRef(true)
 
   // Whichever step's panel is currently in the DOM eases in on every step
-  // change (both forward and back via "Editar dirección") instead of just
+  // change (both forward and back via "Editar tarjeta") instead of just
   // snapping into view.
   useGSAP(
     () => {
@@ -171,10 +171,10 @@ export function CheckoutForm({ orderId, paymentIntentId }: CheckoutFormProps) {
         <div className="flex items-center gap-2.5">
           <span
             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-colors duration-300 ${
-              step === 'address' ? 'bg-lime-400 text-slate-900' : 'bg-lime-400/15 text-lime-300'
+              step === 'payment' ? 'bg-lime-400 text-slate-900' : 'bg-lime-400/15 text-lime-300'
             }`}
           >
-            {step === 'payment' ? (
+            {step === 'address' ? (
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path
                   d="M5 13l4 4L19 7"
@@ -189,70 +189,70 @@ export function CheckoutForm({ orderId, paymentIntentId }: CheckoutFormProps) {
             )}
           </span>
           <span
-            className={`text-sm font-bold uppercase tracking-wide transition-colors duration-300 ${step === 'address' ? 'text-white' : 'text-lime-300'}`}
+            className={`text-sm font-bold uppercase tracking-wide transition-colors duration-300 ${step === 'payment' ? 'text-white' : 'text-lime-300'}`}
           >
-            Dirección
+            Pago
           </span>
         </div>
 
         <div className="h-px flex-1 bg-white/10">
           <div
-            className={`h-px bg-lime-400 transition-all duration-500 ease-out ${step === 'payment' ? 'w-full' : 'w-0'}`}
+            className={`h-px bg-lime-400 transition-all duration-500 ease-out ${step === 'address' ? 'w-full' : 'w-0'}`}
           />
         </div>
 
         <div className="flex items-center gap-2.5">
           <span
             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-colors duration-300 ${
-              step === 'payment' ? 'bg-lime-400 text-slate-900' : 'bg-white/10 text-slate-500'
+              step === 'address' ? 'bg-lime-400 text-slate-900' : 'bg-white/10 text-slate-500'
             }`}
           >
             2
           </span>
           <span
-            className={`text-sm font-bold uppercase tracking-wide transition-colors duration-300 ${step === 'payment' ? 'text-white' : 'text-slate-500'}`}
+            className={`text-sm font-bold uppercase tracking-wide transition-colors duration-300 ${step === 'address' ? 'text-white' : 'text-slate-500'}`}
           >
-            Pago
+            Dirección
           </span>
         </div>
       </div>
 
       <div
-        data-step-panel="address"
-        className={`space-y-6 ${step === 'payment' ? 'hidden' : ''}`}
+        data-step-panel="payment"
+        className={`space-y-6 ${step === 'address' ? 'hidden' : ''}`}
       >
         <div className="rounded-3xl border border-white/[0.08] bg-slate-900 p-8">
           <div className="flex items-center gap-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lime-400/10 text-lime-400">
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                  d="M21 10c0 6.5-9 12-9 12s-9-5.5-9-12a9 9 0 0 1 18 0z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinejoin="round"
-                />
-                <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="2" />
+                <rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" strokeWidth="2" />
+                <path d="M1 10h22" stroke="currentColor" strokeWidth="2" />
               </svg>
             </span>
-            <h2 className="text-sm font-bold uppercase tracking-[0.18em] text-lime-400">
-              Dirección de envío
-            </h2>
+            <h2 className="text-sm font-bold uppercase tracking-[0.18em] text-lime-400">Pago</h2>
           </div>
           <div className="mt-5">
-            <AddressElement
-              options={{ mode: 'shipping', allowedCountries: ['PA'] }}
-              onChange={(changeEvent) =>
-                setShippingValue(changeEvent.complete ? changeEvent.value : null)
-              }
+            <PaymentElement
+              options={{
+                // Link rides along with the 'card' payment method type
+                // regardless of the PaymentIntent's own payment_method_types
+                // — it's what was surfacing the "Banco"/"Klarna Powered by
+                // Link" options and the saved-card autofill popover, not the
+                // backend's card-only restriction. This is the only
+                // per-integration way to turn it off (the alternative is an
+                // account-wide Dashboard toggle under Payment methods → Link,
+                // which would affect every Stripe integration, not just this
+                // checkout).
+                wallets: { link: 'never' },
+              }}
             />
           </div>
         </div>
 
         <button
           type="button"
-          disabled={!shippingValue}
-          onClick={() => setStep('payment')}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-lime-400 px-6 py-4 text-base font-bold text-slate-900 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+          onClick={() => setStep('address')}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-lime-400 px-6 py-4 text-base font-bold text-slate-900 transition hover:bg-lime-300"
         >
           Siguiente
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -267,40 +267,39 @@ export function CheckoutForm({ orderId, paymentIntentId }: CheckoutFormProps) {
         </button>
       </div>
 
-      {step === 'payment' ? (
-        <div data-step-panel="payment" className="space-y-6">
+      {step === 'address' ? (
+        <div data-step-panel="address" className="space-y-6">
           <button
             type="button"
-            onClick={() => setStep('address')}
+            onClick={() => setStep('payment')}
             className="text-base font-semibold text-slate-400 underline-offset-4 hover:text-slate-200 hover:underline"
           >
-            ← Editar dirección
+            ← Editar tarjeta
           </button>
 
           <div className="rounded-3xl border border-white/[0.08] bg-slate-900 p-8">
             <div className="flex items-center gap-3">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lime-400/10 text-lime-400">
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" strokeWidth="2" />
-                  <path d="M1 10h22" stroke="currentColor" strokeWidth="2" />
+                  <path
+                    d="M21 10c0 6.5-9 12-9 12s-9-5.5-9-12a9 9 0 0 1 18 0z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="2" />
                 </svg>
               </span>
-              <h2 className="text-sm font-bold uppercase tracking-[0.18em] text-lime-400">Pago</h2>
+              <h2 className="text-sm font-bold uppercase tracking-[0.18em] text-lime-400">
+                Dirección de envío
+              </h2>
             </div>
             <div className="mt-5">
-              <PaymentElement
-                options={{
-                  // Link rides along with the 'card' payment method type
-                  // regardless of the PaymentIntent's own payment_method_types
-                  // — it's what was surfacing the "Banco"/"Klarna Powered by
-                  // Link" options and the saved-card autofill popover, not the
-                  // backend's card-only restriction. This is the only
-                  // per-integration way to turn it off (the alternative is an
-                  // account-wide Dashboard toggle under Payment methods → Link,
-                  // which would affect every Stripe integration, not just this
-                  // checkout).
-                  wallets: { link: 'never' },
-                }}
+              <AddressElement
+                options={{ mode: 'shipping', allowedCountries: ['PA'] }}
+                onChange={(changeEvent) =>
+                  setShippingValue(changeEvent.complete ? changeEvent.value : null)
+                }
               />
             </div>
           </div>
@@ -313,7 +312,7 @@ export function CheckoutForm({ orderId, paymentIntentId }: CheckoutFormProps) {
 
           <button
             type="submit"
-            disabled={!stripe || !elements || submitting}
+            disabled={!stripe || !elements || !shippingValue || submitting}
             className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-lime-400 px-6 py-4 text-base font-bold text-slate-900 transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
           >
             {submitting ? (
