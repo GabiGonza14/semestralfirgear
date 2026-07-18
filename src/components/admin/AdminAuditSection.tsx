@@ -110,7 +110,7 @@ function formatChangeValue(key: string, value: unknown, entityType?: AuditEntity
     return statusLabels[String(value)] ?? String(value)
   }
   if (key === 'isActive') return value ? 'Activo' : 'Inactivo'
-  if (key === 'via') return VIA_LABELS[String(value)] ?? 'Automatización'
+  if (key === 'via') return (typeof value === 'string' ? VIA_LABELS[value] : undefined) ?? 'Automatización'
   if (key === 'price') return `$${value}`
   if (typeof value === 'boolean') return value ? 'Sí' : 'No'
   if (typeof value === 'object') return JSON.stringify(value)
