@@ -67,6 +67,15 @@ const REVIEW_STATUS_LABELS: Record<string, string> = {
   HIDDEN: 'Oculta',
 }
 
+// Friendly Spanish description for each known automation source (`via` on a
+// changes payload), so "Origen" reads as plain language instead of the raw
+// internal `mcp:tool_name` identifier those integrations record.
+const VIA_LABELS: Record<string, string> = {
+  'mcp:update_stock': 'Automatización de inventario',
+  'mcp:update_order_status': 'Automatización de pedidos',
+  'mcp:manage_categories': 'Automatización de categorías',
+}
+
 // Human-readable label per known change key. Unknown keys fall back to the key
 // itself, so future actions still render something sensible.
 const CHANGE_KEY_LABELS: Record<string, string> = {
@@ -101,7 +110,7 @@ function formatChangeValue(key: string, value: unknown, entityType?: AuditEntity
     return statusLabels[String(value)] ?? String(value)
   }
   if (key === 'isActive') return value ? 'Activo' : 'Inactivo'
-  if (key === 'via') return `MCP · ${String(value).replace(/^mcp:/, '')}`
+  if (key === 'via') return (typeof value === 'string' ? VIA_LABELS[value] : undefined) ?? 'Automatización'
   if (key === 'price') return `$${value}`
   if (typeof value === 'boolean') return value ? 'Sí' : 'No'
   if (typeof value === 'object') return JSON.stringify(value)
@@ -233,7 +242,7 @@ export function AdminAuditSection({ active = true }: Readonly<{ active?: boolean
           <input
             value={filters.action}
             onChange={(event) => setFilters((prev) => ({ ...prev, action: event.target.value }))}
-            placeholder="Acción (ej. ORDER_REFUNDED)"
+            placeholder="Acción (ej. Orden reembolsada)"
             className={fieldClass}
           />
 
@@ -315,7 +324,7 @@ export function AdminAuditSection({ active = true }: Readonly<{ active?: boolean
                       {formatDateTime(entry.createdAt)}
                     </td>
                     <td className="py-2.5">
-                      {entry.actorEmail ?? entry.actorClerkId ?? 'Sistema'}
+                      {entry.actorEmail ?? (entry.actorClerkId ? 'Administrador' : 'Sistema')}
                     </td>
                     <td className="py-2.5 font-medium text-slate-900">{actionLabel(entry.action)}</td>
                     <td className="py-2.5">
