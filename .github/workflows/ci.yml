@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [main]
 
+# Ningun job de este workflow escribe al repo, comenta PRs ni sube paquetes --
+# solo hacen checkout y corren tests. El GITHUB_TOKEN por defecto trae permisos
+# amplios de lectura/escritura si no se restringen explicitamente; con
+# read-only alcanza para todo lo que hace este pipeline (contents: read cubre
+# actions/checkout y actions/upload-artifact).
+permissions:
+  contents: read
+
 jobs:
   frontend:
     name: Frontend (typecheck + unit tests)
