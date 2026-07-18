@@ -19,7 +19,7 @@ interface CartSelectionToolbarProps {
   onRemoveSelected: () => void
 }
 
-// "Seleccionar todo" + bulk-delete bar, pulled out of CartDrawer so its own
+// Select-all + bulk-delete bar, pulled out of CartDrawer so its own
 // conditional (the button only shows once something's selected) doesn't
 // count against the drawer's own cognitive complexity.
 function CartSelectionToolbar({
