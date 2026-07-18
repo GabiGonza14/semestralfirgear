@@ -147,6 +147,11 @@ jobs:
       VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
       CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
       MONGODB_URI: ${{ secrets.MONGODB_URI }}
+      # /api/ready (backend/src/services/healthService.ts) exige Mongo Y
+      # Stripe alcanzables -- stripe.balance.retrieve() necesita una key real,
+      # no solo presente. El propio test de creacion de pedido tambien crea un
+      # PaymentIntent real, asi que esta key hace falta de todas formas.
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

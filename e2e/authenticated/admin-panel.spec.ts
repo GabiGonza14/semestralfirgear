@@ -52,7 +52,9 @@ test.describe('Admin panel', () => {
   test('users section renders the users table with the signed-in admin listed', async ({ page }) => {
     await page.getByRole('button', { name: 'Usuarios', exact: true }).click()
     await expect(page.getByText('Email', { exact: true })).toBeVisible()
-    await expect(page.getByText(adminEmail()!)).toBeVisible()
+    // The admin's own email also shows in the sidebar user-menu widget —
+    // scope to the table cell to avoid a strict-mode multi-match there.
+    await expect(page.getByRole('cell', { name: adminEmail()! })).toBeVisible()
   })
 
   test('reviews moderation section renders its status filters', async ({ page }) => {
