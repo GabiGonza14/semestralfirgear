@@ -319,13 +319,12 @@ export function ShopPage() {
   useStaggerIn(gridRef, { deps: [resolvedCategory, sortBy, loading, page] })
 
   return (
-    // `isolate` scopes the -z-10 backdrop to this subtree; without a local
-    // stacking context it would fall behind the app's slate-950 background.
-    // `overflow-x-hidden`: the full-bleed dot layer below is sized with
-    // 100vw, which on some browsers is a few px wider than the actual page
-    // (it doesn't subtract the scrollbar) — clip that here instead of
-    // letting it add horizontal scroll to the whole page.
-    <div className="relative isolate space-y-8 overflow-x-hidden">
+    // Both `isolate` and `overflow-x-hidden` used to guard a full-bleed
+    // 100vw dot backdrop that lived directly in this page — that decor moved
+    // up into SiteMainContent (app/routes/_site.tsx's isShopPage branch), so
+    // neither is load-bearing here anymore. Dropped: overflow-x-hidden was
+    // also clipping the "Catálogo FITGEAR" badge's skewed corners.
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
