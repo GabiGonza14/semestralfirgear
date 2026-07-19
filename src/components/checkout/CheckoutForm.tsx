@@ -103,6 +103,13 @@ export function CheckoutForm({ orderId, paymentIntentId }: CheckoutFormProps) {
       elements,
       confirmParams: {
         shipping: shippingValue ? toConfirmShipping(shippingValue) : undefined,
+        // PaymentElement is configured with fields.billingDetails.address.country
+        // = 'never' (hidden from the UI, see below) — Stripe still requires this
+        // value to be supplied here when a field is opted out of collection via
+        // `fields`, or confirmPayment throws IntegrationError. Hardcoded to 'PA'
+        // since shipping is already locked to Panama (AddressElement's
+        // allowedCountries).
+        payment_method_data: { billing_details: { address: { country: 'PA' } } },
         return_url: `${window.location.origin}/checkout/success?orderId=${orderId}`,
       },
       // Cards/Google Pay/Apple Pay (the only methods enabled, per
@@ -246,10 +253,10 @@ export function CheckoutForm({ orderId, paymentIntentId }: CheckoutFormProps) {
                 wallets: { link: 'never' },
                 // The billing "País" field is redundant here: shipping is
                 // already locked to Panama (AddressElement's
-                // allowedCountries below), and we don't otherwise collect or
-                // send billing_details, so there's nothing for Stripe to do
-                // with it. 'never' is the documented FieldOption that hides a
-                // PaymentElement subfield entirely.
+                // allowedCountries below). 'never' hides the field from the
+                // UI, but Stripe still requires the value — it's supplied
+                // instead via confirmParams.payment_method_data in
+                // handleSubmit below (hardcoded 'PA', same as shipping).
                 fields: { billingDetails: { address: { country: 'never' } } },
               }}
             />
