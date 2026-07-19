@@ -148,7 +148,8 @@ interface UpdateOrderStatusOptions {
  * the REST endpoint and the MCP tool. Enforces the lifecycle state machine (only
  * valid forward transitions), records the change in the order audit history
  * (OrderEvent, with the acting admin), and applies status side effects — moving
- * to SHIPPED stamps shippedAt and emails the customer (HU-31 notification).
+ * to SHIPPED stamps shippedAt and emails the customer (HU-31 notification), and
+ * moving to DELIVERED emails the customer that their package arrived.
  */
 export async function updateOrderStatus(
   id: string,
@@ -185,6 +186,11 @@ export async function updateOrderStatus(
   // Side effect: notify the customer their order shipped (HU-31 reused here).
   if (targetStatus === 'SHIPPED') {
     notifyCustomerOrderShipped(order, options.trackingNumber)
+  }
+
+  // Side effect: notify the customer their package was delivered.
+  if (targetStatus === 'DELIVERED') {
+    notifyCustomerOrderDelivered(order)
   }
 
   return loadOrderWithItems(id)
@@ -293,6 +299,49 @@ function buildOrderShippedEmailHtml(params: {
       <a href="${ordersUrl}"
          style="background:#84cc16; color:#0f172a; padding:12px 24px; border-radius:9999px;
                 text-decoration:none; font-weight:bold;">Seguir mi orden</a>
+    </p>
+    <p style="color:#94a3b8; font-size:12px;">Gracias por comprar en FITGEAR. — Equipo FITGEAR</p>
+  </div>`
+}
+
+function notifyCustomerOrderDelivered(order: InstanceType<typeof OrderModel>) {
+  const customer = order.userId as unknown as PopulatedOrderCustomer | null
+  const email = typeof order.userId === 'string' ? undefined : customer?.email
+
+  if (!email) {
+    logger.warn('[order-delivered] cannot notify: order has no customer email', {
+      orderId: order._id.toString(),
+    })
+    return
+  }
+
+  const orderId = order._id.toString()
+
+  dispatchNotification({
+    type: 'ORDER_DELIVERED',
+    to: email,
+    orderId,
+    subject: `Tu orden #${orderId.slice(-6).toUpperCase()} fue entregada 📦`,
+    html: buildOrderDeliveredEmailHtml({ name: customer?.fullName, orderId }),
+  })
+}
+
+function buildOrderDeliveredEmailHtml(params: { name?: string; orderId: string }): string {
+  const greeting = params.name ? `Hola ${params.name},` : 'Hola,'
+  const orderNumber = params.orderId.slice(-6).toUpperCase()
+  // Same caveat as the shipped email: no per-order detail page in the
+  // frontend, so this links to the /orders list, not /orders/<id>.
+  const ordersUrl = `${env.frontendUrl}/orders`
+
+  return `
+  <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #0f172a;">
+    <h2 style="color: #4d7c0f;">¡Tu pedido fue entregado!</h2>
+    <p>${greeting}</p>
+    <p>Tu orden <strong>#${orderNumber}</strong> fue entregada. Esperamos que disfrutes tu compra.</p>
+    <p style="margin: 24px 0;">
+      <a href="${ordersUrl}"
+         style="background:#84cc16; color:#0f172a; padding:12px 24px; border-radius:9999px;
+                text-decoration:none; font-weight:bold;">Ver mis pedidos</a>
     </p>
     <p style="color:#94a3b8; font-size:12px;">Gracias por comprar en FITGEAR. — Equipo FITGEAR</p>
   </div>`

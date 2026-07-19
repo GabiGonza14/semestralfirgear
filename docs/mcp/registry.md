@@ -352,7 +352,8 @@ usa el endpoint REST del panel. La máquina de estados
 (`backend/src/utils/orderStatus.ts`) sólo permite transiciones válidas hacia
 adelante (`PAID` nunca es un destino manual: el pago viene de Stripe). Cada cambio
 se audita en `OrderEvent` con el admin que lo hizo, y pasar a `SHIPPED` dispara el
-email de notificación al cliente (HU-31).
+email de notificación al cliente (HU-31); pasar a `DELIVERED` dispara un email
+de entrega confirmada.
 
 **Autenticación:** usa `requireAuthStrict` de `requireAuth.ts` (lanza sin JWT
 válido). Resuelve `clerkUserId → User` vía `UserModel` y **rechaza con 403** si

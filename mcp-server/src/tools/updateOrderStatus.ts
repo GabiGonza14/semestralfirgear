@@ -8,7 +8,8 @@ import { ORDER_LIFECYCLE_STATUSES } from '../../../backend/src/utils/orderStatus
 
 // Admin-facing tool for logistics automation: move an order along its lifecycle
 // (PENDING -> PAID -> SHIPPED -> DELIVERED, or CANCELLED). The backend service
-// enforces the same state machine, audit trail and SHIPPED email as the panel.
+// enforces the same state machine, audit trail and SHIPPED/DELIVERED emails as
+// the panel.
 export const updateOrderStatusInputSchema = z.object({
   orderId: z
     .string()
