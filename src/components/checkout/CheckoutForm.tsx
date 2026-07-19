@@ -244,6 +244,13 @@ export function CheckoutForm({ orderId, paymentIntentId }: CheckoutFormProps) {
                 // which would affect every Stripe integration, not just this
                 // checkout).
                 wallets: { link: 'never' },
+                // The billing "País" field is redundant here: shipping is
+                // already locked to Panama (AddressElement's
+                // allowedCountries below), and we don't otherwise collect or
+                // send billing_details, so there's nothing for Stripe to do
+                // with it. 'never' is the documented FieldOption that hides a
+                // PaymentElement subfield entirely.
+                fields: { billingDetails: { address: { country: 'never' } } },
               }}
             />
           </div>
