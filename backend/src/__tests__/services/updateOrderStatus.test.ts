@@ -70,14 +70,23 @@ describe('updateOrderStatus (HU-42)', () => {
     expect(payload.html).toContain('TRACK-9')
   })
 
-  it('does not email for non-SHIPPED transitions (e.g. SHIPPED -> DELIVERED)', async () => {
+  it('sends the delivery email when moving to DELIVERED', async () => {
     fakeOrder.status = 'SHIPPED'
 
     await updateOrderStatus('order_abcdef', 'DELIVERED', {})
 
     expect(fakeOrder.status).toBe('DELIVERED')
-    expect(mockDispatch).not.toHaveBeenCalled()
     expect(mockEventCreate).toHaveBeenCalledTimes(1)
+    expect(mockDispatch).toHaveBeenCalledTimes(1)
+    const [payload] = mockDispatch.mock.calls[0] as unknown as [
+      { type: string; to: string; orderId: string; html: string },
+    ]
+    expect(payload).toMatchObject({
+      type: 'ORDER_DELIVERED',
+      to: 'buyer@example.com',
+      orderId: 'order_abcdef',
+    })
+    expect(payload.html).toContain('entregada')
   })
 
   it('allows cancelling from PENDING', async () => {
