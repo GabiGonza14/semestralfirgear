@@ -296,8 +296,10 @@ export async function confirmPayment(orderId: string, paymentIntentId?: string) 
   return { status: 'PAID' as const }
 }
 
-// An order can only be refunded from a state where money actually changed hands.
-const REFUNDABLE_STATUSES = new Set(['PAID', 'SHIPPED', 'DELIVERED'])
+// An order can only be refunded while the sale is still in flight (paid but not
+// yet completed). DELIVERED is a finished sale and is intentionally excluded, so
+// a direct API call can't refund a delivered order either.
+const REFUNDABLE_STATUSES = new Set(['PAID', 'SHIPPED'])
 
 interface RefundOrderOptions {
   reason?: string
@@ -326,7 +328,7 @@ export async function refundOrder(orderId: string, options: RefundOrderOptions =
   }
 
   if (!REFUNDABLE_STATUSES.has(order.status)) {
-    throw new HttpError(400, 'Only paid, shipped or delivered orders can be refunded')
+    throw new HttpError(400, 'Only paid or shipped orders can be refunded')
   }
 
   // A SHIPPED order is a real return (goods already left the warehouse), not

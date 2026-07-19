@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { createCategory, deleteCategory, updateCategory } from '../../api/fitgearApi'
 import type { Category, Product } from '../../types'
+import { useAdminNotice } from '../../hooks/useAdminNotice'
+import { AdminNotice } from './AdminNotice'
 import { DeleteConfirmModal } from './DeleteConfirmModal'
 
 const fieldClass =
@@ -24,7 +26,10 @@ interface AdminCategoriesSectionProps {
 
 export function AdminCategoriesSection({ categories, products, onRefresh }: Readonly<AdminCategoriesSectionProps>) {
   const productCountByCategory = useMemo(() => countProductsByCategory(products), [products])
-  const [error, setError] = useState<string | null>(null)
+  // Timed, single-slot confirmation/error banner (10s auto-dismiss, no stacking)
+  // for toggle / rename / delete outcomes. The create form keeps its own inline
+  // validation error (formError) right next to its fields.
+  const { notice, notifySuccess, notifyError, dismiss } = useAdminNotice()
   const [togglingId, setTogglingId] = useState<string | null>(null)
 
   const [name, setName] = useState('')
@@ -46,14 +51,14 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Read
       await updateCategory(category.id, { requiresSizes: !category.requiresSizes })
       await onRefresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar la categoría.')
+      notifyError(err instanceof Error ? err.message : 'No se pudo actualizar la categoría.')
     } finally {
       setTogglingId(null)
     }
   }
 
   const startEdit = (category: Category) => {
-    setError(null)
+    dismiss()
     setEditingId(category.id)
     setEditName(category.name)
     setEditDescription(category.description)
@@ -72,20 +77,22 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Read
     }
 
     if (!editName.trim()) {
-      setError('El nombre es obligatorio.')
+      notifyError('El nombre es obligatorio.')
       return
     }
 
+    const newName = editName.trim()
     setSavingEdit(true)
     try {
       await updateCategory(editingId, {
-        name: editName.trim(),
+        name: newName,
         description: editDescription.trim(),
       })
       cancelEdit()
       await onRefresh()
+      notifySuccess(`La categoría se renombró a "${newName}".`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo renombrar la categoría.')
+      notifyError(err instanceof Error ? err.message : 'No se pudo renombrar la categoría.')
     } finally {
       setSavingEdit(false)
     }
@@ -96,11 +103,16 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Read
       return
     }
 
+    // Capture the name before we clear the selection so the confirmation reads
+    // correctly even after the modal closes.
+    const removedName = deletingCategory.name
     try {
       await deleteCategory(deletingCategory.id)
       setDeletingCategory(null)
       await onRefresh()
+      notifySuccess(`La categoría "${removedName}" se eliminó correctamente.`)
     } catch (err) {
+      // Re-thrown so DeleteConfirmModal surfaces the error inline and stays open.
       const message = err instanceof Error ? err.message : 'No se pudo eliminar la categoría.'
       throw new Error(message)
     }
@@ -115,13 +127,15 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Read
       return
     }
 
+    const createdName = name.trim()
     setCreating(true)
     try {
-      await createCategory({ name: name.trim(), description: description.trim(), requiresSizes })
+      await createCategory({ name: createdName, description: description.trim(), requiresSizes })
       setName('')
       setDescription('')
       setRequiresSizes(false)
       await onRefresh()
+      notifySuccess(`La categoría "${createdName}" se creó correctamente.`)
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'No se pudo crear la categoría.')
     } finally {
@@ -150,11 +164,7 @@ export function AdminCategoriesSection({ categories, products, onRefresh }: Read
           formulario de productos muestre el selector de tallas en vez del stock plano.
         </p>
 
-        {error ? (
-          <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {error}
-          </p>
-        ) : null}
+        <AdminNotice notice={notice} className="mt-4" />
 
         <ul className="mt-5 divide-y divide-slate-100">
             {categories.map((category) => {

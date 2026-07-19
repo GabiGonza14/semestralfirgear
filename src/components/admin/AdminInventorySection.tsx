@@ -3,6 +3,8 @@ import { createProduct, deleteProduct, updateProduct } from '../../api/fitgearAp
 import type { ProductUpsertInput } from '../../api/fitgearApi'
 import { isLowStock } from '../../lib/inventory'
 import type { Category, Product } from '../../types'
+import { useAdminNotice } from '../../hooks/useAdminNotice'
+import { AdminNotice } from './AdminNotice'
 import { InventoryExportControls } from './InventoryExportControls'
 import { InventoryFilters } from './InventoryFilters'
 import { ProductFormModal } from './ProductFormModal'
@@ -30,8 +32,8 @@ export function AdminInventorySection({ products, categories, onRefreshProducts 
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [mutationError, setMutationError] = useState<string | null>(null)
+  // Timed, single-slot confirmation/error banner (10s auto-dismiss, no stacking).
+  const { notice, notifySuccess, notifyError, dismiss } = useAdminNotice()
 
   // HU-46: total low-stock count across the whole catalog (not just the current
   // filter), so the chip's badge stays accurate even while other filters narrow
@@ -88,13 +90,13 @@ export function AdminInventorySection({ products, categories, onRefreshProducts 
   )
 
   const handleCreate = () => {
-    setMutationError(null)
+    dismiss()
     setEditingProduct(null)
     setIsFormOpen(true)
   }
 
   const handleEdit = (product: Product) => {
-    setMutationError(null)
+    dismiss()
     setEditingProduct(product)
     setIsFormOpen(true)
   }
@@ -105,27 +107,27 @@ export function AdminInventorySection({ products, categories, onRefreshProducts 
   }
 
   const handleSubmitProduct = async (payload: ProductUpsertInput) => {
-    setMutationError(null)
+    dismiss()
 
     try {
       if (editingProduct) {
         await updateProduct(editingProduct.id, payload)
-        setSuccessMessage(`"${payload.name}" se actualizó correctamente.`)
+        notifySuccess(`"${payload.name}" se actualizó correctamente.`)
       } else {
         await createProduct(payload)
-        setSuccessMessage(`"${payload.name}" se agregó correctamente.`)
+        notifySuccess(`"${payload.name}" se agregó correctamente.`)
       }
 
       await onRefreshProducts()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo guardar el producto.'
-      setMutationError(message)
+      notifyError(message)
       throw error instanceof Error ? error : new Error(message)
     }
   }
 
   const handleDelete = (product: Product) => {
-    setMutationError(null)
+    dismiss()
     setDeletingProduct(product)
   }
 
@@ -141,11 +143,11 @@ export function AdminInventorySection({ products, categories, onRefreshProducts 
     try {
       await deleteProduct(deletingProduct.id)
       await onRefreshProducts()
-      setSuccessMessage(`"${deletingProduct.name}" se eliminó correctamente.`)
+      notifySuccess(`"${deletingProduct.name}" se eliminó correctamente.`)
       setDeletingProduct(null)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo eliminar el producto.'
-      setMutationError(message)
+      notifyError(message)
       throw error instanceof Error ? error : new Error(message)
     }
   }
@@ -167,17 +169,7 @@ export function AdminInventorySection({ products, categories, onRefreshProducts 
 
       <InventoryExportControls />
 
-      {successMessage ? (
-        <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          {successMessage}
-        </p>
-      ) : null}
-
-      {mutationError ? (
-        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {mutationError}
-        </p>
-      ) : null}
+      <AdminNotice notice={notice} />
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
         <div className="flex flex-wrap items-center gap-3">

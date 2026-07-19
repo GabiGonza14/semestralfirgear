@@ -98,20 +98,26 @@ describe('refundOrder (HU-29)', () => {
     expect(payload.html).toContain('$129.97')
   })
 
-  it('refunds SHIPPED and DELIVERED orders too', async () => {
-    for (const status of ['SHIPPED', 'DELIVERED']) {
-      mockRefundCreate.mockClear()
-      mockSave.mockClear()
-      fakeOrder.status = status
+  it('refunds a SHIPPED order too (with a reason)', async () => {
+    mockRefundCreate.mockClear()
+    mockSave.mockClear()
+    fakeOrder.status = 'SHIPPED'
 
-      // SHIPPED requires a reason (see paymentService.ts's "already shipped"
-      // guard) — DELIVERED doesn't, but passing one for both keeps this loop
-      // uniform instead of branching per status.
-      await refundOrder('order_abcdef', { reason: 'Producto defectuoso' })
+    // SHIPPED requires a reason (see paymentService.ts's "already shipped" guard).
+    await refundOrder('order_abcdef', { reason: 'Producto defectuoso' })
 
-      expect(mockRefundCreate).toHaveBeenCalledTimes(1)
-      expect(fakeOrder.status).toBe('REFUNDED')
-    }
+    expect(mockRefundCreate).toHaveBeenCalledTimes(1)
+    expect(fakeOrder.status).toBe('REFUNDED')
+  })
+
+  it('refuses to refund a DELIVERED order — a completed sale is final', async () => {
+    fakeOrder.status = 'DELIVERED'
+
+    await expect(refundOrder('order_abcdef', { reason: 'Producto defectuoso' })).rejects.toThrow(
+      'Only paid or shipped',
+    )
+    expect(mockRefundCreate).not.toHaveBeenCalled()
+    expect(mockSave).not.toHaveBeenCalled()
   })
 
   it('is idempotent: refuses to refund an already-refunded order', async () => {
@@ -122,10 +128,10 @@ describe('refundOrder (HU-29)', () => {
     expect(mockSave).not.toHaveBeenCalled()
   })
 
-  it('refuses to refund an order that is not paid/shipped/delivered', async () => {
+  it('refuses to refund an order that is not paid or shipped', async () => {
     fakeOrder.status = 'PENDING'
 
-    await expect(refundOrder('order_abcdef', {})).rejects.toThrow('Only paid, shipped or delivered')
+    await expect(refundOrder('order_abcdef', {})).rejects.toThrow('Only paid or shipped')
     expect(mockRefundCreate).not.toHaveBeenCalled()
   })
 

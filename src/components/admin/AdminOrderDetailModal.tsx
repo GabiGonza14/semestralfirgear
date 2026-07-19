@@ -20,9 +20,10 @@ interface AdminOrderDetailModalProps {
   onUpdated: () => void | Promise<void>
 }
 
-// Only orders where money actually changed hands can be refunded (matches the
-// backend guard in refundOrder).
-const REFUNDABLE_STATUSES: OrderStatus[] = ['PAID', 'SHIPPED', 'DELIVERED']
+// A refund is only allowed while the sale is still "in flight" — paid but not
+// yet completed. A DELIVERED order is a finished sale, so it's intentionally
+// excluded here (and rejected by the backend guard in refundOrder).
+const REFUNDABLE_STATUSES: OrderStatus[] = ['PAID', 'SHIPPED']
 
 // Valid manual status transitions — MUST mirror the backend state machine in
 // backend/src/utils/orderStatus.ts (HU-42). PAID is never a manual target.
@@ -219,7 +220,9 @@ function RefundSection({
         <p className="mt-2 text-sm text-slate-500">
           {order.status === 'REFUNDED'
             ? 'Esta orden ya fue reembolsada.'
-            : 'Solo se pueden reembolsar órdenes pagadas, enviadas o entregadas.'}
+            : order.status === 'DELIVERED'
+              ? 'Esta orden ya fue entregada, por lo que no admite reembolso.'
+              : 'Solo se pueden reembolsar órdenes pagadas o enviadas.'}
         </p>
       )}
     </div>

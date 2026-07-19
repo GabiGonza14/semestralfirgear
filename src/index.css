@@ -173,6 +173,19 @@
     outline-offset: 2px;
   }
 
+  /* Hand pointer on everything clickable. The UA default cursor for <button>,
+     [role=button], <select> and <summary> is the arrow (only <a href> gets a
+     pointer), so without this every button in the app — and across the admin
+     panel: editar, eliminar, dropdowns, toggles, iconos — shows the wrong
+     cursor on hover. Zero-specificity :where() so any Tailwind cursor-*
+     utility still wins; disabled controls keep the not-allowed cursor. */
+  :where(a[href], button, [role="button"], summary, select, label[for]):not(:disabled) {
+    cursor: pointer;
+  }
+  :where(button, [role="button"]):disabled {
+    cursor: not-allowed;
+  }
+
   /* Slim, on-brand scrollbar (WebKit). */
   ::-webkit-scrollbar {
     width: 10px;
